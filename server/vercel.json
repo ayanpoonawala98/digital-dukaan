@@ -1,0 +1,5 @@
+{
+  "version": 2,
+  "crons": [{ "path": "/api/internal/purge-expired-stores", "schedule": "0 2 * * *" }],
+  "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
+}

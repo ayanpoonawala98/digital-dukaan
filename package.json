@@ -1,0 +1,1 @@
+{"name":"digital-dukaan","private":true,"workspaces":["server","client"],"scripts":{"dev":"concurrently -k \"npm run dev -w server\" \"npm run dev -w client\"","build":"npm run build -w client","test":"npm run test -w server","seed":"npm run seed -w server"},"devDependencies":{"concurrently":"^9.1.2"}}
