@@ -232,6 +232,8 @@ export default function Dashboard() {
   const [notify, setNotify] = useState({ title: '', body: '' }), [notifyResult, setNotifyResult] = useState('');
   const [broadcastText, setBroadcastText] = useState(''), [broadcastRecipients, setBroadcastRecipients] = useState('');
   const [broadcastImageUrl, setBroadcastImageUrl] = useState(''), [broadcastImageBusy, setBroadcastImageBusy] = useState(false);
+  const selectedStoreRef = React.useRef(storeId); selectedStoreRef.current = storeId;
+  const loadSequence = React.useRef(0);
   const broadcastStoreRef = React.useRef(storeId); broadcastStoreRef.current = storeId;
   const [restaurantOrders, setRestaurantOrders] = useState([]), [coupons, setCoupons] = useState([]), [sales, setSales] = useState(null);
   const [referrals, setReferrals] = useState([]);
@@ -243,25 +245,29 @@ export default function Dashboard() {
   useEffect(() => { reloadStoreLists().catch(e => setError(e.message)).finally(() => setStoreListLoading(false)); }, []);
   const load = async () => {
     if (!storeId) return;
+    const requestStore = storeId, sequence = ++loadSequence.current;
+    const stale = () => String(selectedStoreRef.current) !== String(requestStore) || sequence !== loadSequence.current;
     setLoading(true);
     try {
       if (staffMode) {
         const o = await api(`/owner/${storeId}/overview`, { token });
+        if (stale()) return;
         setData(o); setProducts([]); setCategories([]); setLeads([]);
         if (o.business?.storeType === 'restaurant') {
           const result = await api(`/owner/${storeId}/restaurant-orders`, { token });
-          setRestaurantOrders(result.orders);
+          if (!stale()) setRestaurantOrders(result.orders);
         } else setRestaurantOrders([]);
         return;
       }
       const [o, p, c, l] = await Promise.all([`/owner/${storeId}/overview`, `/owner/${storeId}/products`, `/owner/${storeId}/categories`, `/owner/${storeId}/leads`].map(path => api(path, { token })));
+      if (stale()) return;
       setData(o); setStores(prev => prev.map(store => String(store.id) === String(o.business.id) ? o.business : store)); setProducts(p.products); setCategories(c.categories); setLeads(l.leads);
-      if (!staffMode) { const [cs, ss, st, rr] = await Promise.all([api(`/owner/${storeId}/coupons`, { token }), api(`/owner/${storeId}/sales-summary`, { token }), api(`/owner/${storeId}/staff`, { token }), api(`/owner/${storeId}/referrals`, { token })]); setCoupons(cs.coupons); setSales(ss); setStaff(st.staff); setReferrals(rr.referrals); }
-      if (o.business?.storeType === 'restaurant') { const result = await api(`/owner/${storeId}/restaurant-orders`, { token }); setRestaurantOrders(result.orders); } else setRestaurantOrders([]);
-    } catch (e) { setError(e.message); } finally { setLoading(false); }
+      if (!staffMode) { const [cs, ss, st, rr] = await Promise.all([api(`/owner/${storeId}/coupons`, { token }), api(`/owner/${storeId}/sales-summary`, { token }), api(`/owner/${storeId}/staff`, { token }), api(`/owner/${storeId}/referrals`, { token })]); if (stale()) return; setCoupons(cs.coupons); setSales(ss); setStaff(st.staff); setReferrals(rr.referrals); }
+      if (o.business?.storeType === 'restaurant') { const result = await api(`/owner/${storeId}/restaurant-orders`, { token }); if (!stale()) setRestaurantOrders(result.orders); } else setRestaurantOrders([]);
+    } catch (e) { if (!stale()) setError(e.message); } finally { if (!stale()) setLoading(false); }
   };
   useEffect(() => { setBroadcastImageUrl(''); setBroadcastText(''); setBroadcastRecipients(''); }, [storeId]);
-  useEffect(() => { setTab('overview'); setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); load(); }, [storeId]);
+  useEffect(() => { setTab('overview'); setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setReferrals([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
 
   const flash = msg => { setSuccess(msg); setError(''); setTimeout(() => setSuccess(''), 4000); };
   const action = async (fn, key = 'action') => { if (busy) return; setBusy(true); setActionKey(key); setError(''); try { await fn(); await load(); } catch (e) { setError(e.message); } finally { setBusy(false); setActionKey(''); } };
@@ -321,11 +327,11 @@ export default function Dashboard() {
     });
   };
 
-  const headings = { 'whatsapp-cloud': ['WhatsApp integration.', 'Production connection setup. Customer sends are off.'], overview: ['Your shop at a glance.', 'See what customers are browsing and which requests need your attention.'], products: ['Your products.', 'Keep your collection looking its best.'], categories: ['Categories.', 'Help customers find exactly what they need.'], customers: ['Your customers.', 'Store-scoped contacts and consent records.'], leads: ['WhatsApp orders.', 'Track incoming requests and follow up with customers.'], sales: ['Sales and enquiries.', 'A clear view of recorded restaurant orders and customer enquiries.'], referrals: ['Referrals.', 'Both sides earn 10% only after the shop confirms the referred order.'], staff: ['Staff accounts.', 'Give helpers limited access without sharing your password.'], coupons: ['Coupons.', 'Create discounts customers can use at checkout.'], restaurant: ['Table orders.', 'New restaurant orders arrive here.'], broadcast: ['WhatsApp broadcast.', 'Prepare offers and send them yourself, one recipient at a time.'], notifications: ['Notifications.', 'Reach your customers even after they leave.'], settings: ['Shop settings.', 'Make your corner of the internet yours.'] };
+  const headings = { 'whatsapp-cloud': ['WhatsApp integration.', 'Connected shop inbox and service replies.'], overview: ['Your shop at a glance.', 'See what customers are browsing and which requests need your attention.'], products: ['Your products.', 'Keep your collection looking its best.'], categories: ['Categories.', 'Help customers find exactly what they need.'], customers: ['Your customers.', 'Store-scoped contacts and consent records.'], leads: ['WhatsApp orders.', 'Track incoming requests and follow up with customers.'], sales: ['Sales and enquiries.', 'A clear view of recorded restaurant orders and customer enquiries.'], referrals: ['Referrals.', 'Both sides earn 10% only after the shop confirms the referred order.'], staff: ['Staff accounts.', 'Give helpers limited access without sharing your password.'], coupons: ['Coupons.', 'Create discounts customers can use at checkout.'], restaurant: ['Table orders.', 'New restaurant orders arrive here.'], broadcast: ['WhatsApp broadcast.', 'Prepare offers and send them yourself, one recipient at a time.'], notifications: ['Notifications.', 'Reach your customers even after they leave.'], settings: ['Shop settings.', 'Make your corner of the internet yours.'] };
   const BASE = import.meta.env.VITE_API_URL || '';
   const updateRestaurantOrder = (order, status) => action(async () => { await api(`/owner/${storeId}/restaurant-orders/${order.id}`, { method: 'PATCH', token, body: { status } }); }, `order-${order.id}`);
 
-  return <AdminShell tab={tab} setTab={setTab} stores={stores} storeId={storeId} setStoreId={setStoreId}><div className="admin-content" key={tab}>
+  return <AdminShell tab={tab} setTab={setTab} stores={stores} storeId={storeId} setStoreId={setStoreId}><div className="admin-content" key={`${storeId}:${tab}`}>
     {!storeId ? (storeListLoading ? <LoadSkeleton label="Loading your stores" cards={2}/> : <div className="dashboard-panel empty-state">Create a store to manage your catalog.</div>) : <>
       <div className="page-title"><div><span className="kicker">YOUR WORKSPACE</span><h1>{headings[tab][0]}</h1><p>{headings[tab][1]}</p></div>{tab === 'products' && !staffMode && <div className="page-title-actions"><label className="btn btn-outline btn-file"><Busy active={busy}><FileSpreadsheet size={17}/> {busy ? 'Importing...' : 'Import from Vyapar'}</Busy><input type="file" accept=".csv" onChange={importVyapar} hidden disabled={busy}/></label><button className="btn btn-green" onClick={() => setEditing({ __storeId: storeId })}><Plus size={18}/> Add product</button></div>}</div>
       <Notice error={error} success={success}/>
@@ -410,4 +416,4 @@ export default function Dashboard() {
   </div>
   {editing && <ProductModal categories={categories} product={editing} busy={busy} onClose={() => setEditing(null)} onSave={saveProduct}/>}
   </AdminShell>;
-}
+      }
