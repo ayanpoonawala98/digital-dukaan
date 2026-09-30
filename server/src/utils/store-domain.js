@@ -12,6 +12,8 @@ export const storeUrl = slug => `https://${storeDomain(slug)}`;
 // A project-scoped Vercel token is required. No store is reported as created if
 // its public domain cannot be registered. Existing domains make retries safe.
 export async function registerStoreDomain(slug) {
+  // Subdomain storefronts are disabled: stores live at /store/<slug> on the app origin.
+  if (process.env.STORE_SUBDOMAINS_READY !== 'true') return null;
   const token = process.env.VERCEL_STORE_DOMAIN_TOKEN;
   if (!token) throw new Error('Store domain registration is not configured');
   const name = storeDomain(slug);
@@ -32,6 +34,7 @@ export async function registerStoreDomain(slug) {
 }
 
 export async function unregisterStoreDomain(slug) {
+  if (process.env.STORE_SUBDOMAINS_READY !== 'true') return null;
   const token = process.env.VERCEL_STORE_DOMAIN_TOKEN;
   if (!token) throw new Error('Store domain removal is not configured');
   const name = storeDomain(slug);
