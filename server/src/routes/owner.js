@@ -69,13 +69,13 @@ r.use('/:storeId', wrap(async (req, res, next) => {
   req.store = store;
   if (req.user.role === 'staff') {
     const route = req.path.replace(/^\//, '');
-    const allowed = (req.method === 'GET' && /^(?:overview|restaurant-orders)$/.test(route)) || (req.method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route));
+    const allowed = (req.method === 'GET' && /^(?:overview|restaurant-orders|whatsapp-cloud\/(?:status|messages))$/.test(route)) || (req.method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) || (req.method === 'POST' && route === 'whatsapp-cloud/send');
     if (!allowed) throw bad(403, 'Staff access is read-only except restaurant order status');
   }
   next();
 }));
 
-r.use('/:storeId/whatsapp-cloud', ownerOnly, whatsappCloudOwnerRoutes);
+r.use('/:storeId/whatsapp-cloud', whatsappCloudOwnerRoutes); // owner owns connect/manage; staff may read the inbox and send reviewed replies (allow-list above)
 r.use('/:storeId/customers', ownerOnly, crmRoutes);
 
 r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
