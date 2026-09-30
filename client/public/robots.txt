@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /superadmin
+Disallow: /login
+Sitemap: https://digitaldukaan.space/sitemap.xml

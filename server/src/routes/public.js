@@ -5,6 +5,8 @@ import QRCode from 'qrcode';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, Coupon, Referral } from '../models/index.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
 const r = Router();
+// The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
+const storefrontCache = (req, res, next) => { res.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=10'); next(); };
 const shop = async slug => { const b = await Business.findOne({ where: { slug, active: true, deletedAt: null } }); if (!b) throw bad(404, 'Shop not found'); return b; };
 const numId = value => { const n = Number(value); return Number.isInteger(n) && n > 0 ? n : null; };
 const shopUrl = slug => process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(slug) : `${(process.env.CLIENT_URL || '').split(',')[0].replace(/\/$/, '')}/store/${slug}`;
@@ -38,7 +40,14 @@ r.post('/shop-requests', wrap(async (req, res) => {
 }));
 
 
-r.get('/stores/:slug', wrap(async (req, res) => {
+// Only online, non-deleted shops belong in search discovery.
+r.get('/sitemap-stores', wrap(async (req, res) => {
+  const stores = await Business.findAll({ where: { active: true, deletedAt: null }, attributes: ['slug'], order: [['slug', 'ASC']], limit: 5000 });
+  res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
+  res.json({ slugs: stores.map(store => store.slug) });
+}));
+
+r.get('/stores/:slug', storefrontCache, wrap(async (req, res) => {
   const business = await Business.findOne({ where: { slug: req.params.slug } });
   if (!business || business.deletedAt) throw bad(404, 'Shop not found');
   // Only the storefront metadata endpoint reveals a paused shop. All catalog, QR,
@@ -77,7 +86,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   res.status(201).json({ orderId: order.id, status: order.status, subtotal, discount, total });
 }));
 
-r.get('/stores/:slug/products', wrap(async (req, res) => {
+r.get('/stores/:slug/products', storefrontCache, wrap(async (req, res) => {
   const business = await shop(req.params.slug);
   const where = { businessId: business.id, active: true };
   if (req.query.category) {
@@ -140,8 +149,11 @@ r.get('/stores/:slug/qr', wrap(async (req, res) => {
   const table = Number(req.query.table);
   if (req.query.table !== undefined && (business.storeType !== 'restaurant' || !Number.isInteger(table) || table < 1 || table > business.tableCount)) throw bad(400, 'Invalid restaurant table');
   const destination = req.query.table === undefined ? shopUrl(business.slug) : `${shopUrl(business.slug)}?table=${table}`;
-  const svg = await QRCode.toString(destination, { type: 'svg', margin: 1, width: 512, color: { dark: '#1a1a1a', light: '#ffffff' } });
-  res.type('image/svg+xml').send(svg);
+  // Embed a small branded mark in a high-correction QR; the generated PNG is
+  // scaled from QR modules rather than SVG strokes so phones can scan it.
+  const png = await QRCode.toBuffer(destination, { type: 'png', margin: 4, width: 1024, errorCorrectionLevel: 'H', color: { dark: '#162b1d', light: '#ffffff' } });
+  const mark = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><image x="0" y="0" width="512" height="512" href="data:image/png;base64,${png.toString('base64')}"/><rect x="235" y="235" width="42" height="42" rx="8" fill="#ffffff"/><rect x="239" y="239" width="34" height="34" rx="6" fill="#0e9f6e"/><text x="256" y="262" text-anchor="middle" font-size="15" font-family="Arial,sans-serif" font-weight="bold" fill="white">DD</text></svg>`;
+  res.type('image/svg+xml').send(mark);
 }));
 
 r.get('/stores/:slug/push-key', wrap(async (req, res) => {

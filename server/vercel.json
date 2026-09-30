@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "regions": ["sin1"],
   "crons": [{ "path": "/api/internal/purge-expired-stores", "schedule": "0 2 * * *" }],
   "rewrites": [{ "source": "/(.*)", "destination": "/api" }]
 }

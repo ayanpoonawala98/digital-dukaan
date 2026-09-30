@@ -9,6 +9,7 @@ import ProductPage from './pages/ProductPage.jsx';
 import Dashboard from './pages/Dashboard.jsx';
 import SuperAdmin from './pages/SuperAdmin.jsx';
 import { hostedStoreSlug } from './lib/store-domain.js';
+import Motion from './components/Motion.jsx';
 
 const Auth = createContext(null);
 export const useAuth = () => useContext(Auth);
@@ -26,7 +27,7 @@ function Guard({ role, children }) {
 
 export default function App() {
   const hostedSlug = hostedStoreSlug();
-  return <ThemeProvider><AuthProvider><Routes>
+  return <ThemeProvider><AuthProvider><Motion/><Routes>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
     <Route path="/signup" element={<ShopRequest/>}/>

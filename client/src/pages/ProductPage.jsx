@@ -1,3 +1,6 @@
+import { storeThemeStyle } from '../lib/store-theme.js';
+import { useTheme } from '../theme.jsx';
+import ProductGallery from '../components/ProductGallery.jsx';
 import React, { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowUpRight, Clock, Copy, Heart, MessageCircle, Minus, Package, Plus, ShoppingBag } from 'lucide-react';
@@ -22,6 +25,7 @@ function BuyButton({ slug, id, qty, children }) {
 export default function ProductPage({ hostedSlug }) {
   const { slug: pathSlug, id } = useParams();
   const slug = hostedSlug || pathSlug;
+  const { theme } = useTheme();
   const [data, setData] = useState(null), [error, setError] = useState(''), [copied, setCopied] = useState(false), [qty, setQtyState] = useState(1);
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
@@ -32,16 +36,12 @@ export default function ProductPage({ hostedSlug }) {
   const out = !isService && product.stock === 0;
   const restaurant = business.storeType === 'restaurant';
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
-  return <div className="page-fade" style={business.accentColor ? { '--accent': business.accentColor } : undefined}>
+  return <div className="page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
     <Header shop={slug}/>
     <main className="detail-wrap"><div className="container">
       <div className="breadcrumbs"><Link to={storePath(slug)}>{business.name}</Link><span>/</span><span>{product.category?.name || 'Products'}</span><span>/</span><span>{product.name}</span></div>
       <div className="detail-grid">
-        <div className="detail-image anim-scale">{product.imageUrl ? <img src={imageSrc(product.imageUrl)} alt={product.name}/> : <Package size={80}/>}
-          {out && <span className="chip chip-out">Out of stock</span>}
-          {low && <span className="chip chip-low">Only {product.stock} left</span>}
-          {isService && <span className="chip chip-service">{product.duration || 'Service'}</span>}
-        </div>
+        <ProductGallery product={product}/>
         <div className="detail-info anim-up">
           <span className="kicker">{product.category?.name || 'THE COLLECTION'}</span>
           <h1>{product.name}<span className="accent-dot">.</span></h1>

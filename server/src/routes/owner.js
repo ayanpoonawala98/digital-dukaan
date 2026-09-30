@@ -8,6 +8,7 @@ import bcrypt from 'bcryptjs';
 import { uploadImageKit } from '../utils/imagekit.js';
 import { registerStoreDomain, storeDomain } from '../utils/store-domain.js';
 import PDFDocument from 'pdfkit';
+import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, Coupon, Referral } from '../models/index.js';
 import { auth, roles } from '../middleware/auth.js';
@@ -73,6 +74,8 @@ r.use('/:storeId', wrap(async (req, res, next) => {
   next();
 }));
 
+r.use('/:storeId/customers', ownerOnly, crmRoutes);
+
 r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
   if (req.body?.slug !== req.store.slug) throw bad(400, 'Enter the exact store link to remove it');
   const deletedAt = new Date();
@@ -115,7 +118,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -130,6 +133,14 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
     if (changes[key] !== undefined) changes[key] = changes[key] === '' || changes[key] === null ? (key === 'freeDeliveryAbove' ? null : 0) : Number(changes[key]);
   }
   if (changes.offerPopupText !== undefined && (typeof changes.offerPopupText !== 'string' || changes.offerPopupText.length > 220)) throw bad(400, 'Offer text must be at most 220 characters');
+  for (const [key, max] of [['offerPopupTitle', 90], ['offerPopupCtaText', 40]]) if (changes[key] !== undefined && (typeof changes[key] !== 'string' || changes[key].length > max)) throw bad(400, 'Offer title or button is too long');
+  if (changes.offerPopupCtaUrl !== undefined) {
+    if (typeof changes.offerPopupCtaUrl !== 'string' || changes.offerPopupCtaUrl.length > 500 || (changes.offerPopupCtaUrl && !/^https:\/\/[^\s]+$/i.test(changes.offerPopupCtaUrl))) throw bad(400, 'Use a secure https:// offer link');
+  }
+  if (changes.offerPopupActive && !(changes.offerPopupText ?? req.store.offerPopupText)?.trim()) throw bad(400, 'Write an offer message before enabling the popup');
+  const ctaText = changes.offerPopupCtaText ?? req.store.offerPopupCtaText;
+  const ctaUrl = changes.offerPopupCtaUrl ?? req.store.offerPopupCtaUrl;
+  if (!!ctaText?.trim() !== !!ctaUrl?.trim()) throw bad(400, 'Provide both a button label and its link, or leave both blank');
   if (changes.offerPopupImageUrl !== undefined && changes.offerPopupImageUrl && (!/^https:\/\/ik\.imagekit\.io\//.test(changes.offerPopupImageUrl) || changes.offerPopupImageUrl.length > 255)) throw bad(400, 'Use an ImageKit image');
   for (const key of ['bannerActive', 'offerPopupActive', 'isOpen']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
   if (changes.accentColor !== undefined && !/^$|^#[0-9a-fA-F]{6}$/.test(changes.accentColor)) throw bad(400, 'Accent color must be a hex color like #0e9f6e');
@@ -191,6 +202,14 @@ async function productFields(req) {
   if (fields.active !== undefined) fields.active = Boolean(fields.active);
   if (fields.featured !== undefined) fields.featured = Boolean(fields.featured);
   if (fields.imageUrl && !(/^https?:\/\//i.test(fields.imageUrl) || fields.imageUrl.startsWith('/uploads/'))) throw bad(400, 'Image must be an HTTP(S) URL or uploaded image');
+  if (Object.hasOwn(req.body, 'imageUrls')) {
+    const images = req.body.imageUrls;
+    if (!Array.isArray(images) || images.length > 5 || images.some(url => typeof url !== 'string' || url.length > 2048 || !(/^(https?:\/\/|\/uploads\/)/i.test(url)))) throw bad(400, 'Add up to 5 valid photo URLs');
+    if (new Set(images).size !== images.length) throw bad(400, 'Duplicate photos are not allowed');
+    fields.imageUrls = images;
+    fields.imageUrl = images[0] || '';
+  }
+  if (fields.imageUrl !== undefined && fields.imageUrls === undefined) fields.imageUrls = fields.imageUrl ? [fields.imageUrl] : [];
   if (Object.hasOwn(req.body, 'category')) {
     const category = await Category.findOne({ where: { id: numId(req.body.category, 'category ID'), businessId: bid(req) } });
     if (!category) throw bad(400, 'Choose one of your shop categories');
@@ -223,7 +242,7 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 *
 r.post('/:storeId/upload', upload.single('image'), wrap(async (req, res) => {
   if (!req.file) throw bad(400, 'Choose a JPEG, PNG or WebP image under 5 MB');
   if (process.env.IMAGEKIT_PRIVATE_KEY) {
-    const imageUrl = await uploadImageKit(req.file.buffer, `${randomUUID()}${({ 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' })[req.file.mimetype]}`, `/digital-dukaan/${bid(req)}`);
+    const imageUrl = await uploadImageKit(req.file.buffer, `${randomUUID()}${({ 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' })[req.file.mimetype]}`, `${process.env.IMAGEKIT_UPLOAD_ROOT || "/digital-dukaan"}/${bid(req)}`);
     return res.status(201).json({ imageUrl });
   }
   if (process.env.VERCEL) throw bad(503, 'Image hosting is not configured');
@@ -255,30 +274,33 @@ r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
   doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ddd').stroke();
   doc.moveDown(0.5);
   const items = Array.isArray(lead.items) && lead.items.length ? lead.items : [{ name: lead.productName, qty: 1, price: lead.price }];
-  doc.fontSize(10).fillColor('#666').text('ITEM', 50, doc.y, { continued: true }).text('QTY', 330).text('PRICE', 400).text('AMOUNT', 470);
-  doc.moveDown(0.4);
+  let y = doc.y;
+  const row = (name, qty, price, amount, header = false) => {
+    doc.fontSize(10).fillColor(header ? '#666' : '#000');
+    doc.text(String(name), 50, y, { width: 265 });
+    doc.text(String(qty), 325, y, { width: 50, align: 'right' });
+    doc.text(String(price), 390, y, { width: 70, align: 'right' });
+    doc.text(String(amount), 470, y, { width: 75, align: 'right' });
+    y += 28;
+  };
+  row('ITEM', 'QTY', 'PRICE', 'AMOUNT', true);
   let subtotal = 0;
   for (const item of items) {
+    if (y > 690) { doc.addPage(); y = 50; row('ITEM', 'QTY', 'PRICE', 'AMOUNT', true); }
     const qty = Number(item.qty) || 1, price = Number(item.price) || 0, amount = qty * price;
     subtotal += amount;
-    doc.fontSize(10).fillColor('#000').text(String(item.name).slice(0, 45), 50, doc.y, { continued: true, width: 270 });
-    doc.text(String(qty), 330, doc.y - 12, { width: 60 });
-    doc.text(`Rs.${price.toFixed(2)}`, 400, doc.y - 12, { width: 65 });
-    doc.text(`Rs.${amount.toFixed(2)}`, 470, doc.y - 12, { width: 75 });
-    doc.moveDown(0.3);
+    row(String(item.name).slice(0, 45), qty, `Rs.${price.toFixed(2)}`, `Rs.${amount.toFixed(2)}`);
   }
-  doc.moveDown(0.5);
-  doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ddd').stroke();
-  doc.moveDown(0.5);
-  doc.fontSize(10).fillColor('#666').text('Subtotal', 400).fontSize(11).fillColor('#000').text(`Rs.${subtotal.toFixed(2)}`, 470, doc.y - 12);
-  if (shop.deliveryCharge > 0 || lead.price !== subtotal) {
-    const delivery = Math.max(0, lead.price - subtotal);
-    doc.fontSize(10).fillColor('#666').text('Delivery', 400).fontSize(11).fillColor('#000').text(delivery > 0 ? `Rs.${delivery.toFixed(2)}` : 'FREE', 470, doc.y - 12);
-  }
-  doc.moveDown(0.6);
-  doc.fontSize(13).text('Total', 400).fontSize(13).text(`Rs.${Number(lead.price).toFixed(2)}`, 470, doc.y - 16);
-  doc.moveDown(3);
-  doc.fontSize(8).fillColor('#999').text('This is an estimate generated from a WhatsApp enquiry on Digital Dukaan. It is not a tax invoice. Prices confirmed on WhatsApp at order time.', { align: 'center' });
+  if (y > 620) { doc.addPage(); y = 50; }
+  doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke(); y += 16;
+  const totalRow = (label, amount) => { doc.fontSize(11).fillColor('#000').text(label, 330, y, { width:130 }); doc.text(amount, 470, y, {width:75,align:'right'}); y += 24; };
+  totalRow('Subtotal', `Rs.${subtotal.toFixed(2)}`);
+  const discount = Math.max(0, Number(lead.discount) || 0);
+  if (discount) totalRow(`Discount${lead.couponCode ? ` (${lead.couponCode})` : ''}`, `-Rs.${discount.toFixed(2)}`);
+  const delivery = Math.max(0, Number(lead.price) - subtotal + discount);
+  if (Array.isArray(lead.items) && lead.items.length) totalRow('Delivery', delivery > 0 ? `Rs.${delivery.toFixed(2)}` : 'FREE');
+  totalRow('Total', `Rs.${Number(lead.price).toFixed(2)}`);
+  doc.fontSize(8).fillColor('#777').text('This is an estimate generated from a WhatsApp enquiry on Digital Dukaan. It is not a tax invoice. Prices confirmed on WhatsApp at order time.', 50, y + 30, { width: 495, align: 'center' });
   doc.end();
 }));
 
@@ -383,6 +405,12 @@ r.get('/:storeId/export/vyapar.csv', wrap(async (req, res) => {
     for (const item of items) {
       rows.push([csvCell(date), csvCell(`DD-${lead.id}`), csvCell(lead.customerPhone ? 'WhatsApp Customer' : 'WhatsApp Customer'), csvCell(lead.customerPhone || ''), csvCell(item.name), csvCell(Number(item.qty) || 1), csvCell('PCS'), csvCell((Number(item.price) || 0).toFixed(2)), csvCell(((Number(item.qty) || 1) * (Number(item.price) || 0)).toFixed(2)), csvCell(lead.status), csvCell('Ordered via WhatsApp storefront')].join(','));
     }
+    const subtotal = items.reduce((sum, item) => sum + (Number(item.qty) || 1) * (Number(item.price) || 0), 0);
+    const discount = Math.max(0, Number(lead.discount) || 0);
+    const delivery = Math.max(0, Number(lead.price) - subtotal + discount);
+    const adjustment = (name, amount) => rows.push([csvCell(date), csvCell(`DD-${lead.id}`), csvCell('WhatsApp Customer'), csvCell(lead.customerPhone || ''), csvCell(name), csvCell(1), csvCell('ADJUSTMENT'), csvCell(amount.toFixed(2)), csvCell(amount.toFixed(2)), csvCell(lead.status), csvCell('Order adjustment, not a product or tax invoice')].join(','));
+    if (discount) adjustment(`Coupon discount${lead.couponCode ? ` (${lead.couponCode})` : ''}`, -discount);
+    if (delivery) adjustment('Delivery charge', delivery);
   }
   res.setHeader('Content-Type', 'text/csv; charset=utf-8');
   res.setHeader('Content-Disposition', `attachment; filename="vyapar-sales-${req.store.slug}.csv"`);

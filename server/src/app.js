@@ -13,6 +13,7 @@ import publicRoutes from './routes/public.js';
 import ownerRoutes from './routes/owner.js';
 import adminRoutes from './routes/admin.js';
 import { purgeExpiredStore } from './retention.js';
+import { whatsappWebhook } from './whatsapp-cloud.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -23,6 +24,7 @@ app.use(cors({ origin(origin, callback) {
   if (!origin || allowedOrigins.includes(origin) || /^https:\/\/[a-z0-9]+(?:-[a-z0-9]+)*\.digitaldukaan\.space$/.test(origin)) return callback(null, true);
   callback(null, false);
 } }));
+app.use('/api/integrations/whatsapp/webhook', whatsappWebhook);
 app.use(express.json({ limit: '100kb' }));
 app.use('/uploads', express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../uploads')));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false } }), authRoutes);

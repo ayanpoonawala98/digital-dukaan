@@ -1,12 +1,16 @@
+import { storeThemeStyle } from '../lib/store-theme.js';
+import { useTheme } from '../theme.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, MapPin, MessageCircle, Minus, Package, Plus, QrCode, Search, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCircle, Download, Minus, Package, Plus, QrCode, Search, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react';
 import { api, imageSrc, inr } from '../lib/api.js';
 import { storeLink, storePath } from '../lib/store-domain.js';
 import { translate } from '../lib/i18n.js';
 import RestaurantCheckout from '../components/RestaurantCheckout.jsx';
 import { useCart, useOrders, useWishlist } from '../lib/shop.js';
 import { Footer, Header } from '../components/chrome.jsx';
+import LoadSkeleton from '../components/LoadSkeleton.jsx';
+import OfferPopup from '../components/OfferPopup.jsx';
 
 function useShop(slug) {
   const [shop, setShop] = useState(null), [error, setError] = useState('');
@@ -55,6 +59,30 @@ function PushPrompt({ slug, business }) {
       : <><Bell size={20}/><div><strong>Never miss fresh stock</strong><p>Get offers and new arrivals from {business.name} as notifications.</p></div>
         <div className="push-actions"><button className="btn btn-green btn-small" onClick={subscribe}>Notify me</button><button className="btn-ghost" onClick={dismiss}>Not now</button></div></>}
   </div>;
+}
+
+function InstallApp({ name }) {
+  const [prompt, setPrompt] = useState(null);
+  const [installed, setInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
+  const [instructions, setInstructions] = useState(false);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const capture = event => { event.preventDefault(); setPrompt(event); };
+    const finish = () => { setInstalled(true); setPrompt(null); setInstructions(false); };
+    window.addEventListener('beforeinstallprompt', capture);
+    window.addEventListener('appinstalled', finish);
+    return () => { window.removeEventListener('beforeinstallprompt', capture); window.removeEventListener('appinstalled', finish); };
+  }, []);
+  if (installed) return null;
+  const install = async () => {
+    if (!prompt) { setInstructions(value => !value); return; }
+    setBusy(true);
+    try { await prompt.prompt(); await prompt.userChoice; setPrompt(null); }
+    catch { setInstructions(true); }
+    finally { setBusy(false); }
+  };
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return <div className="install-app"><button type="button" className="chip-btn" disabled={busy} onClick={install} aria-expanded={instructions}><Download size={16}/>{busy ? 'Opening install...' : 'Install app'}</button>{instructions && <div className="install-guide" role="status"><strong>Put {name} on your home screen</strong><span>{ios ? 'In Safari, tap Share, then Add to Home Screen.' : 'In your browser menu, choose Install app or Add to Home screen.'}</span><button type="button" onClick={() => setInstructions(false)} aria-label="Close install instructions"><X size={15}/></button></div>}</div>;
 }
 
 function QrModal({ slug, business, onClose }) {
@@ -146,13 +174,27 @@ function WishlistDrawer({ slug, wishlist, open, onClose }) {
   </div>;
 }
 
+function animateToCart(source) {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const target = document.querySelector('.cart-fab') || document.querySelector('.header .cart-badge');
+  const start = source?.getBoundingClientRect(), end = target?.getBoundingClientRect();
+  if (!start || !end) return;
+  const bubble = document.createElement('span');
+  bubble.className = 'cart-fly'; bubble.textContent = '+1';
+  bubble.style.left = `${start.left + start.width / 2}px`; bubble.style.top = `${start.top + start.height / 2}px`;
+  document.body.appendChild(bubble);
+  const animation = bubble.animate([{ opacity:1, transform:'translate(-50%,-50%) scale(1)' }, { opacity:.8, transform:`translate(${end.left + end.width / 2 - start.left - start.width / 2}px, ${end.top + end.height / 2 - start.top - start.height / 2}px) scale(.35)` }], { duration:650, easing:'cubic-bezier(.22,1,.36,1)' });
+  animation.onfinish = () => bubble.remove(); setTimeout(() => bubble.remove(), 800);
+}
+
 function ProductCard({ product, slug, wishlist, cart, index }) {
   const out = product.stock === 0;
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
   return <article className={`product-card anim-up ${out ? 'sold-out' : ''}`} style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
     <Link to={storePath(slug, product.id)} className="product-img">
       {product.imageUrl ? <img src={imageSrc(product.imageUrl)} alt={product.name} loading="lazy"/> : <span><Package size={40}/></span>}
-      {product.featured && <span className="chip chip-star"><Star size={12}/> Popular</span>}
+      {product.featured && <span className="chip chip-star"><Star size={12}/> Bestseller</span>}
+      {!product.featured && Date.now() - new Date(product.createdAt).getTime() < 30 * 86400000 && <span className="chip chip-new">New</span>}
       {product.kind === 'service' && <span className="chip chip-service">{product.duration || 'Service'}</span>}
       {product.kind !== 'service' && out && <span className="chip chip-out">Out of stock</span>}
       {product.kind !== 'service' && low && <span className="chip chip-low">Only {product.stock} left</span>}
@@ -165,7 +207,7 @@ function ProductCard({ product, slug, wishlist, cart, index }) {
       <div className="product-bottom">
         <b>{inr(product.price)}</b>
         <div className="product-actions">
-          {(!out || product.kind === 'service') && <button className="icon-btn cart-add" onClick={() => cart.add(product)} aria-label={`Add ${product.name} to cart`}><ShoppingBag size={16}/></button>}
+          {(!out || product.kind === 'service') && <button className="icon-btn cart-add" onClick={e => { animateToCart(e.currentTarget); cart.add(product); }} aria-label={`Add ${product.name} to cart`}><ShoppingBag size={16}/></button>}
           <Link className="round-arrow" aria-label={`View ${product.name}`} to={storePath(slug, product.id)}><ArrowUpRight size={19}/></Link>
         </div>
       </div>
@@ -178,6 +220,7 @@ function StoreClosed() { return <ShoppingBag size={42} aria-hidden="true"/>; }
 export default function ShopPage({ hostedSlug }) {
   const { slug: pathSlug } = useParams();
   const slug = hostedSlug || pathSlug;
+  const { theme } = useTheme();
   const { shop, error } = useShop(slug);
   const [products, setProducts] = useState([]), [search, setSearch] = useState(''), [category, setCategory] = useState(''), [loading, setLoading] = useState(true);
   const [lang, setLang] = useState(() => { try { return localStorage.getItem('dd-language') || 'en'; } catch { return 'en'; } });
@@ -195,16 +238,14 @@ export default function ShopPage({ hostedSlug }) {
     return () => { active = false; clearTimeout(t); };
   }, [slug, search, category, shop?.paused]);
 
-  useEffect(() => { if (!shop?.business?.offerPopupActive || !shop.business.offerPopupText) return; const key = `dd-offer-seen-${slug}-${shop.business.offerPopupText}`; if (sessionStorage.getItem(key)) return; const timer = setTimeout(() => setOfferOpen(true), 1100); return () => clearTimeout(timer); }, [shop, slug]);
-  const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}-${shop.business.offerPopupText}`, 'yes'); } catch {} setOfferOpen(false); };
+  useEffect(() => { if (!shop?.business?.offerPopupActive || !shop.business.offerPopupText) return; const key = `dd-offer-seen-${slug}`; try { if (sessionStorage.getItem(key)) return; } catch {} const timer = setTimeout(() => setOfferOpen(true), 1100); return () => clearTimeout(timer); }, [shop, slug]);
+  const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}`, 'yes'); } catch {} setOfferOpen(false); };
 
   if (error) return <><Header/><div className="container empty-state page-fade"><h2>Shop not found</h2><p>{error}</p><Link to="/">Back home</Link></div></>;
-  if (!shop) return <div className="container empty-state">Loading shop...</div>;
+  if (!shop) return <><Header/><main className="container storefront-loading"><LoadSkeleton label="Loading shop" cards={2} rows={3}/></main></>;
   if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} is temporarily closed</h1><p>This shop is paused right now. Please check back later.</p><Link className="btn btn-green" to="/">Back home</Link></main><Footer/></>;
   const { business, categories } = shop;
-  const accent = business.accentColor || '';
-
-  return <div className="shop-root page-fade" style={accent ? { '--accent': accent } : undefined}>
+  return <div className="shop-root page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
     <Header shop={slug}/>
     {business.bannerActive && business.bannerText && <div className="offer-banner"><div className="offer-track"><span>{business.bannerText}</span><span aria-hidden="true">{business.bannerText}</span></div></div>}
     <main>
@@ -219,6 +260,7 @@ export default function ShopPage({ hostedSlug }) {
           <div className="store-banner-bottom">
             <span><MapPin size={15}/> {business.location || 'Made with care'}</span>
             <div className="store-banner-actions">
+              <InstallApp name={business.name}/>
               <button className="chip-btn" onClick={() => setQrOpen(true)}><QrCode size={16}/> Share shop</button>
               <button className="chip-btn" onClick={() => setWishOpen(true)}><Heart size={16}/> Favorites {wishlist.ids.length > 0 && `(${wishlist.ids.length})`}</button>
             </div>
@@ -244,11 +286,11 @@ export default function ShopPage({ hostedSlug }) {
           <button className="btn btn-outline btn-small" onClick={() => { order.items.forEach(item => cart.add(item, item.qty)); setCartOpen(true); }}>Repeat order</button>
         </div>)}</div>
       </div>}
-      <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : 'GOOD THINGS START WITH A CONVERSATION ✳'}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>Like something? <em>Let's talk.</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : "Pick a product and message us on WhatsApp. We'd love to hear from you."}</p></div></div>
+      <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : 'GOOD THINGS START WITH A CONVERSATION ✳'}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>Like something? <em>Let's talk.</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : "Pick a product and message us on WhatsApp. We'd love to hear from you."}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> Call owner</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> WhatsApp message</a></div></div></div>
     </main>
     <Footer><span>{business.name} · Powered by Digital Dukaan</span></Footer>
     {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span className="cart-badge">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
-    {offerOpen && <div className="modal-overlay" role="dialog" aria-modal="true" aria-label="Offer from this store"><div className="modal offer-popup"><button className="modal-close" onClick={dismissOffer} aria-label="Close offer"><X/></button>{business.offerPopupImageUrl && <img src={imageSrc(business.offerPopupImageUrl)} alt="Store offer"/>}<span className="kicker">A SPECIAL OFFER</span><h2>{business.name}</h2><p>{business.offerPopupText}</p><button className="btn btn-green" onClick={dismissOffer}>Browse store</button></div></div>}
+    {offerOpen && <OfferPopup business={business} onClose={dismissOffer}/>}
     {business.storeType === 'restaurant' ? <RestaurantCheckout slug={slug} business={business} cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/> : <CartDrawer slug={slug} business={business} cart={cart} orders={orders} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/>}
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
     {qrOpen && <QrModal slug={slug} business={business} onClose={() => setQrOpen(false)}/>}
