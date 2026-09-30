@@ -8,7 +8,7 @@ test('service window never permits future, expired or invalid inbound timestamps
  const now=Date.now();assert.equal(serviceWindowOpen(new Date(now-1000),now),true);assert.equal(serviceWindowOpen(new Date(now-86400000),now),false);assert.equal(serviceWindowOpen(new Date(now+1000),now),false);assert.equal(serviceWindowOpen('invalid',now),false);
 });
 test('Cloud transport uses configured sender and fixed Graph origin, no templates or preview',async()=>{
- process.env.WHATSAPP_PHONE_NUMBER_ID='123';process.env.WHATSAPP_GRAPH_VERSION='v26.0';process.env.WHATSAPP_ACCESS_TOKEN='test-only';
+ process.env.WHATSAPP_INTEGRATION_BUSINESS_ID='7';process.env.WHATSAPP_PHONE_NUMBER_ID='123';process.env.WHATSAPP_GRAPH_VERSION='v26.0';process.env.WHATSAPP_ACCESS_TOKEN='test-only';
  const id=await sendCloudText('919999999999','Test',async(url,opts)=>{
  assert.equal(url,'https://graph.facebook.com/v26.0/123/messages');assert.equal(opts.headers.authorization,'Bearer test-only');assert.deepEqual(JSON.parse(opts.body),{messaging_product:'whatsapp',recipient_type:'individual',to:'919999999999',type:'text',text:{body:'Test',preview_url:false}});return {ok:true,json:async()=>({messages:[{id:'wamid.test'}]})};});assert.equal(id,'wamid.test');
  await assert.rejects(sendCloudText('919999999999','Test',async()=>({ok:false,json:async()=>({error:{code:190,message:'sensitive'}})})),err=>err.metaCode===190&&!err.message.includes('sensitive'));
