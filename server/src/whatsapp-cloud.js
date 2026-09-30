@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 import { DataTypes } from 'sequelize';
 import { sequelize } from './db.js';
 import { bad, wrap } from './utils/core.js';
+import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
@@ -55,14 +56,15 @@ export function serviceWindowOpen(date, now = Date.now()) {
   return Number.isFinite(t) && t <= now && now - t < 24 * 60 * 60 * 1000;
 }
 export async function persistWhatsAppEvents(payload) {
-  if (!bound()) return;
+  if (!bound() && process.env.WHATSAPP_MULTI_MERCHANT_ENABLED!=='true') return;
   await ensureSchema();
-  const businessId = Number(process.env.WHATSAPP_INTEGRATION_BUSINESS_ID), phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
   for (const entry of payload.entry || []) {
-    if (String(entry.id) !== process.env.WHATSAPP_WABA_ID) continue;
     for (const change of entry.changes || []) {
       const value = change.value;
-      if (change.field !== 'messages' || String(value?.metadata?.phone_number_id) !== phoneNumberId) continue;
+      if (change.field !== 'messages' || !value?.metadata?.phone_number_id) continue;
+      const connection=await connectionForEvent(entry.id,value.metadata.phone_number_id);
+      if(!connection)continue;
+      const {businessId,phoneNumberId}=connection;
       for (const message of value.messages || []) {
         const eventAt = new Date(Number(message.timestamp) * 1000);
         if (!message.id || !/^[1-9]\d{7,14}$/.test(message.from || '') || !Number.isFinite(eventAt.getTime()) || eventAt.getTime() > Date.now() + 60000) continue;
@@ -77,22 +79,29 @@ export async function persistWhatsAppEvents(payload) {
     }
   }
 }
-export async function sendCloudText(to, text, fetcher = fetch) {
-  const result = await fetcher(`https://graph.facebook.com/${process.env.WHATSAPP_GRAPH_VERSION}/${process.env.WHATSAPP_PHONE_NUMBER_ID}/messages`, {method:'POST',headers:{authorization:`Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,'content-type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',recipient_type:'individual',to,type:'text',text:{body:text,preview_url:false}}),signal:AbortSignal.timeout(15000)});
+export async function sendCloudText(to, text, fetcher = fetch, connection = legacyConnection()) {
+  if(!connection)throw bad(503,'No connected sender');
+  const result = await fetcher(`https://graph.facebook.com/${process.env.WHATSAPP_GRAPH_VERSION}/${connection.phoneNumberId}/messages`, {method:'POST',headers:{authorization:`Bearer ${connectionToken(connection)}`,'content-type':'application/json'},body:JSON.stringify({messaging_product:'whatsapp',recipient_type:'individual',to,type:'text',text:{body:text,preview_url:false}}),signal:AbortSignal.timeout(15000)});
   const body = await result.json().catch(()=>({}));
   if (!result.ok || !body.messages?.[0]?.id) { const err = bad(502,'Meta did not accept the message'); err.metaCode = body.error?.code; throw err; }
   return body.messages[0].id;
 }
 export const whatsappCloudOwnerRoutes = Router();
 whatsappCloudOwnerRoutes.use((req,res,next) => {
-  if (process.env.WHATSAPP_INTEGRATION_UI_ENABLED !== 'true' || String(req.store?.ownerId) !== String(process.env.WHATSAPP_INTEGRATION_OWNER_ID || '') || (bound() && String(req.store?.id) !== String(process.env.WHATSAPP_INTEGRATION_BUSINESS_ID))) return res.status(404).json({error:'Integration not available for this shop'});
+  if (process.env.WHATSAPP_INTEGRATION_UI_ENABLED !== 'true' || (process.env.WHATSAPP_MULTI_MERCHANT_ENABLED !== 'true' && (String(req.store?.ownerId) !== String(process.env.WHATSAPP_INTEGRATION_OWNER_ID || '') || (bound() && String(req.store?.id) !== String(process.env.WHATSAPP_INTEGRATION_BUSINESS_ID))))) return res.status(404).json({error:'Integration not available for this shop'});
   next();
 });
 export function integrationStatus() {
   return {mode:'production',cloudEnabled:enabled(),outboundEnabled:outbound(),testSendEnabled:false,broadcastEnabled:false,callback:process.env.WHATSAPP_WEBHOOK_CALLBACK_URL || null,webhookConfigured:Boolean(process.env.META_APP_SECRET && process.env.WHATSAPP_VERIFY_TOKEN),merchantConnected:bound(),inboxEnabled:enabled() && bound(),sender:bound() ? process.env.WHATSAPP_DISPLAY_PHONE || null : null};
 }
-whatsappCloudOwnerRoutes.get('/status',(_,res)=>res.json(integrationStatus()));
-whatsappCloudOwnerRoutes.get('/webhook-readiness',async(_,res)=>{
+installSignupRoutes(whatsappCloudOwnerRoutes);
+export function merchantStatus(connection) {
+  const connected=connection?.state==='connected',expired=connection?.expiresAt && new Date(connection.expiresAt)<=new Date();
+  return {...integrationStatus(),merchantConnected:Boolean(connected),inboxEnabled:enabled()&&Boolean(connected),outboundEnabled:enabled()&&connected&&!expired&&process.env.WHATSAPP_OUTBOUND_ENABLED==='true'&&/^v\d+\.0$/.test(process.env.WHATSAPP_GRAPH_VERSION||'')&&Boolean(connection?.accessToken||connection?.tokenCipher),sender:connection?.displayPhone||null,connectionState:expired?'expired':connection?.state||'disconnected',signup:signupConfig()};
+}
+whatsappCloudOwnerRoutes.get('/status',wrap(async(req,res)=>{const status=merchantStatus(await merchantConnection(req.store.id));if(req.user?.role==='staff')delete status.signup;res.json(status);}));
+whatsappCloudOwnerRoutes.get('/webhook-readiness',async(req,res)=>{
+  if(req.user?.role!=='owner') return res.status(404).json({error:'Integration not available for this shop'});
   const base=process.env.WHATSAPP_WEBHOOK_CALLBACK_URL;
   if(!enabled() || !base || !process.env.WHATSAPP_VERIFY_TOKEN || !process.env.META_APP_SECRET) return res.json({ready:false});
   // Callback must be an explicitly configured HTTPS origin, never a client input.
@@ -109,13 +118,14 @@ whatsappCloudOwnerRoutes.get('/webhook-readiness',async(_,res)=>{
 });
 
 whatsappCloudOwnerRoutes.get('/messages',wrap(async(req,res)=>{
-  if (!bound()) throw bad(503,'No shop number connected');
+  if (!(await merchantConnection(req.store.id))) throw bad(503,'No shop number connected');
   await ensureSchema();
   const messages = await WhatsAppMessage.findAll({where:{businessId:req.store.id},order:[['eventAt','DESC'],['id','DESC']],limit:100});
   res.json({messages});
 }));
 whatsappCloudOwnerRoutes.post('/send',wrap(async(req,res)=>{
-  if (!outbound()) throw bad(503,'Production sender is not ready');
+  const connection=await merchantConnection(req.store.id);
+  if (!merchantStatus(connection).outboundEnabled) throw bad(503,'Production sender is not ready');
   const {to,text,requestId} = req.body || {};
   if (typeof to !== 'string' || typeof requestId !== 'string' || !/^[1-9]\d{7,14}$/.test(to || '') || typeof text !== 'string' || !text.trim() || text.length > 4096 || !/^[a-f0-9-]{36}$/i.test(requestId || '')) throw bad(400,'Valid phone, text and request ID required');
   await ensureSchema();
@@ -127,13 +137,13 @@ whatsappCloudOwnerRoutes.post('/send',wrap(async(req,res)=>{
   }
   const latest = await WhatsAppMessage.findOne({where:{businessId:req.store.id,phone:to,direction:'inbound'},order:[['eventAt','DESC']]});
   if (!latest || !serviceWindowOpen(latest.eventAt)) throw bad(409,'Ask the customer to message the business first. Free replies require an open 24-hour service window.');
-  const [record,created] = await WhatsAppMessage.findOrCreate({where:{requestKey},defaults:{businessId:req.store.id,phoneNumberId:process.env.WHATSAPP_PHONE_NUMBER_ID,direction:'outbound',phone:to,text:text.trim(),eventAt:new Date(),status:'submitting'}});
+  const [record,created] = await WhatsAppMessage.findOrCreate({where:{requestKey},defaults:{businessId:req.store.id,phoneNumberId:connection.phoneNumberId,direction:'outbound',phone:to,text:text.trim(),eventAt:new Date(),status:'submitting'}});
   if (!created) {
     if (record.phone !== to || record.text !== text.trim()) throw bad(409,'Request ID already used for different content');
     return res.json({message:record,duplicate:true});
   }
   try {
-    const messageId = await sendCloudText(to,text.trim());
+    const messageId = await sendCloudText(to,text.trim(),fetch,connection);
     await record.update({messageId,status:'accepted'});
     res.status(201).json({message:record});
   } catch(err) {
