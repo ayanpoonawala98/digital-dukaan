@@ -1,3 +1,4 @@
+import { productDraft } from '../product-draft.js';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag } from 'lucide-react';
@@ -49,9 +50,7 @@ import { Store as StoreIcon, Users as UsersIcon } from 'lucide-react';
 
 
 function ProductModal({ categories, product, onClose, onSave, busy }) {
-  const [draft, setDraft] = useState(product
-    ? { name: product.name, description: product.description || '', price: product.price, category: product.category?.id || product.categoryId, imageUrl: product.imageUrl || '', imageUrls: product.imageUrls?.length ? product.imageUrls : product.imageUrl ? [product.imageUrl] : [], stock: product.stock ?? '', featured: Boolean(product.featured), active: product.active, kind: product.kind || 'product', duration: product.duration || '' }
-    : { name: '', description: '', price: '', category: categories[0]?.id || '', imageUrl: '', imageUrls: [], stock: '', featured: false, active: true, kind: 'product', duration: '' });
+  const [draft, setDraft] = useState(() => productDraft(product, categories));
   const [uploading, setUploading] = useState(false), [error, setError] = useState(''), [imageInput, setImageInput] = useState('');
   const { session } = useAuth();
   const upload = async e => {
