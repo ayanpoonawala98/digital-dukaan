@@ -40,3 +40,27 @@ export async function sendTestWhatsApp({ to, text, token = process.env.WHATSAPP_
   if (!response.ok) throw new Error(`Cloud API request failed (${response.status})`);
   return response.json();
 }
+
+// This staged UI exposes no secrets and no real-send endpoint.
+export const whatsappCloudOwnerRoutes = Router();
+whatsappCloudOwnerRoutes.use((req, res, next) => {
+  if (process.env.WHATSAPP_INTEGRATION_UI_ENABLED !== 'true' || String(req.store?.ownerId) !== String(process.env.WHATSAPP_SANDBOX_OWNER_ID || '')) return res.status(404).json({ error: 'Integration not available for this shop' });
+  next();
+});
+whatsappCloudOwnerRoutes.get('/status', (req, res) => res.json({
+  cloudEnabled: enabled(), testSendEnabled: process.env.WHATSAPP_TEST_SEND_ENABLED === 'true',
+  testNumber: '+1 555 187 7826', phoneNumberId: process.env.WHATSAPP_TEST_PHONE_NUMBER_ID || '1261397693731087',
+  wabaId: process.env.WHATSAPP_TEST_WABA_ID || '219715891199851',
+  tokenConfigured: Boolean(process.env.WHATSAPP_ACCESS_TOKEN),
+  webhookConfigured: Boolean(process.env.WHATSAPP_VERIFY_TOKEN && process.env.META_APP_SECRET),
+  recipientConfigured: /^\d{8,15}$/.test(process.env.WHATSAPP_TEST_RECIPIENT || '')
+}));
+whatsappCloudOwnerRoutes.post('/sandbox-check', (req, res) => {
+  const text = req.body?.text;
+  if (typeof text !== 'string' || !text.trim() || text.length > 4096) return res.status(400).json({ error: 'Use 1-4096 characters of message text' });
+  // Construct a payload in memory. Do not use real credentials, network or sends.
+  const payload = { messaging_product: 'whatsapp', recipient_type: 'individual', to: '15550000000', type: 'text', text: { body: text.trim() } };
+  const simulated = JSON.parse(JSON.stringify(payload));
+  if (simulated.text.body !== text.trim()) return res.status(500).json({ error: 'Sandbox check failed' });
+  res.json({ simulated: true, sent: false, checks: ['Text validated', 'Payload round-trip checked', 'Real transport not called'] });
+});

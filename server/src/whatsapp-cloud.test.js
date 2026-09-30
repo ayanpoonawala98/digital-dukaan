@@ -42,3 +42,18 @@ test('Cloud sender is disabled and recipient allowlist prevents other sends', as
   assert.equal(called, false);
   delete process.env.WHATSAPP_CLOUD_ENABLED; delete process.env.WHATSAPP_TEST_SEND_ENABLED;
 });
+
+test('staging integration status and simulated check are scoped and cannot send', async () => {
+  const {User,Business}=await import('./models/index.js');const jwt=(await import('jsonwebtoken')).default;
+  const oldUser=User.findByPk,oldBusiness=Business.findOne;let actor={id:1,role:'owner',active:true};
+  User.findByPk=async()=>actor;Business.findOne=async()=>({id:1,ownerId:1});
+  const server=app.listen(0),base=`http://127.0.0.1:${server.address().port}/api/owner/1/whatsapp-cloud`;
+  const call=(path,body)=>fetch(base+path,{method:body?'POST':'GET',headers:{authorization:`Bearer ${jwt.sign({sub:actor.id},process.env.JWT_SECRET)}`,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
+  try {
+    delete process.env.WHATSAPP_INTEGRATION_UI_ENABLED;assert.equal((await call('/status')).status,404);
+    process.env.WHATSAPP_INTEGRATION_UI_ENABLED='true';process.env.WHATSAPP_SANDBOX_OWNER_ID='2';assert.equal((await call('/status')).status,404);
+    process.env.WHATSAPP_SANDBOX_OWNER_ID='1';const result=await call('/status');assert.equal(result.status,200);const status=await result.json();assert.equal(status.cloudEnabled,false);assert.ok(!JSON.stringify(status).includes('app-secret'));
+    const check=await call('/sandbox-check',{text:'Synthetic sandbox only'});assert.equal(check.status,200);assert.equal((await check.json()).sent,false);assert.equal((await call('/sandbox-check',{text:' '})).status,400);
+    actor={id:2,role:'staff',managerId:1,staffBusinessId:1,active:true};assert.equal((await call('/status')).status,403);
+  } finally {User.findByPk=oldUser;Business.findOne=oldBusiness;delete process.env.WHATSAPP_INTEGRATION_UI_ENABLED;delete process.env.WHATSAPP_SANDBOX_OWNER_ID;await new Promise(r=>server.close(r));}
+});
