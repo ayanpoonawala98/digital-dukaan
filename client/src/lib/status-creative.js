@@ -1,3 +1,4 @@
+import { storeLink } from './store-domain.js';
 // A self-contained 9:16 PNG; no remote assets, so downloads work on mobile
 // even when third-party image hosts do not allow canvas reads.
 const truncate = (ctx, value, maxWidth) => {
@@ -29,7 +30,7 @@ export function downloadStatusCreative(business, products = []) {
   else { ctx.font = '500 38px sans-serif'; ctx.fillStyle = '#e1f4e9'; ctx.fillText('Browse the collection and say hello.', 105, start + 255); }
   ctx.fillStyle = '#ffffff'; ctx.font = '800 54px sans-serif'; ctx.fillText('Explore the shop', 80, 1620);
   ctx.font = '500 36px sans-serif'; ctx.fillStyle = '#d4f6e4';
-  const link = `https://${business.slug}.digitaldukaan.space`;
+  const link = storeLink(business.slug);
   ctx.fillText(truncate(ctx, link, 920), 80, 1690);
   ctx.fillStyle = '#b1f5d2'; ctx.font = '600 30px sans-serif'; ctx.fillText('Tap the link or message the owner on WhatsApp.', 80, 1780);
   const anchor = document.createElement('a'); anchor.href = canvas.toDataURL('image/png'); anchor.download = `${business.slug}-whatsapp-status.png`; anchor.click();
