@@ -8,8 +8,8 @@ import bcrypt from 'bcryptjs';
 import { uploadImageKit } from '../utils/imagekit.js';
 import { registerStoreDomain, storeDomain } from '../utils/store-domain.js';
 import PDFDocument from 'pdfkit';
-import { crmRoutes } from '../crm.js';
 import { whatsappCloudOwnerRoutes } from '../whatsapp-cloud.js';
+import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, Coupon, Referral } from '../models/index.js';
 import { auth, roles } from '../middleware/auth.js';
@@ -75,8 +75,8 @@ r.use('/:storeId', wrap(async (req, res, next) => {
   next();
 }));
 
-r.use('/:storeId/customers', ownerOnly, crmRoutes);
 r.use('/:storeId/whatsapp-cloud', ownerOnly, whatsappCloudOwnerRoutes);
+r.use('/:storeId/customers', ownerOnly, crmRoutes);
 
 r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
   if (req.body?.slug !== req.store.slug) throw bad(400, 'Enter the exact store link to remove it');
