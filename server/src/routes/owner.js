@@ -423,6 +423,7 @@ r.get('/:storeId/push-subscribers', wrap(async (req, res) => {
   res.json({ subscribers: await PushSubscription.count({ where: { businessId: bid(req) } }) });
 }));
 r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
+  if (process.env.PUSH_BROADCAST_ENABLED === 'false') throw bad(503, 'Promotional push broadcasts are temporarily disabled');
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) throw bad(500, 'Push notifications are not configured');
   const title = String(req.body.title || '').trim().slice(0, 80);
   const bodyText = String(req.body.body || '').trim().slice(0, 200);
