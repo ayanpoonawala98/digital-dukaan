@@ -1,3 +1,5 @@
+import { notify as showToast } from '../lib/notifications.js';
+import { useFeedbackState } from '../components/Toasts.jsx';
 import { productDraft } from '../product-draft.js';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -52,7 +54,7 @@ import { Store as StoreIcon, Users as UsersIcon } from 'lucide-react';
 
 function ProductModal({ categories, product, onClose, onSave, busy }) {
   const [draft, setDraft] = useState(() => productDraft(product, categories));
-  const [uploading, setUploading] = useState(false), [error, setError] = useState(''), [imageInput, setImageInput] = useState('');
+  const [uploading, setUploading] = useState(false), [error, setError] = useFeedbackState(''), [imageInput, setImageInput] = useState('');
   const { session } = useAuth();
   const upload = async e => {
     const files = Array.from(e.target.files || []);
@@ -114,7 +116,7 @@ function LeadRow({ lead, token, storeId, storeType, onChanged }) {
   const LEAD_STATUSES = leadStatusOptions(storeType);
   const [status, setStatus] = useState(lead.status || 'new');
   const [phone, setPhone] = useState(lead.customerPhone || '');
-  const [busy, setBusy] = useState(false), [pdfBusy, setPdfBusy] = useState(false), [error, setError] = useState('');
+  const [busy, setBusy] = useState(false), [pdfBusy, setPdfBusy] = useState(false), [error, setError] = useFeedbackState('');
   const save = async (nextStatus, openWhatsApp) => {
     setBusy(true); setError('');
     try {
@@ -226,7 +228,7 @@ export default function Dashboard() {
   const [tab, setTab] = useState('overview');
   const [loading, setLoading] = useState(true), [storeListLoading, setStoreListLoading] = useState(true);
   const [data, setData] = useState(null), [products, setProducts] = useState([]), [categories, setCategories] = useState([]), [leads, setLeads] = useState([]);
-  const [error, setError] = useState(''), [success, setSuccess] = useState('');
+  const [error, setError] = useFeedbackState(''), [success, setSuccess] = useState('');
   const [editing, setEditing] = useState(null), [busy, setBusy] = useState(false), [deleteProductId, setDeleteProductId] = useState(null);
   const [categoryEdit, setCategoryEdit] = useState(null), [categoryName, setCategoryName] = useState('');
   const [stores, setStores] = useState([]), [storeId, setStoreId] = useState(''), [deletedStores, setDeletedStores] = useState([]), [restoreSlug, setRestoreSlug] = useState({});
@@ -352,13 +354,13 @@ export default function Dashboard() {
     {!storeId ? (storeListLoading ? <LoadSkeleton label="Loading your stores" cards={2}/> : <div className="dashboard-panel empty-state">Create a store to manage your catalog.</div>) : <>
       <div className="page-title"><div><span className="kicker">YOUR WORKSPACE</span><h1>{headings[tab][0]}</h1><p>{headings[tab][1]}</p></div>{tab === 'products' && !staffMode && !tabLocked && <div className="page-title-actions"><label className="btn btn-outline btn-file"><Busy active={busy}><FileSpreadsheet size={17}/> {busy ? 'Importing...' : 'Import from Vyapar'}</Busy><input type="file" accept=".csv" onChange={importVyapar} hidden disabled={busy}/></label><button className="btn btn-green" onClick={() => setEditing({ __storeId: storeId })}><Plus size={18}/> Add product</button></div>}</div>
       <Notice error={error} success={success}/>
-      {loading ? <LoadSkeleton label={`Loading ${headings[tab][0]}`} cards={tab === 'overview' || tab === 'sales' ? 4 : 2} rows={3}/> : tabLocked ? <div className="dashboard-panel locked-panel" role="status"><Lock size={28}/><h3>Locked by platform admin</h3><p className="muted">This feature has been locked for this store by the Digital Dukaan platform admin. It stays available in your data, but you cannot use it until the platform admin unlocks it.</p></div> : <>
+      {loading ? <LoadSkeleton label={`Loading ${headings[tab][0]}`} cards={tab === 'overview' || tab === 'sales' ? 4 : 2} rows={3}/> : tabLocked ? <div className="dashboard-panel locked-panel" role="status"><Lock size={28}/><h3>Kindly contact admin</h3><p className="muted">Please contact your platform admin to enable this feature. Your data is safe.</p></div> : <>
       {tab === 'overview' && data && !staffMode && <>
         {data.lowStock?.length > 0 && <div className="notice warn anim-up" role="alert"><Package size={16}/> Low stock alert: {data.lowStock.map(p => `${p.name} (${p.stock} left)`).join(', ')}. Restock these items.</div>}
         <div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>Enquiries are requests, not confirmed sales.</p></div><div className="stat-grid overview-stats">{[[data.products, 'Products live in your catalog', Package], [data.categories, 'Ways to browse', Tags], [data.leads, 'WhatsApp enquiries', MessageCircle], [data.subscribers, 'Push subscribers', Bell]].map(([num, label, Icon], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={label}><Icon size={21}/><strong>{num}</strong><span>{label}</span></div>)}</div>
         <div className="dashboard-panel welcome-panel">
           <div><span className="kicker">YOUR SHOP LINK</span><h2>{data.business?.active ? 'Ready to share your shop?' : 'Your shop is paused'}</h2><p>{data.business?.active ? 'Send your shop link to customers, print your QR code, or share a product directly.' : 'The catalog is hidden from visitors until you reopen the shop in Settings.'}</p><div className="url-pill">{storeLink(data.business?.slug)}</div></div>
-          <div className="welcome-actions"><a href={storeLink(data.business?.slug)} target="_blank" rel="noreferrer" className="btn btn-green">Visit your shop <ArrowUpRight size={17}/></a><button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(storeLink(data.business?.slug)); flash('Shop link copied'); } catch {} }}><Copy size={16}/> Copy link</button></div>
+          <div className="welcome-actions"><a href={storeLink(data.business?.slug)} target="_blank" rel="noreferrer" className="btn btn-green">Visit your shop <ArrowUpRight size={17}/></a><button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(storeLink(data.business?.slug)); flash('Shop link copied'); } catch { showToast('error', 'Could not copy the link. Please copy it manually.'); } }}><Copy size={16}/> Copy link</button></div>
         </div>
         <div className="overview-grid">
           <div className="dashboard-panel"><h3>Top products by enquiries</h3>{data.topProducts?.length ? <div className="top-list">{data.topProducts.map((t, i) => <div className="top-row" key={t.productName}><span className="top-rank">{i + 1}</span><strong>{t.productName}</strong><span className="top-count">{t.count} taps</span></div>)}</div> : <p className="muted">Enquiries will rank your bestsellers here.</p>}</div>
