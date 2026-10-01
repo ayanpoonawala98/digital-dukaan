@@ -1,3 +1,4 @@
+import { useFeedbackState } from './Toasts.jsx';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Header, Footer } from './chrome.jsx';
@@ -18,7 +19,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [referralCode, setReferralCode] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
-  const [busy, setBusy] = useState(false), [error, setError] = useState(''), [placed, setPlaced] = useState(null);
+  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [placed, setPlaced] = useState(null);
   useEffect(() => { if (open) { setError(''); setPlaced(null); } }, [open]);
   const submit = async e => {
     e.preventDefault(); if (busy || !cart.items.length) return;
