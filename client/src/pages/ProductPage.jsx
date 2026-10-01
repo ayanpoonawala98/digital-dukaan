@@ -1,3 +1,5 @@
+import { notify } from '../lib/notifications.js';
+import { useFeedbackState } from '../components/Toasts.jsx';
 import { storeThemeStyle } from '../lib/store-theme.js';
 import { useTheme } from '../theme.jsx';
 import ProductGallery from '../components/ProductGallery.jsx';
@@ -11,7 +13,7 @@ import { useCart, useWishlist } from '../lib/shop.js';
 import { Footer, Header } from '../components/chrome.jsx';
 
 function BuyButton({ slug, id, qty, children }) {
-  const [busy, setBusy] = useState(false), [error, setError] = useState('');
+  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState('');
   const buy = async () => {
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
@@ -28,7 +30,7 @@ export default function ProductPage({ hostedSlug }) {
   const { slug: pathSlug, id } = useParams();
   const slug = hostedSlug || pathSlug;
   const { theme } = useTheme();
-  const [data, setData] = useState(null), [error, setError] = useState(''), [copied, setCopied] = useState(false), [qty, setQtyState] = useState(1);
+  const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [qty, setQtyState] = useState(1);
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
   if (error) return <><Header/><div className="container empty-state page-fade">{error}</div></>;
@@ -59,7 +61,7 @@ export default function ProductPage({ hostedSlug }) {
           </div>
           {cart.count > 0 && <Link className="text-link" to={`${storePath(slug)}${restaurant ? window.location.search : ''}`}>View cart ({cart.count} items, {inr(cart.subtotal)}) on the shop page <ArrowUpRight size={14}/></Link>}
           <p className="detail-hint"><MessageCircle size={16}/> {restaurant ? 'Place your order from the menu. Nothing is charged online.' : `Opens a conversation with ${business.name}`}</p>
-          <button className="share-link" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { setCopied(false); } }}><Copy size={16}/>{copied ? 'Link copied!' : 'Copy product link'}</button>
+          <button className="share-link" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it from the address bar.'); setCopied(false); } }}><Copy size={16}/>{copied ? 'Link copied!' : 'Copy product link'}</button>
           <div className="detail-line"/>
           <p className="detail-small">{restaurant ? 'Add items to your order, then choose dine-in, takeaway or delivery from the menu.' : "Have a question? Tap the button above to talk to us directly. We'd love to help."}</p>
         </div>
