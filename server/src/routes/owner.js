@@ -12,6 +12,7 @@ import { whatsappCloudOwnerRoutes } from '../whatsapp-cloud.js';
 import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
 import { flowFor } from '../order-flows.js';
+import { featureForOwnerRoute, isLocked } from '../feature-locks.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { auth, roles } from '../middleware/auth.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap } from '../utils/core.js';
@@ -73,6 +74,8 @@ r.use('/:storeId', wrap(async (req, res, next) => {
     const allowed = (req.method === 'GET' && /^(?:overview|restaurant-orders|whatsapp-cloud\/(?:status|messages))$/.test(route)) || (req.method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) || (req.method === 'POST' && route === 'whatsapp-cloud/send');
     if (!allowed) throw bad(403, 'Staff access is read-only except restaurant order status');
   }
+  const lockedFeature = featureForOwnerRoute(req.method, req.path);
+  if (lockedFeature && isLocked(req.store, lockedFeature)) throw bad(403, 'This feature is locked by the platform admin');
   next();
 }));
 
