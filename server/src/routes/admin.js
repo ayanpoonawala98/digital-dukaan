@@ -92,14 +92,19 @@ r.get('/businesses/:id/feature-locks', wrap(async (req, res) => {
   res.json({ features: LOCKABLE_FEATURES, locks: locksOf(business) });
 }));
 r.patch('/businesses/:id/feature-locks', wrap(async (req, res) => {
-  const business = await Business.findByPk(numId(req.params.id));
-  if (!business || business.deletedAt) throw bad(404, 'Business not found');
   const feature = String(req.body?.feature || '');
-  if (!LOCKABLE_KEYS.includes(feature) || typeof req.body?.locked !== 'boolean') throw bad(400, 'Choose a valid feature and locked true or false');
-  const locks = { ...locksOf(business) };
-  if (req.body.locked) locks[feature] = true; else delete locks[feature];
-  await business.update({ featureLocks: locks });
-  res.json({ features: LOCKABLE_FEATURES, locks: locksOf(business) });
+  if ((!LOCKABLE_KEYS.includes(feature) && feature !== 'all') || typeof req.body?.locked !== 'boolean') throw bad(400, 'Choose a valid feature and locked true or false');
+  const result = await sequelize.transaction(async transaction => {
+    const business = await Business.findByPk(numId(req.params.id), { transaction, lock: transaction.LOCK.UPDATE });
+    if (!business || business.deletedAt) throw bad(404, 'Business not found');
+    const locks = { ...locksOf(business) };
+    for (const key of feature === 'all' ? LOCKABLE_KEYS : [feature]) {
+      if (req.body.locked) locks[key] = true; else delete locks[key];
+    }
+    await business.update({ featureLocks: locks }, { transaction });
+    return { features: LOCKABLE_FEATURES, locks: locksOf(business) };
+  });
+  res.json(result);
 }));
 
 r.get('/stats', wrap(async (_, res) => {
