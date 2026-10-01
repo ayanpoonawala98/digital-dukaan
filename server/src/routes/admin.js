@@ -5,6 +5,7 @@ import { sequelize, Business, User, Product, Category, Lead, ShopRequest } from 
 import { auth, roles } from '../middleware/auth.js';
 import { bad, slugify, validEmail, validPhone, wrap } from '../utils/core.js';
 import { restoreDeadline } from '../retention.js';
+import { LOCKABLE_FEATURES, LOCKABLE_KEYS, locksOf } from '../feature-locks.js';
 const r = Router();
 r.use(auth, roles('superadmin'));
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
@@ -84,6 +85,23 @@ r.patch('/users/:id', wrap(async (req, res) => {
   await user.update({ active: req.body.active });
   res.json({ user: { id: user.id, name: user.name, email: user.email, role: user.role, active: user.active } });
 }));
+// Superadmin master switches for owner dashboard features, enforced server-side.
+r.get('/businesses/:id/feature-locks', wrap(async (req, res) => {
+  const business = await Business.findByPk(numId(req.params.id));
+  if (!business || business.deletedAt) throw bad(404, 'Business not found');
+  res.json({ features: LOCKABLE_FEATURES, locks: locksOf(business) });
+}));
+r.patch('/businesses/:id/feature-locks', wrap(async (req, res) => {
+  const business = await Business.findByPk(numId(req.params.id));
+  if (!business || business.deletedAt) throw bad(404, 'Business not found');
+  const feature = String(req.body?.feature || '');
+  if (!LOCKABLE_KEYS.includes(feature) || typeof req.body?.locked !== 'boolean') throw bad(400, 'Choose a valid feature and locked true or false');
+  const locks = { ...locksOf(business) };
+  if (req.body.locked) locks[feature] = true; else delete locks[feature];
+  await business.update({ featureLocks: locks });
+  res.json({ features: LOCKABLE_FEATURES, locks: locksOf(business) });
+}));
+
 r.get('/stats', wrap(async (_, res) => {
   const [businesses, users, products, categories, leads] = await Promise.all([Business.count({ where: { deletedAt: null } }), User.count(), Product.count(), Category.count(), Lead.count()]);
   res.json({ businesses, users, products, categories, leads });
