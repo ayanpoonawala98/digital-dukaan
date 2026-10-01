@@ -1,3 +1,5 @@
+import { notify } from '../lib/notifications.js';
+import { useFeedbackState } from './Toasts.jsx';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Header } from './chrome.jsx';
@@ -18,7 +20,7 @@ function OrderBody({ order }) {
 
 // Registers every saved order of this browser under its push subscription (the customer's identity).
 function PushControl({ slug, orders, onChange }) {
-  const [state, setState] = useState('idle'), [err, setErr] = useState('');
+  const [state, setState] = useState('idle'), [err, setErr] = useFeedbackState('');
   const supported = pushSupported();
   useEffect(() => {
     let active = true;
@@ -72,7 +74,7 @@ function usePoll(load, active, ms = 30000) {
 
 export function OrderTracking({ kind = 'restaurant' }) {
   const { slug, id } = useParams();
-  const [data, setData] = useState(null), [error, setError] = useState(''), [updated, setUpdated] = useState(null), [copied, setCopied] = useState(false);
+  const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null), [copied, setCopied] = useState(false);
   const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || '';
   useEffect(() => {
     document.title = 'Track your order - Digital Dukaan';
@@ -88,7 +90,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
     } catch (e) { setError(e.message); return false; }
   }, [slug, id, kind, token]);
   usePoll(load, true);
-  const copy = async () => { try { await navigator.clipboard.writeText(window.location.href); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {} };
+  const copy = async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } };
   const saved = [{ kind, id: Number(id), token }];
   const flow = flowFor(kind, data?.store?.storeType);
   return <><Header shop={slug}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
@@ -108,7 +110,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
 
 export function MyOrdersPage() {
   const { slug } = useParams();
-  const [saved, setSaved] = useState(() => loadSavedOrders(slug)), [data, setData] = useState(null), [error, setError] = useState(''), [updated, setUpdated] = useState(null);
+  const [saved, setSaved] = useState(() => loadSavedOrders(slug)), [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null);
   useEffect(() => { document.title = 'My orders - Digital Dukaan'; setSaved(loadSavedOrders(slug)); return onOrdersChanged(() => setSaved(loadSavedOrders(slug))); }, [slug]);
   const load = useCallback(async () => {
     try {
