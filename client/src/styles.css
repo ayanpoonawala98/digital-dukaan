@@ -908,3 +908,8 @@ footer { background:#101d15; }
 .feature-lock-row { display: grid; grid-template-columns: 28px 1fr auto auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--line, #e5e5e5); border-radius: 10px; }
 .feature-lock-state { display: inline-flex; align-items: center; justify-content: center; color: #0e9f6e; }
 .feature-lock-state.locked { color: #b91c1c; }
+
+/* Feedback remains visible above drawers and dialogs without blocking the page. */
+.toast-stack{position:fixed;top:max(16px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right));z-index:10000;display:grid;gap:10px;width:min(390px,calc(100vw - 32px));pointer-events:none}
+.app-toast{display:flex;align-items:flex-start;gap:10px;padding:14px 16px;border-radius:12px;border:1px solid #9bbba6;background:#f2fff5;color:#153e24;box-shadow:0 6px 24px #0002;pointer-events:auto;font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+.app-toast.error{background:#fff4f2;border-color:#d6a49c;color:#74291e}.app-toast>svg{flex-shrink:0;margin-top:1px}.app-toast span{flex:1}.app-toast button{border:0;background:transparent;color:inherit;cursor:pointer;padding:0;display:flex;min-width:24px;min-height:24px;align-items:center;justify-content:center}.app-toast button:focus-visible{outline:2px solid currentColor;outline-offset:3px}.bulk-lock-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:16px 0}.bulk-lock-actions small{flex-basis:100%;color:var(--muted)}
