@@ -75,7 +75,7 @@ r.use('/:storeId', wrap(async (req, res, next) => {
     if (!allowed) throw bad(403, 'Staff access is read-only except restaurant order status');
   }
   const lockedFeature = featureForOwnerRoute(req.method, req.path);
-  if (lockedFeature && isLocked(req.store, lockedFeature)) throw bad(403, 'This feature is locked by the platform admin');
+  if (lockedFeature && isLocked(req.store, lockedFeature)) throw bad(403, 'Kindly contact admin to enable this feature.');
   next();
 }));
 
