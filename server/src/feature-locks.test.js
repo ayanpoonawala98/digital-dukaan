@@ -55,6 +55,8 @@ test('superadmin sets locks and locked owner/staff routes are rejected server-si
     featureLocks: {},
     update: async function (changes) { Object.assign(this, changes); return this; }
   };
+  const originalTransaction = (await import('./models/index.js')).sequelize.transaction;
+  (await import('./models/index.js')).sequelize.transaction = async fn => fn({ LOCK: { UPDATE: 'UPDATE' } });
   const origFindOne = Business.findOne;
   const origFindByPk = Business.findByPk;
   Business.findOne = async ({ where }) => (Number(where.id) === store.id && Number(where.ownerId) === store.ownerId && !where.deletedAt ? store : null);
@@ -80,10 +82,22 @@ test('superadmin sets locks and locked owner/staff routes are rejected server-si
     assert.equal(res.status, 200);
     assert.deepEqual((await res.json()).locks, { coupons: true });
 
+    // Bulk actions touch only this store; validation and access gates still apply.
+    assert.equal((await call(`/admin/businesses/${store.id}/feature-locks`, 'PATCH', { feature: 'all', locked: true }, 2)).status, 403);
+    assert.equal((await call(`/admin/businesses/${store.id}/feature-locks`, 'PATCH', { feature: 'all', locked: 'true' }, 1)).status, 400);
+    res = await call(`/admin/businesses/${store.id}/feature-locks`, 'PATCH', { feature: 'all', locked: true }, 1);
+    assert.equal(res.status, 200);
+    assert.deepEqual(Object.keys((await res.json()).locks).sort(), [...LOCKABLE_KEYS].sort());
+    res = await call(`/admin/businesses/${store.id}/feature-locks`, 'PATCH', { feature: 'all', locked: false }, 1);
+    assert.equal(res.status, 200);
+    assert.deepEqual((await res.json()).locks, {});
+    assert.equal((await call('/admin/businesses/999/feature-locks', 'PATCH', { feature: 'all', locked: true }, 1)).status, 404);
+    await call(`/admin/businesses/${store.id}/feature-locks`, 'PATCH', { feature: 'coupons', locked: true }, 1);
+
     // Locked owner route is rejected; other routes still resolve past the lock check.
     res = await call(`/owner/${store.id}/coupons`, 'GET', null, 2);
     assert.equal(res.status, 403);
-    assert.match((await res.json()).error, /locked by the platform admin/i);
+    assert.match((await res.json()).error, /kindly contact admin/i);
     res = await call(`/owner/${store.id}/coupons`, 'POST', { code: 'SAVE10', percentOff: 10 }, 2);
     assert.equal(res.status, 403);
     // Settings PATCH locked independently.
@@ -99,8 +113,9 @@ test('superadmin sets locks and locked owner/staff routes are rejected server-si
     await call(`/admin/businesses/${store.id}/feature-locks`, 'PATCH', { feature: 'restaurant', locked: true }, 1);
     res = await call(`/owner/${store.id}/restaurant-orders`, 'GET', null, 3);
     assert.equal(res.status, 403);
-    assert.match((await res.json()).error, /locked by the platform admin/i);
+    assert.match((await res.json()).error, /kindly contact admin/i);
   } finally {
+    (await import('./models/index.js')).sequelize.transaction = originalTransaction;
     Business.findOne = origFindOne;
     Business.findByPk = origFindByPk;
     savedUser.findByPk = origFindByPkUser;
