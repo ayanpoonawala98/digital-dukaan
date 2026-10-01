@@ -10,6 +10,7 @@ test('toasts deduplicate, bound the stack, notify listeners and dismiss', () => 
   toastSnapshot().forEach(item => dismissToast(item.id)); assert.equal(toastSnapshot().length, 0); assert.ok(updates >= 5); off();
 });
 test('success wording does not claim delivery or import before commit', () => {
+  assert.equal(successFor('/public/stores/qa/my-orders', 'POST'), null);
   assert.equal(successFor('/owner/8/whatsapp-cloud/send', 'POST', { message: { status: 'unknown' } }), null);
   assert.match(successFor('/owner/8/whatsapp-cloud/send', 'POST', { message: { status: 'accepted' } }), /not yet confirmed/);
   assert.match(successFor('/owner/8/customers/import/preview', 'POST'), /Nothing has been imported/);
