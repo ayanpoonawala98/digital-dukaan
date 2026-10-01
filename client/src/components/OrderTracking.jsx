@@ -56,10 +56,12 @@ function PushControl({ slug, orders, onChange }) {
 
 function usePoll(load, active, ms = 30000) {
   useEffect(() => {
-    let alive = true, timer;
+    let alive = true, timer, first = true;
     const run = async () => {
       if (!alive) return;
-      if (document.hidden) { timer = setTimeout(run, ms); return; }
+      // Always fetch once on open (the tab may start in the background); pause only repeat polls while hidden.
+      if (!first && document.hidden) { timer = setTimeout(run, ms); return; }
+      first = false;
       const again = await load();
       if (alive && again) timer = setTimeout(run, ms);
     };
