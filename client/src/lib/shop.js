@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { notify } from './notifications.js';
 
 export function useStored(key, fallback) {
   const [items, setItems] = useState(() => { try { const v = JSON.parse(localStorage.getItem(key)); return v ?? fallback; } catch { return fallback; } });
-  const save = next => { setItems(next); localStorage.setItem(key, JSON.stringify(next)); };
+  const save = next => { try { localStorage.setItem(key, JSON.stringify(next)); setItems(next); } catch { notify('error', 'Could not save on this device. Check browser storage settings.'); throw Error('Browser storage unavailable'); } };
   return [items, save];
 }
 
@@ -12,6 +13,7 @@ export function useCart(slug) {
     const found = items.find(i => i.id === product.id);
     if (found) save(items.map(i => i.id === product.id ? { ...i, qty: Math.min((product.stock ?? 99) || 99, i.qty + qty) } : i));
     else save([...items, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, stock: product.stock, qty }]);
+    notify('success', 'Added to cart.');
   };
   const setQty = (id, qty) => qty <= 0 ? save(items.filter(i => i.id !== id)) : save(items.map(i => i.id === id ? { ...i, qty } : i));
   const clear = () => save([]);
@@ -22,7 +24,7 @@ export function useCart(slug) {
 
 export function useWishlist(slug) {
   const [ids, save] = useStored(`dd-wishlist-${slug}`, []);
-  const toggle = id => save(ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
+  const toggle = id => { const removing = ids.includes(id); save(removing ? ids.filter(x => x !== id) : [...ids, id]); notify('success', removing ? 'Removed from wishlist.' : 'Added to wishlist.'); };
   return { ids, toggle, has: id => ids.includes(id) };
 }
 
