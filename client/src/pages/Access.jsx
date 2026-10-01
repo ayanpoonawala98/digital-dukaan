@@ -1,3 +1,4 @@
+import { useFeedbackState } from '../components/Toasts.jsx';
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -8,7 +9,7 @@ import { Logo, Notice } from '../components/chrome.jsx';
 export default function Access({ mode }) {
   const nav = useNavigate(), { save } = useAuth();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
-  const [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [error, setError] = useFeedbackState(''), [busy, setBusy] = useState(false);
   const change = e => setForm({ ...form, [e.target.name]: e.target.value });
   const submit = async e => {
     e.preventDefault();
