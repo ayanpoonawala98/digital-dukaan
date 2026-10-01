@@ -22,7 +22,7 @@ export function notify(type, message) {
 }
 export function successFor(path, method, data) {
   if (path.includes('/whatsapp-cloud/send')) return ['unknown', 'submitting'].includes(data?.message?.status) ? null : 'Reply accepted. Delivery is not yet confirmed.';
-  if (path.includes('/my-orders') && method === 'POST') return 'Order notifications enabled.';
+  if (/\/my-orders(?:\?|$)/.test(path)) return null;
   if (path.includes('push-subscription')) return method === 'DELETE' ? 'Notifications turned off.' : 'Notifications enabled.';
   if (path.includes('enquire')) return 'Order request created. The shop will confirm it.';
   if (path.endsWith('/restaurant-orders') && method === 'POST') return 'Order placed.';
