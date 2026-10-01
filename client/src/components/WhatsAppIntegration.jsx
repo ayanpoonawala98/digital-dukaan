@@ -1,8 +1,9 @@
+import { useFeedbackState } from './Toasts.jsx';
 import React, {useEffect,useState,useRef} from 'react';
 import {api} from '../lib/api.js';
 import {loadMetaSdk,runEmbeddedSignup} from '../lib/whatsapp-signup.js';
 export default function WhatsAppIntegration({token,storeId,staff}) {
-  const [status,setStatus]=useState(null),[messages,setMessages]=useState([]),[error,setError]=useState(''),[to,setTo]=useState(''),[text,setText]=useState(''),[review,setReview]=useState(null),[busy,setBusy]=useState(false);
+  const [status,setStatus]=useState(null),[messages,setMessages]=useState([]),[error,setError]=useFeedbackState(''),[to,setTo]=useState(''),[text,setText]=useState(''),[review,setReview]=useState(null),[busy,setBusy]=useState(false);
   const [signupSession,setSignupSession]=useState(null);
   const stopSignup=useRef(null),generation=useRef(0),[sdkReady,setSdkReady]=useState(false);
   const selfServeComingSoon=true;
