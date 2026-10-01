@@ -1,7 +1,7 @@
 import { productDraft } from '../product-draft.js';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag } from 'lucide-react';
+import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 import { api, download, imageSrc, inr } from '../lib/api.js';
 import { storeLink } from '../lib/store-domain.js';
@@ -15,6 +15,7 @@ import Customers from '../components/Customers.jsx';
 import { parseCsv } from '../lib/parse-csv.js';
 import { ThemeToggle, useTheme } from '../theme.jsx';
 import { STORE_THEMES, storeThemeStyle } from '../lib/store-theme.js';
+import { isTabLocked } from '../lib/feature-locks.js';
 
 export function AdminShell({ children, superMode = false, tab, setTab, stores = [], storeId, setStoreId }) {
   const { session, save } = useAuth();
@@ -30,7 +31,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
     <aside className="sidebar">
       <Logo light/>
       <div className="sidebar-label">WORKSPACE</div>
-      <nav>{items.map(([key, label, Icon]) => <button key={key} className={tab === key ? 'selected' : ''} onClick={() => setTab(key)}><Icon size={18}/>{label}</button>)}</nav>
+      <nav>{items.map(([key, label, Icon]) => { const locked = !superMode && current && isTabLocked(current, key); return <button key={key} className={`${tab === key ? 'selected' : ''}${locked ? ' nav-locked' : ''}`} onClick={() => setTab(key)}><Icon size={18}/>{label}{locked && <Lock size={13} className="nav-lock-icon" aria-label="Locked by platform admin"/>}</button>; })}</nav>
       <div className="sidebar-bottom">
         <ThemeToggle className="sidebar-theme"/>
         {!superMode && current && <a href={storeLink(current.slug)} target="_blank" rel="noreferrer"><ArrowUpRight size={17}/> View storefront</a>}
@@ -234,6 +235,7 @@ export default function Dashboard() {
   const [broadcastText, setBroadcastText] = useState(''), [broadcastRecipients, setBroadcastRecipients] = useState('');
   const [broadcastImageUrl, setBroadcastImageUrl] = useState(''), [broadcastImageBusy, setBroadcastImageBusy] = useState(false);
   const selectedStoreRef = React.useRef(storeId); selectedStoreRef.current = storeId;
+  const storesRef = React.useRef(stores); storesRef.current = stores;
   const loadSequence = React.useRef(0);
   const broadcastStoreRef = React.useRef(storeId); broadcastStoreRef.current = storeId;
   const [restaurantOrders, setRestaurantOrders] = useState([]), [coupons, setCoupons] = useState([]), [sales, setSales] = useState(null);
@@ -250,21 +252,33 @@ export default function Dashboard() {
     const stale = () => String(selectedStoreRef.current) !== String(requestStore) || sequence !== loadSequence.current;
     setLoading(true);
     try {
+      const locks = storesRef.current.find(s => String(s.id) === String(storeId))?.featureLocks || {};
+      const unlocked = feature => locks[feature] !== true;
       if (staffMode) {
         const o = await api(`/owner/${storeId}/overview`, { token });
         if (stale()) return;
         setData(o); setProducts([]); setCategories([]); setLeads([]);
-        if (o.business?.storeType === 'restaurant') {
+        if (o.business?.storeType === 'restaurant' && unlocked('restaurant')) {
           const result = await api(`/owner/${storeId}/restaurant-orders`, { token });
           if (!stale()) setRestaurantOrders(result.orders);
         } else setRestaurantOrders([]);
         return;
       }
-      const [o, p, c, l] = await Promise.all([`/owner/${storeId}/overview`, `/owner/${storeId}/products`, `/owner/${storeId}/categories`, `/owner/${storeId}/leads`].map(path => api(path, { token })));
+      const [o, p, c, l] = await Promise.all([
+        api(`/owner/${storeId}/overview`, { token }),
+        unlocked('products') ? api(`/owner/${storeId}/products`, { token }) : Promise.resolve({ products: [] }),
+        unlocked('products') ? api(`/owner/${storeId}/categories`, { token }) : Promise.resolve({ categories: [] }),
+        unlocked('leads') ? api(`/owner/${storeId}/leads`, { token }) : Promise.resolve({ leads: [] })
+      ]);
       if (stale()) return;
       setData(o); setStores(prev => prev.map(store => String(store.id) === String(o.business.id) ? o.business : store)); setProducts(p.products); setCategories(c.categories); setLeads(l.leads);
-      if (!staffMode) { const [cs, ss, st, rr] = await Promise.all([api(`/owner/${storeId}/coupons`, { token }), api(`/owner/${storeId}/sales-summary`, { token }), api(`/owner/${storeId}/staff`, { token }), api(`/owner/${storeId}/referrals`, { token })]); if (stale()) return; setCoupons(cs.coupons); setSales(ss); setStaff(st.staff); setReferrals(rr.referrals); }
-      if (o.business?.storeType === 'restaurant') { const result = await api(`/owner/${storeId}/restaurant-orders`, { token }); if (!stale()) setRestaurantOrders(result.orders); } else setRestaurantOrders([]);
+      if (!staffMode) { const [cs, ss, st, rr] = await Promise.all([
+        unlocked('coupons') ? api(`/owner/${storeId}/coupons`, { token }) : Promise.resolve({ coupons: [] }),
+        unlocked('sales') ? api(`/owner/${storeId}/sales-summary`, { token }) : Promise.resolve(null),
+        unlocked('staff') ? api(`/owner/${storeId}/staff`, { token }) : Promise.resolve({ staff: [] }),
+        unlocked('referrals') ? api(`/owner/${storeId}/referrals`, { token }) : Promise.resolve({ referrals: [] })
+      ]); if (stale()) return; setCoupons(cs.coupons); setSales(ss); setStaff(st.staff); setReferrals(rr.referrals); }
+      if (o.business?.storeType === 'restaurant' && unlocked('restaurant')) { const result = await api(`/owner/${storeId}/restaurant-orders`, { token }); if (!stale()) setRestaurantOrders(result.orders); } else setRestaurantOrders([]);
     } catch (e) { if (!stale()) setError(e.message); } finally { if (!stale()) setLoading(false); }
   };
   useEffect(() => { setBroadcastImageUrl(''); setBroadcastText(''); setBroadcastRecipients(''); }, [storeId]);
@@ -329,14 +343,16 @@ export default function Dashboard() {
   };
 
   const headings = { 'whatsapp-cloud': ['WhatsApp integration.', 'Connected shop inbox and service replies.'], overview: ['Your shop at a glance.', 'See what customers are browsing and which requests need your attention.'], products: ['Your products.', 'Keep your collection looking its best.'], categories: ['Categories.', 'Help customers find exactly what they need.'], customers: ['Your customers.', 'Store-scoped contacts and consent records.'], leads: ['WhatsApp orders.', 'Track incoming requests and follow up with customers.'], sales: ['Sales and enquiries.', 'A clear view of recorded restaurant orders and customer enquiries.'], referrals: ['Referrals.', 'Both sides earn 10% only after the shop confirms the referred order.'], staff: ['Staff accounts.', 'Give helpers limited access without sharing your password.'], coupons: ['Coupons.', 'Create discounts customers can use at checkout.'], restaurant: ['Table orders.', 'New restaurant orders arrive here.'], broadcast: ['WhatsApp broadcast.', 'Prepare offers and send them yourself, one recipient at a time.'], notifications: ['Notifications.', 'Reach your customers even after they leave.'], settings: ['Shop settings.', 'Make your corner of the internet yours.'] };
+  const currentStore = stores.find(s => String(s.id) === String(storeId));
+  const tabLocked = currentStore ? isTabLocked(currentStore, tab) : false;
   const BASE = import.meta.env.VITE_API_URL || '';
   const updateRestaurantOrder = (order, status) => action(async () => { await api(`/owner/${storeId}/restaurant-orders/${order.id}`, { method: 'PATCH', token, body: { status } }); }, `order-${order.id}`);
 
   return <AdminShell tab={tab} setTab={setTab} stores={stores} storeId={storeId} setStoreId={setStoreId}><div className="admin-content" key={`${storeId}:${tab}`}>
     {!storeId ? (storeListLoading ? <LoadSkeleton label="Loading your stores" cards={2}/> : <div className="dashboard-panel empty-state">Create a store to manage your catalog.</div>) : <>
-      <div className="page-title"><div><span className="kicker">YOUR WORKSPACE</span><h1>{headings[tab][0]}</h1><p>{headings[tab][1]}</p></div>{tab === 'products' && !staffMode && <div className="page-title-actions"><label className="btn btn-outline btn-file"><Busy active={busy}><FileSpreadsheet size={17}/> {busy ? 'Importing...' : 'Import from Vyapar'}</Busy><input type="file" accept=".csv" onChange={importVyapar} hidden disabled={busy}/></label><button className="btn btn-green" onClick={() => setEditing({ __storeId: storeId })}><Plus size={18}/> Add product</button></div>}</div>
+      <div className="page-title"><div><span className="kicker">YOUR WORKSPACE</span><h1>{headings[tab][0]}</h1><p>{headings[tab][1]}</p></div>{tab === 'products' && !staffMode && !tabLocked && <div className="page-title-actions"><label className="btn btn-outline btn-file"><Busy active={busy}><FileSpreadsheet size={17}/> {busy ? 'Importing...' : 'Import from Vyapar'}</Busy><input type="file" accept=".csv" onChange={importVyapar} hidden disabled={busy}/></label><button className="btn btn-green" onClick={() => setEditing({ __storeId: storeId })}><Plus size={18}/> Add product</button></div>}</div>
       <Notice error={error} success={success}/>
-      {loading ? <LoadSkeleton label={`Loading ${headings[tab][0]}`} cards={tab === 'overview' || tab === 'sales' ? 4 : 2} rows={3}/> : <>
+      {loading ? <LoadSkeleton label={`Loading ${headings[tab][0]}`} cards={tab === 'overview' || tab === 'sales' ? 4 : 2} rows={3}/> : tabLocked ? <div className="dashboard-panel locked-panel" role="status"><Lock size={28}/><h3>Locked by platform admin</h3><p className="muted">This feature has been locked for this store by the Digital Dukaan platform admin. It stays available in your data, but you cannot use it until the platform admin unlocks it.</p></div> : <>
       {tab === 'overview' && data && !staffMode && <>
         {data.lowStock?.length > 0 && <div className="notice warn anim-up" role="alert"><Package size={16}/> Low stock alert: {data.lowStock.map(p => `${p.name} (${p.stock} left)`).join(', ')}. Restock these items.</div>}
         <div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>Enquiries are requests, not confirmed sales.</p></div><div className="stat-grid overview-stats">{[[data.products, 'Products live in your catalog', Package], [data.categories, 'Ways to browse', Tags], [data.leads, 'WhatsApp enquiries', MessageCircle], [data.subscribers, 'Push subscribers', Bell]].map(([num, label, Icon], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={label}><Icon size={21}/><strong>{num}</strong><span>{label}</span></div>)}</div>
