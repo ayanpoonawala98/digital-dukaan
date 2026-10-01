@@ -4,6 +4,7 @@ import { Op } from 'sequelize';
 import { storeUrl } from '../utils/store-domain.js';
 import QRCode from 'qrcode';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
+import { isLocked } from '../feature-locks.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
 const r = Router();
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
@@ -12,10 +13,11 @@ const shop = async slug => { const b = await Business.findOne({ where: { slug, a
 const numId = value => { const n = Number(value); return Number.isInteger(n) && n > 0 ? n : null; };
 const shopUrl = slug => process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(slug) : `${(process.env.CLIENT_URL || '').split(',')[0].replace(/\/$/, '')}/store/${slug}`;
 const categoryInclude = { model: Category, as: 'category', attributes: ['name', 'slug'] };
-const applyCoupon = async (businessId, subtotal, code) => {
+const applyCoupon = async (business, subtotal, code) => {
   if (!code) return { discount: 0, code: null };
+  if (isLocked(business, 'coupons')) throw bad(400, 'Coupons are currently unavailable for this store');
   if (typeof code !== 'string' || !/^[A-Z0-9-]{3,24}$/.test(code.trim().toUpperCase())) throw bad(400, 'Invalid coupon code');
-  const coupon = await Coupon.findOne({ where: { businessId, code: code.trim().toUpperCase(), active: true } });
+  const coupon = await Coupon.findOne({ where: { businessId: business.id, code: code.trim().toUpperCase(), active: true } });
   if (!coupon) throw bad(400, 'Coupon not found or no longer active');
   return { discount: Number((subtotal * coupon.percentOff / 100).toFixed(2)), code: coupon.code };
 };
@@ -80,7 +82,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
     return { productId: product.id, name: product.name, price: product.price, qty };
   });
   const subtotal = items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0);
-  const { discount, code } = await applyCoupon(business.id, subtotal, req.body?.couponCode);
+  const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
   const referral = await checkReferral(business.id, req.body?.referralCode);
   const total = Number((subtotal - discount).toFixed(2));
   const order = await RestaurantOrder.create({ businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: orderType === 'dine-in' ? null : customerName.trim(), customerPhone: orderType === 'dine-in' ? null : customerPhone.trim(), deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
@@ -260,7 +262,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   }
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
-  const { discount, code } = await applyCoupon(business.id, subtotal, req.body?.couponCode);
+  const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
   const referral = await checkReferral(business.id, req.body?.referralCode);
   const delivery = business.freeDeliveryAbove !== null && subtotal >= business.freeDeliveryAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = Number((subtotal - discount + delivery).toFixed(2));
