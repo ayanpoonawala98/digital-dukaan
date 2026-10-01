@@ -1,3 +1,4 @@
+import { useFeedbackState } from '../components/Toasts.jsx';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
@@ -6,7 +7,7 @@ import { Logo, Notice } from '../components/chrome.jsx';
 
 export default function ShopRequest() {
   const [form, setForm] = useState({ name: '', email: '', phone: '', shopName: '', message: '' });
-  const [error, setError] = useState(''), [sent, setSent] = useState(false), [busy, setBusy] = useState(false);
+  const [error, setError] = useFeedbackState(''), [sent, setSent] = useState(false), [busy, setBusy] = useState(false);
   const submit = async e => {
     e.preventDefault(); setBusy(true); setError('');
     try { await api('/public/shop-requests', { method: 'POST', body: form }); setSent(true); }
