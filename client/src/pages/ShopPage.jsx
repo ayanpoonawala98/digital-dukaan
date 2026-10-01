@@ -1,3 +1,5 @@
+import { notify } from '../lib/notifications.js';
+import { useFeedbackState } from '../components/Toasts.jsx';
 import { storeThemeStyle } from '../lib/store-theme.js';
 import { useTheme } from '../theme.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
@@ -14,7 +16,7 @@ import LoadSkeleton from '../components/LoadSkeleton.jsx';
 import OfferPopup from '../components/OfferPopup.jsx';
 
 function useShop(slug) {
-  const [shop, setShop] = useState(null), [error, setError] = useState('');
+  const [shop, setShop] = useState(null), [error, setError] = useFeedbackState('');
   useEffect(() => { api(`/public/stores/${slug}`).then(setShop).catch(e => setError(e.message)); }, [slug]);
   return { shop, error };
 }
@@ -100,7 +102,7 @@ function QrModal({ slug, business, onClose }) {
       <div className="url-pill">{shopLink}</div>
       <div className="qr-actions">
         <a className="btn btn-green" href={qrUrl} download={`${slug}-qr.svg`}>Download QR</a>
-        <button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(shopLink); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch {} }}>{copied ? 'Copied!' : 'Copy link'}</button>
+        <button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(shopLink); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } }}>{copied ? 'Copied!' : 'Copy link'}</button>
       </div>
     </div>
   </div>;
@@ -108,7 +110,7 @@ function QrModal({ slug, business, onClose }) {
 
 function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   const t = key => translate(lang, key);
-  const [busy, setBusy] = useState(false), [error, setError] = useState(''), [couponCode, setCouponCode] = useState(''), [referralCode, setReferralCode] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
+  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [couponCode, setCouponCode] = useState(''), [referralCode, setReferralCode] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
   const freeAbove = business.freeDeliveryAbove;
   const delivery = freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = cart.subtotal + delivery;
