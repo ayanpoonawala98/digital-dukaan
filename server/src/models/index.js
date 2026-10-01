@@ -43,7 +43,8 @@ export const Business = sequelize.define('Business', {
   accentColor: { type: DataTypes.STRING(9), defaultValue: '', validate: { is: /^$|^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/ } },
   upiId: { type: DataTypes.STRING(60), defaultValue: '' },
   gstin: { type: DataTypes.STRING(15), defaultValue: '' },
-  minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } }
+  minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } },
+  featureLocks: { type: DataTypes.JSONB, defaultValue: {} }
 }, { tableName: 'businesses' });
 
 export const Category = sequelize.define('Category', {
