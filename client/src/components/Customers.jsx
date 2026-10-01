@@ -1,3 +1,4 @@
+import { useFeedbackState } from './Toasts.jsx';
 import React, { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 import { parseCsv } from '../lib/parse-csv.js';
@@ -20,7 +21,7 @@ export default function Customers({ token, storeId }) {
   const [customers, setCustomers] = useState([]), [query, setQuery] = useState(''), [status, setStatus] = useState('all');
   const [form, setForm] = useState(null), [rows, setRows] = useState(null), [preview, setPreview] = useState(null), [batchId, setBatchId] = useState(null);
   const [page, setPage] = useState(1), [total, setTotal] = useState(0), [deleteTarget, setDeleteTarget] = useState(null);
-  const [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
+  const [error, setError] = useFeedbackState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false);
   const refresh = async () => { const params = new URLSearchParams({ q: query, status, page }); const result = await api(`/owner/${storeId}/customers?${params}`, { token }); setCustomers(result.customers); setTotal(result.total); };
   useEffect(() => { setCustomers([]); setRows(null); setPreview(null); setBatchId(null); setForm(null); setPage(1); setDeleteTarget(null); setError(''); setNotice(''); }, [storeId]);
   useEffect(() => { let live = true; const timer = setTimeout(() => api(`/owner/${storeId}/customers?${new URLSearchParams({ q: query, status, page })}`, { token }).then(result => { if (live) { setCustomers(result.customers); setTotal(result.total); } }).catch(e => { if (live) setError(e.message); }), 250); return () => { live = false; clearTimeout(timer); }; }, [token, storeId, query, status, page]);
