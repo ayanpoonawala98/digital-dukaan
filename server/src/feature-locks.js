@@ -33,7 +33,7 @@ export function featureForOwnerRoute(method, route) {
     [/^leads(?:\/|$)/, 'leads'],
     [/^export\/vyapar\.csv$/, 'leads'],
     [/^customers(?:\/|$)/, 'customers'],
-    [/^sales-summary$/, 'sales'],
+    [/^sales-summary(?:\/|$)/, 'sales'],
     [/^coupons(?:\/|$)/, 'coupons'],
     [/^referrals(?:\/|$)/, 'referrals'],
     [/^staff(?:\/|$)/, 'staff'],

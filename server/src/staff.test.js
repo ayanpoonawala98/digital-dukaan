@@ -7,21 +7,21 @@ const { default: app } = await import('./app.js');
 const { User, Business, RestaurantOrder } = await import('./models/index.js');
 
 test('staff can see scoped restaurant orders but cannot access owner writes or a second store', async () => {
-  const original = [User.findByPk, Business.findOne, RestaurantOrder.findAll];
+  const original = [User.findByPk, Business.findOne, RestaurantOrder.findAndCountAll];
   User.findByPk = async () => ({ id:83, role:'staff', active:true, managerId:7, staffBusinessId:72 });
   Business.findOne = async ({ where }) => where.id === 72 && where.ownerId === 7 ? { id:72, ownerId:7, storeType:'restaurant', name:'A' } : where.id === 73 && where.ownerId === 7 ? { id:73, ownerId:7, storeType:'restaurant', name:'B' } : null;
-  RestaurantOrder.findAll = async () => [];
+  RestaurantOrder.findAndCountAll = async () => ({rows:[],count:0});
   const server = app.listen(0);
   const token = jwt.sign({ sub:83 }, process.env.JWT_SECRET), base = `http://127.0.0.1:${server.address().port}/api/owner`;
   const get = async (path, method='GET') => fetch(`${base}${path}`, { method, headers:{ Authorization:`Bearer ${token}`, 'Content-Type':'application/json' }, ...(method === 'POST' ? { body:'{}' } : {}) });
   try {
-    const orders = await get('/72/restaurant-orders'); assert.equal(orders.status, 200); assert.deepEqual(await orders.json(), { orders:[] });
+    const orders = await get('/72/restaurant-orders'); assert.equal(orders.status, 200); assert.deepEqual(await orders.json(), { orders:[], total:0,page:1,pageSize:200 });
     assert.equal((await get('/72/coupons')).status, 403);
     assert.equal((await get('/72/staff')).status, 403);
     assert.equal((await get('/72/business', 'PATCH')).status, 403);
     assert.equal((await get('/73/restaurant-orders')).status, 404);
     assert.equal((await get('/stores', 'POST')).status, 403);
-  } finally { [User.findByPk, Business.findOne, RestaurantOrder.findAll] = original; await new Promise(resolve => server.close(resolve)); }
+  } finally { [User.findByPk, Business.findOne, RestaurantOrder.findAndCountAll] = original; await new Promise(resolve => server.close(resolve)); }
 });
 
 test('owner can provision only scoped staff with a valid email and long temporary password', async () => {
