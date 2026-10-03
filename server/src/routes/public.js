@@ -10,7 +10,7 @@ import { validateAnswers } from '../custom-fields.js';
 import { invoiceSigValid, streamBill } from '../invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
 import { orderBotEnabledFor, withOrderRef } from '../whatsapp-orders.js';
-import { notifyNewOrderWhatsApp } from '../whatsapp-cloud.js';
+import { notifyNewOrder as notifyNewOrderWhatsApp } from '../whatsapp-byo.js';
 import { notifyShopRequest } from '../platform-alerts.js';
 const r = Router();
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
