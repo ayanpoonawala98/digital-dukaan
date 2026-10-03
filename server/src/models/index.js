@@ -179,3 +179,9 @@ export const Referral = sequelize.define('Referral', {
 }, { tableName: 'referrals', indexes: [{ unique: true, fields: ['businessId', 'code'] }] });
 Business.hasMany(Referral, { foreignKey: 'businessId' });
 Referral.belongsTo(Business, { foreignKey: 'businessId' });
+
+// Per-store provider credentials. Kept in their own table (never on Business) so no store/overview/public response can ever carry them.
+export const NotifySecret = sequelize.define('NotifySecret', {
+  businessId: { type: DataTypes.INTEGER, primaryKey: true, references: { model: 'businesses', key: 'id' }, onDelete: 'CASCADE' },
+  payload: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+}, { tableName: 'notify_secrets' });
