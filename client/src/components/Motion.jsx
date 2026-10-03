@@ -12,7 +12,7 @@ export default function Motion() {
       for (const entry of entries) if (entry.isIntersecting) {
         entry.target.classList.add('in-view'); observer.unobserve(entry.target);
       }
-    }, { threshold: .08, rootMargin: '0px 0px 45px 0px' });
+    }, { threshold: 0, rootMargin: '0px 0px 45px 0px' });
     const seen = new WeakSet();
     const scan = () => document.querySelectorAll(targets).forEach(element => {
       if (seen.has(element)) return;
