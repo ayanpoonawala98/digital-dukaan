@@ -5,6 +5,7 @@ import { sequelize } from './db.js';
 import { bad, wrap } from './utils/core.js';
 import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
 import { Lead, Business } from './models/index.js';
+import { installInboxRoutes } from './whatsapp-inbox.js';
 import { orderBotEnabledFor, parseOrderRef, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
@@ -269,6 +270,7 @@ whatsappCloudOwnerRoutes.put('/auto-reply',wrap(async(req,res)=>{
   await WhatsAppAutoReply.upsert({businessId:req.store.id,enabled:on,text:text.trim()});
   res.json({enabled:on,text:text.trim()});
 }));
+installInboxRoutes(whatsappCloudOwnerRoutes,{WhatsAppMessage,Lead,ensureSchema,merchantConnection,wrap,bad});
 whatsappCloudOwnerRoutes.get('/messages',wrap(async(req,res)=>{
   if (!(await merchantConnection(req.store.id))) throw bad(503,'No shop number connected');
   await ensureSchema();
