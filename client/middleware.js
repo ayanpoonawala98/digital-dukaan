@@ -47,7 +47,7 @@ export default async function middleware(request) {
     const product = productId ? data.product : null;
     if (productId && !product?.name) return new Response('Product not found', { status: 404, headers: { 'x-robots-tag': 'noindex' } });
     const canonical = product ? `${canonicalStore(slug)}product/${product.id}` : canonicalStore(slug);
-    const title = product ? `${product.name} - ${business.name} | Digital Dukaan` : `${business.name} | Digital Dukaan`;
+    const title = product ? `${product.name} - ${business.name} | Digital Shop` : `${business.name} | Digital Shop`;
     const description = (product?.description || (product ? `See ${product.name} at ${business.name}. Enquire on WhatsApp.` : business.description || `Explore ${business.name}'s storefront and products online.`)).slice(0, 190);
     const candidate = product?.imageUrl || business.coverUrl || '';
     const image = /^https:\/\/(?:ik\.imagekit\.io|[a-z0-9-]+\.imagekit\.io)\//i.test(candidate) ? candidate : defaultImage;
