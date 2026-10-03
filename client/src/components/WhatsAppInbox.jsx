@@ -9,6 +9,11 @@ const fmtTime = iso => {
   if (d.toDateString() === y.toDateString()) return 'Yesterday';
   return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
 };
+const initial = c => (c.name ? c.name.trim()[0] : '#').toUpperCase();
+const dayLabel = iso => { const d = new Date(iso), n = new Date(); if (d.toDateString() === n.toDateString()) return 'Today'; const y = new Date(n); y.setDate(n.getDate() - 1); if (d.toDateString() === y.toDateString()) return 'Yesterday'; return d.toLocaleDateString([], { day: 'numeric', month: 'long', year: 'numeric' }); };
+const clock = iso => new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const GREEN = '#128c4a';
+const Avatar = ({ c, size = 40 }) => <span aria-hidden="true" style={{ flex: '0 0 auto', width: size, height: size, borderRadius: '50%', background: 'rgba(18,140,74,.14)', color: GREEN, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: size * .42 }}>{initial(c)}</span>;
 const label = c => c.name ? `${c.name} (+${c.phone})` : `+${c.phone}`;
 const windowOpen = msgs => { const last = [...msgs].reverse().find(m => m.direction === 'inbound'); return Boolean(last) && Date.now() - new Date(last.eventAt).getTime() < 24 * 60 * 60 * 1000; };
 
@@ -64,36 +69,46 @@ export default function WhatsAppInbox({ token, root, canSend }) {
   }
   const open24 = windowOpen(msgs);
 
-  return <section aria-label="WhatsApp inbox" style={{ marginTop: 18 }}>
-    <h4>Inbox</h4>
-    {error && <p className="notice error" role="alert">{error}</p>}
-    <div style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(240px,340px) 1fr', border: '1px solid var(--line)', borderRadius: 14, overflow: 'hidden', height: 'min(70vh, 640px)', minHeight: 360, gridTemplateRows: 'minmax(0, 1fr)' }} className="wa-inbox">
-      <div style={{ borderRight: '1px solid var(--line)', display: narrow && active ? 'none' : 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ padding: 10 }}><input aria-label="Search by number" placeholder="Search by number" value={q} onChange={e => setQ(e.target.value)} style={{ width: '100%' }} /></div>
-        <div style={{ overflowY: 'auto', flex: 1 }}>
-          {loading && !convs.length && <p style={{ padding: 12 }} role="status">Loading conversations...</p>}
-          {!loading && !convs.length && <p style={{ padding: 12 }}>{q ? 'No conversation matches.' : 'No conversations yet. They appear when a customer messages your shop number.'}</p>}
-          {convs.map(c => <button key={c.phone} onClick={() => open(c)} aria-current={active?.phone === c.phone} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '12px 14px', border: 0, borderBottom: '1px solid var(--line)', background: active?.phone === c.phone ? 'var(--card-2, rgba(0,0,0,.05))' : 'transparent', cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
-            <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}><strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{label(c)}</strong><small>{fmtTime(c.lastAt)}</small></span>
-            <span style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginTop: 4 }}><small style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: .75 }}>{c.lastDirection === 'outbound' ? 'You: ' : ''}{c.lastText}</small>{c.unread > 0 && <span aria-label={`${c.unread} unread`} style={{ background: '#128c4a', color: '#fff', borderRadius: 999, minWidth: 20, padding: '0 6px', textAlign: 'center', fontSize: 12, lineHeight: '20px' }}>{c.unread > 99 ? '99+' : c.unread}</span>}</span>
-          </button>)}
-          {next && <button className="btn" style={{ margin: 10 }} onClick={() => loadList(false, next)}>Load more conversations</button>}
+  const title = c => c.name || `+${c.phone}`;
+  const rows = []; let lastDay = '';
+  for (const m of msgs) { const d = dayLabel(m.eventAt); if (d !== lastDay) { rows.push({ sep: d, key: 'sep-' + m.id }); lastDay = d; } rows.push({ m, key: m.id }); }
+  const line = '1px solid var(--line)';
+  return <section aria-label="WhatsApp inbox" style={{ marginTop: 28 }}>
+    <h4 style={{ margin: '0 0 12px' }}>Inbox</h4>
+    {error && <p className="notice error" role="alert" style={{ margin: '0 0 12px' }}>{error}</p>}
+    <div className="wa-inbox" style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(260px,340px) 1fr', gridTemplateRows: 'minmax(0, 1fr)', border: line, borderRadius: 16, overflow: 'hidden', height: 'min(72vh, 660px)', minHeight: 380, background: 'var(--card)' }}>
+      <div style={{ borderRight: narrow ? 0 : line, display: narrow && active ? 'none' : 'flex', flexDirection: 'column', minHeight: 0 }}>
+        <div style={{ padding: 12, borderBottom: line }}><input type="search" aria-label="Search by number" placeholder="Search by number" value={q} onChange={e => setQ(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 999, margin: 0 }} /></div>
+        <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
+          {loading && !convs.length && <p style={{ padding: 18, margin: 0, textAlign: 'center', opacity: .7 }} role="status">Loading conversations...</p>}
+          {!loading && !convs.length && <p style={{ padding: 18, margin: 0, textAlign: 'center', opacity: .7 }}>{q ? 'No conversation matches.' : 'No conversations yet. They appear when a customer messages your shop number.'}</p>}
+          {convs.map(c => { const on = active?.phone === c.phone; return <button key={c.phone} onClick={() => open(c)} aria-current={on} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '12px 14px', border: 0, borderBottom: line, borderLeft: `3px solid ${on ? GREEN : 'transparent'}`, background: on ? 'rgba(18,140,74,.08)' : 'transparent', cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
+            <Avatar c={c} />
+            <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}><strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title(c)}</strong><small style={{ flex: '0 0 auto', opacity: .65, color: c.unread > 0 ? GREEN : undefined }}>{fmtTime(c.lastAt)}</small></span>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><small style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: .72 }}>{c.lastDirection === 'outbound' ? 'You: ' : ''}{c.lastText.replace(/\s+/g, ' ')}</small>{c.unread > 0 && <span aria-label={`${c.unread} unread`} style={{ flex: '0 0 auto', background: GREEN, color: '#fff', borderRadius: 999, minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', textAlign: 'center', fontSize: 12, lineHeight: '20px', fontWeight: 600 }}>{c.unread > 99 ? '99+' : c.unread}</span>}</span>
+            </span>
+          </button>; })}
+          {next && <div style={{ padding: 12, textAlign: 'center' }}><button className="btn" onClick={() => loadList(false, next)}>Load more conversations</button></div>}
         </div>
       </div>
-      <div style={{ display: narrow && !active ? 'none' : 'flex', flexDirection: 'column', minHeight: 0 }}>
-        {!active ? <p style={{ padding: 20, opacity: .7 }}>Select a conversation to read and reply.</p> : <>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--line)', display: 'flex', gap: 10, alignItems: 'center' }}>{narrow && <button className="btn" onClick={() => { gen.current++; setActive(null); }}>Back</button>}<strong>{label(active)}</strong></div>
-          <div ref={scroller} style={{ overflowY: 'auto', flex: 1, minHeight: 0, padding: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {older && <button className="btn" style={{ alignSelf: 'center' }} onClick={() => loadThread(active.phone, { before: older })}>Load older messages</button>}
-            {msgs.map(m => <div key={m.id} style={{ alignSelf: m.direction === 'outbound' ? 'flex-end' : 'flex-start', maxWidth: '78%', background: m.direction === 'outbound' ? 'rgba(18,140,74,.14)' : 'rgba(0,0,0,.06)', borderRadius: 12, padding: '8px 12px' }}>
-              <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{m.text}</div>
-              <small style={{ opacity: .65 }}>{new Date(m.eventAt).toLocaleString([], { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}{m.direction === 'outbound' ? ` · ${m.status}` : ''}{m.errorCode ? ` (${m.errorCode})` : ''}</small>
-            </div>)}
-            
+      <div style={{ display: narrow && !active ? 'none' : 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'rgba(0,0,0,.025)' }}>
+        {!active ? <div style={{ margin: 'auto', padding: 24, textAlign: 'center', opacity: .65 }}>Select a conversation to read and reply.</div> : <>
+          <div style={{ padding: '10px 16px', borderBottom: line, display: 'flex', gap: 12, alignItems: 'center', background: 'var(--card)' }}>
+            {narrow && <button className="btn" onClick={() => { gen.current++; setActive(null); }}>Back</button>}
+            <Avatar c={active} size={36} />
+            <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}><strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title(active)}</strong>{active.name && <small style={{ opacity: .65 }}>+{active.phone}</small>}</span>
           </div>
-          <div style={{ borderTop: '1px solid var(--line)', padding: 10 }}>
-            {!canSend ? <small>Replies are not enabled for this shop yet.</small> : !open24 && active.loaded ? <small>This customer has not messaged in the last 24 hours, so a free reply is not possible. Ask them to message the shop first.</small> :
-              <div style={{ display: 'flex', gap: 8 }}><textarea aria-label="Reply message" value={text} onChange={e => setText(e.target.value)} maxLength={4096} rows={2} style={{ flex: 1 }} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }} /><button className="btn" disabled={sending || !text.trim()} onClick={send}>{sending ? 'Sending...' : 'Send'}</button></div>}
+          <div ref={scroller} style={{ overflowY: 'auto', flex: 1, minHeight: 0, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {older && <button className="btn" style={{ alignSelf: 'center', marginBottom: 8 }} onClick={() => loadThread(active.phone, { before: older })}>Load older messages</button>}
+            {rows.map(r => r.sep ? <div key={r.key} style={{ alignSelf: 'center', margin: '10px 0 4px', padding: '3px 12px', borderRadius: 999, background: 'rgba(0,0,0,.07)', fontSize: 12, opacity: .8 }}>{r.sep}</div> : (() => { const m = r.m, out = m.direction === 'outbound'; return <div key={r.key} style={{ alignSelf: out ? 'flex-end' : 'flex-start', maxWidth: 'min(78%, 520px)', background: out ? '#d9f3e3' : 'var(--card)', border: out ? '1px solid rgba(18,140,74,.18)' : line, borderRadius: out ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px 6px' }}>
+              <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.4 }}>{m.text}</div>
+              <div style={{ textAlign: 'right', marginTop: 3 }}><small style={{ opacity: .6, fontSize: 11 }}>{clock(m.eventAt)}{out ? ` · ${m.status}` : ''}{m.errorCode ? ` (${m.errorCode})` : ''}</small></div>
+            </div>; })())}
+          </div>
+          <div style={{ borderTop: line, padding: 12, background: 'var(--card)' }}>
+            {!canSend ? <small style={{ opacity: .7 }}>Replies are not enabled for this shop yet.</small> : !open24 && active.loaded ? <small style={{ opacity: .75 }}>This customer has not messaged in the last 24 hours, so a free reply is not possible. Ask them to message the shop first.</small> :
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}><textarea aria-label="Reply message" placeholder="Type a reply" value={text} onChange={e => setText(e.target.value)} maxLength={4096} rows={2} style={{ flex: 1, margin: 0, resize: 'none', borderRadius: 12, padding: '10px 12px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }} /><button className="btn" style={{ margin: 0, height: 44 }} disabled={sending || !text.trim()} onClick={send}>{sending ? 'Sending...' : 'Send'}</button></div>}
           </div>
         </>}
       </div>
