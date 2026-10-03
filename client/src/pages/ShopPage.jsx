@@ -8,6 +8,7 @@ import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCir
 import { api, imageSrc, inr } from '../lib/api.js';
 import { storeLink, storePath } from '../lib/store-domain.js';
 import { translate } from '../lib/i18n.js';
+import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 import RestaurantCheckout from '../components/RestaurantCheckout.jsx';
 import { saveOrder } from '../lib/my-orders.js';
 import { useCart, useOrders, useWishlist } from '../lib/shop.js';
@@ -64,7 +65,7 @@ function PushPrompt({ slug, business }) {
   </div>;
 }
 
-function InstallApp({ name }) {
+function InstallApp({ name, t = k => k }) {
   const [prompt, setPrompt] = useState(null);
   const [installed, setInstalled] = useState(() => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true);
   const [instructions, setInstructions] = useState(false);
@@ -85,7 +86,7 @@ function InstallApp({ name }) {
     finally { setBusy(false); }
   };
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  return <div className="install-app"><button type="button" className="chip-btn" disabled={busy} onClick={install} aria-expanded={instructions}><Download size={16}/>{busy ? 'Opening install...' : 'Install app'}</button>{instructions && <div className="install-guide" role="status"><strong>Put {name} on your home screen</strong><span>{ios ? 'In Safari, tap Share, then Add to Home Screen.' : 'In your browser menu, choose Install app or Add to Home screen.'}</span><button type="button" onClick={() => setInstructions(false)} aria-label="Close install instructions"><X size={15}/></button></div>}</div>;
+  return <div className="install-app"><button type="button" className="chip-btn" disabled={busy} onClick={install} aria-expanded={instructions}><Download size={16}/>{busy ? 'Opening install...' : t('install')}</button>{instructions && <div className="install-guide" role="status"><strong>Put {name} on your home screen</strong><span>{ios ? 'In Safari, tap Share, then Add to Home Screen.' : 'In your browser menu, choose Install app or Add to Home screen.'}</span><button type="button" onClick={() => setInstructions(false)} aria-label="Close install instructions"><X size={15}/></button></div>}</div>;
 }
 
 function QrModal({ slug, business, onClose }) {
@@ -110,6 +111,7 @@ function QrModal({ slug, business, onClose }) {
 
 function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   const t = key => translate(lang, key);
+  const [contact, setContact] = useContact();
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [couponCode, setCouponCode] = useState(''), [referralCode, setReferralCode] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
   const freeAbove = business.freeDeliveryAbove;
   const delivery = freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove ? 0 : Number(business.deliveryCharge || 0);
@@ -119,7 +121,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
-      const { url, total: confirmedTotal, tracking } = await api(`/public/stores/${slug}/enquire-cart`, { method: 'POST', body: { items: cart.items.map(i => ({ id: i.id, qty: i.qty })), couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase() } });
+      const { url, total: confirmedTotal, tracking } = await api(`/public/stores/${slug}/enquire-cart`, { method: 'POST', body: { items: cart.items.map(i => ({ id: i.id, qty: i.qty })), couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(), ...contactBody(contact) } });
       orders.record(cart.items, confirmedTotal);
       if (tracking) saveOrder(slug, { kind: 'lead', id: tracking.id, token: tracking.token, total: tracking.total });
       cart.clear();
@@ -149,6 +151,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
           <div><span>Delivery {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? 'FREE' : inr(delivery)}</b></div>
           <div className="grand"><span>Total</span><b>{inr(total)}</b></div>
         </div>
+        <ContactFields contact={contact} onChange={setContact}/>
         <label className="coupon-field">Referral code <small>(optional; rewards only after confirmation)</small><input value={referralCode} onChange={e => setReferralCode(e.target.value)} maxLength={24} placeholder="FR..."/></label>
         <label className="coupon-field">Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
         {couponCode && <p className="drawer-hint">The shop verifies the code before opening WhatsApp. Total above does not include a possible discount.</p>}
@@ -191,18 +194,18 @@ function animateToCart(source) {
   animation.onfinish = () => bubble.remove(); setTimeout(() => bubble.remove(), 800);
 }
 
-function ProductCard({ product, slug, wishlist, cart, index }) {
+function ProductCard({ product, slug, wishlist, cart, index, t }) {
   const out = product.stock === 0;
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
   return <article className={`product-card anim-up ${out ? 'sold-out' : ''}`} style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
     <Link to={storePath(slug, product.id)} className="product-img">
       {product.imageUrl ? <img src={imageSrc(product.imageUrl)} alt={product.name} loading="lazy"/> : <span><Package size={40}/></span>}
-      {product.featured && <span className="chip chip-star"><Star size={12}/> Bestseller</span>}
-      {!product.featured && Date.now() - new Date(product.createdAt).getTime() < 30 * 86400000 && <span className="chip chip-new">New</span>}
+      {product.featured && <span className="chip chip-star"><Star size={12}/> {t('bestseller')}</span>}
+      {!product.featured && Date.now() - new Date(product.createdAt).getTime() < 30 * 86400000 && <span className="chip chip-new">{t('fresh')}</span>}
       {product.kind === 'service' && <span className="chip chip-service">{product.duration || 'Service'}</span>}
-      {product.kind !== 'service' && out && <span className="chip chip-out">Out of stock</span>}
-      {product.kind !== 'service' && low && <span className="chip chip-low">Only {product.stock} left</span>}
-      <span className="view-tag">View product <ArrowUpRight size={14}/></span>
+      {product.kind !== 'service' && out && <span className="chip chip-out">{t('outOfStock')}</span>}
+      {product.kind !== 'service' && low && <span className="chip chip-low">{t('onlyLeft').replace('{n}', product.stock)}</span>}
+      <span className="view-tag">{t('view')} <ArrowUpRight size={14}/></span>
     </Link>
     <button className={`heart-btn ${wishlist.has(product.id) ? 'active' : ''}`} onClick={() => wishlist.toggle(product.id)} aria-label="Save to favorites"><Heart size={17}/></button>
     <div className="product-meta">
@@ -260,19 +263,19 @@ export default function ShopPage({ hostedSlug }) {
             <span className={`open-pill ${business.isOpen ? 'open' : 'closed'}`}><Clock size={14}/> {business.isOpen ? 'Open now' : 'Closed'}{business.openingHours ? ` · ${business.openingHours}` : ''}</span>
           </div>
           <h1>{business.name}<span>.</span></h1>
-          <p>{business.description || 'Thoughtfully picked. Just for you.'}</p>
+          <p>{business.description || t('tagline')}</p>
           <div className="store-banner-bottom">
             <span><MapPin size={15}/> {business.location || 'Made with care'}</span>
             <div className="store-banner-actions">
-              <InstallApp name={business.name}/>
-              <button className="chip-btn" onClick={() => setQrOpen(true)}><QrCode size={16}/> Share shop</button>
-              <button className="chip-btn" onClick={() => setWishOpen(true)}><Heart size={16}/> Favorites {wishlist.ids.length > 0 && `(${wishlist.ids.length})`}</button>
+              <InstallApp name={business.name} t={t}/>
+              <button className="chip-btn" onClick={() => setQrOpen(true)}><QrCode size={16}/> {t('share')}</button>
+              <button className="chip-btn" onClick={() => setWishOpen(true)}><Heart size={16}/> {t('favorites')} {wishlist.ids.length > 0 && `(${wishlist.ids.length})`}</button>
             </div>
           </div>
         </div>
       </div>
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
-        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{products.length} PRODUCTS</span></div>
+        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{products.length} {t('productsCount')}</span></div>
         <div className="catalog-tools">
           <div className="filter-tabs"><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
           <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} aria-label={t('search')}/></label>
@@ -280,8 +283,8 @@ export default function ShopPage({ hostedSlug }) {
         {loading
           ? <div className="product-grid">{Array.from({ length: 6 }).map((_, i) => <div className="product-card skeleton" key={i}><div className="product-img shimmer"/><div className="product-meta"><span className="shimmer-line"/><h3 className="shimmer-line wide"/></div></div>)}</div>
           : products.length
-            ? <div className="product-grid">{products.map((p, i) => <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i}/>)}</div>
-            : <div className="empty-state"><Package size={38}/><h3>Nothing here yet</h3><p>Try a different search or category.</p></div>}
+            ? <div className="product-grid">{products.map((p, i) => <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
+            : <div className="empty-state"><Package size={38}/><h3>{t('empty')}</h3><p>{t('emptyHint')}</p></div>}
       </div>
       {business.storeType !== 'restaurant' && orders.orders.length > 0 && <div className="container order-history">
         <div className="catalog-head"><div><span className="kicker">YOUR HISTORY</span><h2>Order again<span className="accent-dot">.</span></h2></div></div>
@@ -290,7 +293,7 @@ export default function ShopPage({ hostedSlug }) {
           <button className="btn btn-outline btn-small" onClick={() => { order.items.forEach(item => cart.add(item, item.qty)); setCartOpen(true); }}>Repeat order</button>
         </div>)}</div>
       </div>}
-      <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : 'GOOD THINGS START WITH A CONVERSATION ✳'}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>Like something? <em>Let's talk.</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : "Pick a product and message us on WhatsApp. We'd love to hear from you."}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> Call owner</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> WhatsApp message</a></div></div></div>
+      <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : t('talkKicker')}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>{t('talkTitle')} <em>{t('talkAccent')}</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : t('talkBody')}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> {t('callOwner')}</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> {t('whatsappMsg')}</a></div></div></div>
     </main>
     <Footer><span>{business.name} · Powered by Digital Dukaan</span></Footer>
     {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span className="cart-badge">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
