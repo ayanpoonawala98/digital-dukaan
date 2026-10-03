@@ -9,6 +9,7 @@ import { notifyNewOrder } from '../notify.js';
 import { validateAnswers } from '../custom-fields.js';
 import { invoiceSigValid, streamBill } from '../invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
+import { notifyShopRequest } from '../platform-alerts.js';
 const r = Router();
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
 const storefrontCache = (req, res, next) => { res.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=10'); next(); };
@@ -41,7 +42,8 @@ r.post('/shop-requests', wrap(async (req, res) => {
       typeof shopName !== 'string' || !shopName.trim() || shopName.trim().length > 100 ||
       typeof message !== 'string' || message.length > 1000) throw bad(400, 'Name, email, phone and shop name are required');
   await ShopRequest.sync(); // Targeted first-deploy table creation, never alter existing tables.
-  await ShopRequest.create({ name: name.trim(), email: email.toLowerCase().trim(), phone: phone.trim(), shopName: shopName.trim(), message: message.trim() });
+  const created = await ShopRequest.create({ name: name.trim(), email: email.toLowerCase().trim(), phone: phone.trim(), shopName: shopName.trim(), message: message.trim() });
+  void notifyShopRequest(created);
   res.status(201).json({ ok: true });
 }));
 
