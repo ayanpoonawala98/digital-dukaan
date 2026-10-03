@@ -47,7 +47,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
     </aside>
     <div className="admin-main">
       <div className="admin-top">
-        <span>{superMode ? 'SUPERADMIN / DIGITAL DUKAAN' : <select className="store-switcher" value={storeId || ''} onChange={e => setStoreId(e.target.value)}><option value="" disabled>Select store</option>{stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</span>
+        <span>{superMode ? 'SUPERADMIN / DIGITAL SHOP' : <select className="store-switcher" value={storeId || ''} onChange={e => setStoreId(e.target.value)}><option value="" disabled>Select store</option>{stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</span>
         <div className="admin-profile"><span>{session.user.name?.[0]?.toUpperCase()}</span><div><strong>{session.user.name}</strong><small>{superMode ? 'Superadmin' : staffMode ? 'Shop staff' : 'Shop owner'}</small></div></div>
       </div>
       {children}
@@ -193,7 +193,7 @@ function PaymentSettings({ token, storeId }) {
   const save = async (body, ok) => { setBusy(true); setMsg(null); try { const d = await api(`/owner/${storeId}/payments`, { token, method: 'PUT', body, feedback: false }); setView(d.razorpay); setF({ keyId: '', keySecret: '' }); setMsg({ ok }); } catch (e) { setMsg({ error: e.message }); } finally { setBusy(false); } };
   return <div className="dashboard-panel settings-panel notify-settings">
     <h3>Online payments (Razorpay)</h3>
-    <p className="muted">Let customers pay an order by UPI, card or netbanking through a payment link. The money goes to your own Razorpay account. Digital Dukaan never touches it.</p>
+    <p className="muted">Let customers pay an order by UPI, card or netbanking through a payment link. The money goes to your own Razorpay account. Digital Shop never touches it.</p>
     <div className="notify-row"><strong>Razorpay</strong><span className={`status-pill ${view.configured ? 'on' : 'off'}`}>{view.configured ? `Connected (${view.mode || 'keys saved'}) ${view.keyId}` : 'Not connected'}</span></div>
     {view.mode === 'test' && view.configured && <p className="notice warn">These are TEST keys. Payments will not move real money. Use live keys when you are ready.</p>}
     <form onSubmit={e => { e.preventDefault(); save({ keyId: f.keyId || undefined, keySecret: f.keySecret || undefined }, 'Razorpay connected'); }}>
