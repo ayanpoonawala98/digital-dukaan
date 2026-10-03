@@ -40,7 +40,8 @@ export function featureForOwnerRoute(method, route) {
     [/^restaurant-orders(?:\/|$)/, 'restaurant'],
     [/^push-broadcast$/, 'notifications'],
     [/^push-subscribers$/, 'notifications'],
-    [/^whatsapp-cloud(?:\/|$)/, 'whatsappCloud']
+    [/^whatsapp-cloud(?:\/|$)/, 'whatsappCloud'],
+    [/^aisensy(?:\/|$)/, 'whatsappCloud']
   ];
   for (const [pattern, feature] of rules) if (pattern.test(path)) return feature;
   if (method === 'PATCH' && path === 'business') return 'settings';
