@@ -1047,3 +1047,30 @@ footer { background:#101d15; }
   .filter-tabs button:nth-child(n), .store-identity > *:nth-child(n), .store-banner-actions > *:nth-child(n) { animation-delay:0ms; }
   .product-card:hover { box-shadow:none; }
 }
+
+/* Orders: the 6-column table is too tight below ~1200px (zoomed laptops), so use two-up cards there. */
+.leads-head { display:flex; flex-wrap:wrap; align-items:center; gap:12px 16px; margin:4px 0 16px; }
+.leads-head > p { flex:1 1 320px; min-width:0; margin:0; }
+.leads-head > .btn { flex:0 0 auto; }
+@media (max-width:1280px) {
+  .orders-table { overflow:visible; }
+  .orders-table table, .orders-table thead, .orders-table tbody, .orders-table tr, .orders-table td { display:block; min-width:0; width:100%; }
+  .orders-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+  .orders-table tbody { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+  .orders-table tr { border:1px solid var(--line); border-radius:14px; padding:6px 14px; margin:0; min-width:0; }
+  .orders-table td { display:flex; justify-content:space-between; align-items:center; gap:14px; padding:9px 0!important; text-align:right; border-bottom:1px solid var(--line); overflow-wrap:anywhere; }
+  .orders-table td:last-child { border-bottom:0; }
+  .orders-table td::before { content:attr(data-label); flex:0 0 auto; text-align:left; font-size:11px; letter-spacing:.1em; text-transform:uppercase; opacity:.65; }
+  .orders-table td.row-actions { flex-wrap:wrap; justify-content:flex-end; white-space:normal; }
+  .orders-table .phone-input, .orders-table .status-select { max-width:60%; }
+}
+@media (max-width:760px) { .orders-table tbody { grid-template-columns:1fr; } }
+/* Short laptop screens (about 650-760px high, 12 menu items): compact the sidebar so the footer links stay in view. */
+@media (min-width:761px) and (max-height:780px) {
+  .admin-layout .sidebar { gap:10px; padding-top:14px; padding-bottom:10px; }
+  .admin-layout .sidebar-label { display:none; }
+  .admin-layout .sidebar nav { gap:2px; }
+  .admin-layout .sidebar nav button { min-height:34px; padding:6px 12px; font-size:13.5px; }
+  .admin-layout .sidebar-bottom { padding-top:6px; gap:0; }
+  .admin-layout .sidebar-bottom > * { padding:6px 12px; font-size:13px; }
+}
