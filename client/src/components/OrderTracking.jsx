@@ -77,7 +77,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
   const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null), [copied, setCopied] = useState(false);
   const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || '';
   useEffect(() => {
-    document.title = 'Track your order - Digital Dukaan';
+    document.title = 'Track your order - Digital Shop';
     const meta = document.createElement('meta'); meta.name = 'referrer'; meta.content = 'no-referrer'; document.head.appendChild(meta);
     return () => meta.remove();
   }, []);
@@ -111,7 +111,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
 export function MyOrdersPage() {
   const { slug } = useParams();
   const [saved, setSaved] = useState(() => loadSavedOrders(slug)), [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null);
-  useEffect(() => { document.title = 'My orders - Digital Dukaan'; setSaved(loadSavedOrders(slug)); return onOrdersChanged(() => setSaved(loadSavedOrders(slug))); }, [slug]);
+  useEffect(() => { document.title = 'My orders - Digital Shop'; setSaved(loadSavedOrders(slug)); return onOrdersChanged(() => setSaved(loadSavedOrders(slug))); }, [slug]);
   const load = useCallback(async () => {
     try {
       const sub = await currentBrowserSubscription();
