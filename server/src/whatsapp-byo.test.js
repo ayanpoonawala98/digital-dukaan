@@ -78,3 +78,23 @@ test('meta adapter verifies the shop app-secret signature when one is stored, an
   assert.equal(adapters.meta.verify(req(undefined), { appSecret: 'sec' }), false);
   assert.equal(adapters.meta.verify(req(undefined), {}), true);
 });
+
+test('twilio sends a per-shop StatusCallback and each shop has its own inbound and status URLs', async () => {
+  process.env.WHATSAPP_WEBHOOK_CALLBACK_URL = 'https://api.example.com/api/integrations/whatsapp/webhook';
+  const a = { provider: 'twilio', secret: 'a'.repeat(48) }, b = { provider: 'twilio', secret: 'b'.repeat(48) };
+  assert.notEqual(webhookUrl(a), webhookUrl(b)); assert.notEqual(webhookUrl(a, 'status'), webhookUrl(b, 'status'));
+  assert.equal(webhookUrl(a, 'status'), `${webhookUrl(a)}/status`);
+  const calls = [];
+  await adapters.twilio.sendText({ accountSid: 'ACx', authToken: 't', from: '+14155238886', statusCallback: webhookUrl(a, 'status') }, '919999999999', 'hi', okFetch({ sid: 'SM2' }, 201, calls));
+  assert.equal(new URLSearchParams(calls[0].init.body).get('StatusCallback'), webhookUrl(a, 'status'));
+});
+test('twilio signatures are isolated per shop and per endpoint', () => {
+  process.env.WHATSAPP_WEBHOOK_CALLBACK_URL = 'https://api.example.com/x';
+  const a = { provider: 'twilio', secret: 'a'.repeat(48) }, b = { provider: 'twilio', secret: 'b'.repeat(48) };
+  const body = { MessageSid: 'SM1', MessageStatus: 'delivered' };
+  const sigA = twilioSignature('tokA', webhookUrl(a, 'status'), body);
+  const req = { header: () => sigA, body };
+  assert.equal(adapters.twilio.verify(req, { authToken: 'tokA' }, a, 'status'), true);
+  assert.equal(adapters.twilio.verify(req, { authToken: 'tokA' }, a, ''), false); // status signature not valid on the inbound URL
+  assert.equal(adapters.twilio.verify(req, { authToken: 'tokB' }, b, 'status'), false); // another shop's token and URL
+});
