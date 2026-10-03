@@ -1099,3 +1099,29 @@ footer { background:#101d15; }
 .notify-provider textarea, .notify-provider select { width: 100%; }
 .notify-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media (max-width: 640px) { .notify-two { grid-template-columns: 1fr; } }
+
+/* Order payment + bill actions */
+.pay-actions { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 6px; }
+.pay-badge { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 999px; }
+.pay-badge.paid { background: rgba(14,159,110,.16); color: #0e9f6e; }
+.pay-badge.pending { background: rgba(245,165,36,.18); color: #b7791f; }
+.pay-badge.expired { background: rgba(239,91,123,.16); color: #ef5b7b; }
+
+/* Custom product questions */
+.cf-editor { border: 1px dashed rgba(128,128,128,.4); border-radius: 14px; padding: 12px 14px; margin: 6px 0; min-width: 0; }
+.cf-editor legend { font-weight: 700; padding: 0 6px; }
+.cf-help { margin: 0 0 10px; font-size: 13px; }
+.cf-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; margin-bottom: 10px; }
+.cf-row .cf-options { grid-column: 1 / -1; }
+.cf-req { margin: 0; white-space: nowrap; }
+.cf-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.cf-answers { display: grid; gap: 10px; margin: 12px 0; }
+.cf-answers label { display: grid; gap: 4px; font-weight: 600; font-size: 14px; }
+.cf-answers.compact { margin: 6px 0 0; gap: 6px; } .cf-answers.compact label { font-size: 12px; }
+.cf-star { color: #ef5b7b; }
+@media (max-width: 560px) { .cf-row { grid-template-columns: 1fr 1fr; } .cf-row input[aria-label="Question"] { grid-column: 1 / -1; } }
+
+.perm-checks { border: 1px solid var(--line, rgba(255,255,255,.12)); border-radius: 12px; padding: 10px 14px; margin: 8px 0; display: grid; gap: 6px; min-width: 0; }
+.perm-checks legend { font-size: 12px; opacity: .75; padding: 0 6px; }
+.perm-check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
+.perm-check input { margin-top: 3px; }
