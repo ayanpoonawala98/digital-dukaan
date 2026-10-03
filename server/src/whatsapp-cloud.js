@@ -1,6 +1,6 @@
 import { Router, raw } from 'express';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { DataTypes } from 'sequelize';
+import { DataTypes, Op } from 'sequelize';
 import { sequelize } from './db.js';
 import { bad, wrap } from './utils/core.js';
 import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
@@ -19,7 +19,18 @@ export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
   status: { type: DataTypes.STRING(30), allowNull: false },
   errorCode: { type: DataTypes.STRING(30), allowNull: true }
 }, { tableName: 'whatsapp_messages', indexes: [{fields:['businessId','phone','eventAt']}] });
+export const WhatsAppAutoReply = sequelize.define('WhatsAppAutoReply', {
+  businessId: { type: DataTypes.INTEGER, primaryKey: true },
+  enabled: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  text: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' }
+}, { tableName: 'whatsapp_auto_replies' });
 let schemaReady;
+let autoReplySchemaReady;
+async function ensureAutoReplySchema() {
+  await ensureSchema();
+  if (!autoReplySchemaReady) autoReplySchemaReady = WhatsAppAutoReply.sync().catch(e=>{autoReplySchemaReady=null;throw e;});
+  return autoReplySchemaReady;
+}
 async function ensureSchema() {
   if (!schemaReady) schemaReady = WhatsAppMessage.sync().catch(e=>{schemaReady=null;throw e;});
   await schemaReady;
@@ -55,6 +66,30 @@ export function serviceWindowOpen(date, now = Date.now()) {
   const t = new Date(date).getTime();
   return Number.isFinite(t) && t <= now && now - t < 24 * 60 * 60 * 1000;
 }
+const AUTO_REPLY_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+// Owner-configured, opt-in (off by default). Replies once per customer per 12 hours, only inside the free 24-hour window,
+// never throws into the webhook, and never retries (Meta may have accepted a request before a timeout).
+export async function maybeAutoReply({connection,businessId,phoneNumberId,phone,inboundId,eventAt,fetcher=fetch}) {
+  try {
+    if (!enabled() || process.env.WHATSAPP_OUTBOUND_ENABLED !== 'true' || !/^v\d+\.0$/.test(process.env.WHATSAPP_GRAPH_VERSION || '')) return false;
+    await ensureAutoReplySchema();
+    const cfg = await WhatsAppAutoReply.findByPk(businessId);
+    const text = String(cfg?.text || '').trim();
+    if (!cfg?.enabled || !text || !serviceWindowOpen(eventAt)) return false;
+    const recent = await WhatsAppMessage.findOne({where:{businessId,phone,direction:'outbound',requestKey:{[Op.like]:'auto:%'},eventAt:{[Op.gt]:new Date(Date.now()-AUTO_REPLY_COOLDOWN_MS)}}});
+    if (recent) return false;
+    const [record,created] = await WhatsAppMessage.findOrCreate({where:{requestKey:`auto:${businessId}:${inboundId}`.slice(0,100)},defaults:{businessId,phoneNumberId,direction:'outbound',phone,text,eventAt:new Date(),status:'submitting'}});
+    if (!created) return false;
+    try {
+      const messageId = await sendCloudText(phone,text,fetcher,connection);
+      await record.update({messageId,status:'accepted'});
+      return true;
+    } catch (err) {
+      await record.update({status:err.metaCode ? 'failed' : 'unknown',errorCode:err.metaCode ? String(err.metaCode) : null});
+      return false;
+    }
+  } catch { return false; }
+}
 export async function persistWhatsAppEvents(payload) {
   if (!bound() && process.env.WHATSAPP_MULTI_MERCHANT_ENABLED!=='true') return;
   await ensureSchema();
@@ -68,7 +103,8 @@ export async function persistWhatsAppEvents(payload) {
       for (const message of value.messages || []) {
         const eventAt = new Date(Number(message.timestamp) * 1000);
         if (!message.id || !/^[1-9]\d{7,14}$/.test(message.from || '') || !Number.isFinite(eventAt.getTime()) || eventAt.getTime() > Date.now() + 60000) continue;
-        await WhatsAppMessage.findOrCreate({where:{messageId:message.id}, defaults:{businessId,phoneNumberId,direction:'inbound',phone:message.from,text:message.type === 'text' ? String(message.text?.body || '').slice(0,4096) : '[Unsupported message: ' + String(message.type || 'unknown').slice(0,30) + ']',messageType:String(message.type || 'unknown').slice(0,30),eventAt,status:'received'}});
+        const [inboundRecord,inboundCreated]=await WhatsAppMessage.findOrCreate({where:{messageId:message.id}, defaults:{businessId,phoneNumberId,direction:'inbound',phone:message.from,text:message.type === 'text' ? String(message.text?.body || '').slice(0,4096) : '[Unsupported message: ' + String(message.type || 'unknown').slice(0,30) + ']',messageType:String(message.type || 'unknown').slice(0,30),eventAt,status:'received'}});
+        if (inboundCreated) await maybeAutoReply({connection,businessId,phoneNumberId,phone:message.from,inboundId:message.id,eventAt});
       }
       for (const status of value.statuses || []) {
         const record = await WhatsAppMessage.findOne({where:{messageId:status.id,businessId,direction:'outbound'}});
@@ -117,6 +153,20 @@ whatsappCloudOwnerRoutes.get('/webhook-readiness',async(req,res)=>{
   } catch {res.status(502).json({ready:false,error:'Webhook self-check unavailable'});}
 });
 
+whatsappCloudOwnerRoutes.get('/auto-reply',wrap(async(req,res)=>{
+  if(req.user?.role!=='owner') throw bad(403,'Only the shop owner can manage auto-replies');
+  await ensureAutoReplySchema();
+  const cfg=await WhatsAppAutoReply.findByPk(req.store.id);
+  res.json({enabled:Boolean(cfg?.enabled),text:cfg?.text||''});
+}));
+whatsappCloudOwnerRoutes.put('/auto-reply',wrap(async(req,res)=>{
+  if(req.user?.role!=='owner') throw bad(403,'Only the shop owner can manage auto-replies');
+  const {enabled:on,text}=req.body||{};
+  if(typeof on!=='boolean'||typeof text!=='string'||text.length>1000||(on&&!text.trim())) throw bad(400,'Turn on needs a reply text of up to 1000 characters');
+  await ensureAutoReplySchema();
+  await WhatsAppAutoReply.upsert({businessId:req.store.id,enabled:on,text:text.trim()});
+  res.json({enabled:on,text:text.trim()});
+}));
 whatsappCloudOwnerRoutes.get('/messages',wrap(async(req,res)=>{
   if (!(await merchantConnection(req.store.id))) throw bad(503,'No shop number connected');
   await ensureSchema();
