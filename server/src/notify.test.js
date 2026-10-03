@@ -102,3 +102,15 @@ test('SMTP client: STARTTLS-less AUTH refused; full plain transaction against a 
   await assert.rejects(sendSmtp({ host: '127.0.0.1', port, secure: false, from: 'a@b.co' }, { to: 'x@y.co', subject: 's', text: 't' }, {}), /not allowed/); // guard on by default
   server.close();
 });
+
+test('secret split: legacy JWT_SECRET blobs still decrypt, new writes use NOTIFY_ENC_KEY', async () => {
+  const { needsReencrypt } = await import('./notify-secrets.js');
+  const old = { JWT_SECRET: 'jwt-secret-for-tests-0123456789abcdef' };
+  const split = { ...old, NOTIFY_ENC_KEY: 'separate-notify-key-0123456789abcdef' };
+  const legacy = encryptJson({ resend: { apiKey: 're_legacy_1234' } }, old);
+  assert.deepEqual(decryptJson(legacy, split), { resend: { apiKey: 're_legacy_1234' } });
+  assert.equal(needsReencrypt(legacy, split), true);
+  const fresh = encryptJson({ a: 1 }, split);
+  assert.equal(needsReencrypt(fresh, split), false);
+  assert.deepEqual(decryptJson(fresh, old), {});
+});
