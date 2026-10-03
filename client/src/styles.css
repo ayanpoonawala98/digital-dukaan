@@ -968,3 +968,39 @@ footer { background:#101d15; }
 }
 @media (max-width:640px) { .data-toolbar > label:first-child { flex:1 1 100%; min-width:100%; } .data-toolbar > label:first-child input { width:100%; } }
 @media (max-width:900px) { .enquiry-table td.row-actions { flex-wrap:wrap; justify-content:flex-end; } .enquiry-table .phone-input, .enquiry-table .status-select { max-width:60%; } }
+
+/* Motion pass: opacity/transform only, short, and fail-safe. Content is visible by default;
+   keyframes use "backwards" fill, so if an animation never runs the element simply shows. */
+@media (prefers-reduced-motion:no-preference) {
+  @keyframes ddRise { from { opacity:0; transform:translate3d(0,10px,0); } to { opacity:1; transform:translate3d(0,0,0); } }
+  @keyframes ddFade { from { opacity:0; } to { opacity:1; } }
+  @keyframes ddPop { from { transform:scale(.96); } to { transform:scale(1); } }
+  @keyframes ddSlideIn { from { opacity:0; transform:translate3d(-8px,0,0); } to { opacity:1; transform:translate3d(0,0,0); } }
+  .admin-layout .dashboard-panel { animation:ddRise .38s var(--ease) backwards; }
+  .admin-layout .page-title, .admin-layout .admin-top { animation:ddFade .3s ease backwards; }
+  .admin-layout .stat-card { animation:ddRise .42s var(--ease) backwards; }
+  .admin-layout .stat-card:nth-child(2) { animation-delay:50ms; }
+  .admin-layout .stat-card:nth-child(3) { animation-delay:100ms; }
+  .admin-layout .stat-card:nth-child(4) { animation-delay:150ms; }
+  .enquiry-table tbody tr, .coupon-list > div, .category-list > * { animation:ddRise .32s var(--ease) backwards; }
+  .enquiry-table tbody tr:nth-child(2), .coupon-list > div:nth-child(2), .category-list > *:nth-child(2) { animation-delay:30ms; }
+  .enquiry-table tbody tr:nth-child(3), .coupon-list > div:nth-child(3), .category-list > *:nth-child(3) { animation-delay:60ms; }
+  .enquiry-table tbody tr:nth-child(4), .coupon-list > div:nth-child(4), .category-list > *:nth-child(4) { animation-delay:90ms; }
+  .enquiry-table tbody tr:nth-child(n+5), .coupon-list > div:nth-child(n+5), .category-list > *:nth-child(n+5) { animation-delay:120ms; }
+  .sidebar nav button.selected { animation:ddPop .25s var(--ease); }
+  .sidebar nav button svg { transition:transform .22s var(--ease); }
+  .sidebar nav button:hover svg { transform:scale(1.12); }
+  .enquiry-table tbody tr { transition:background-color .18s ease; }
+  .enquiry-table tbody tr:hover { background:color-mix(in srgb, var(--accent) 6%, transparent); }
+  .dashboard-panel, .stat-card { transition:box-shadow .25s ease, transform .25s var(--ease), border-color .25s ease; }
+  .stat-card:hover { transform:translate3d(0,-3px,0); box-shadow:0 10px 24px rgba(0,0,0,.08); }
+  .status-pill, .badge { transition:transform .2s var(--ease); }
+  .notice, .toast { animation:ddRise .28s var(--ease) backwards; }
+  .btn svg { transition:transform .22s var(--ease); }
+  .btn:not(:disabled):hover svg { transform:translate3d(2px,0,0); }
+  .product-card .product-img { overflow:hidden; }
+}
+@media (prefers-reduced-motion:no-preference) and (max-width:640px) {
+  .enquiry-table tbody tr:nth-child(n), .coupon-list > div:nth-child(n), .category-list > *:nth-child(n) { animation-delay:0ms; }
+  .stat-card:hover { transform:none; box-shadow:none; }
+}
