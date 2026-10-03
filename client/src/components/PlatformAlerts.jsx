@@ -39,7 +39,7 @@ export default function PlatformAlerts({token}) {
         <label className="check-label"><input type="checkbox" checked={Boolean(kf.smtp?.secure)} onChange={e=>setK('smtp','secure',e.target.checked)}/> Use SSL from the start (port 465)</label>
         <div className="notify-two">{textIn('smtp','user','Username','you@gmail.com')}{secretIn('smtp','pass','Password or app password',keys.smtp.passSaved)}</div>{textIn('smtp','from','Send from','Digital Dukaan <you@gmail.com>')}</>}
       {kf.emailMode==='http'&&httpFields('emailHttp',keys.emailHttp,false)}
-      <div className="notify-actions"><button type="button" className="btn btn-green btn-small" disabled={Boolean(busy)} onClick={()=>saveProvider('email')}><Busy active={busy==='k-email'}>{kf.emailMode?'Save email provider':'Remove email provider'}</Busy></button></div></details>
+      <div className="notify-actions">{(kf.emailMode||state.email.configured)&&<button type="button" className="btn btn-green btn-small" disabled={Boolean(busy)} onClick={()=>saveProvider('email')}><Busy active={busy==='k-email'}>{kf.emailMode?'Save email provider':'Remove email provider'}</Busy></button>}</div></details>
     <label className="check-label"><input type="checkbox" checked={set.emailAlerts} onChange={e=>setSet(x=>({...x,emailAlerts:e.target.checked}))}/> Email me for every new-store request</label>
     <label>Alert email<input type="email" value={set.alertEmail} onChange={e=>setSet(x=>({...x,alertEmail:e.target.value}))} placeholder="you@example.com"/></label>
     <div className="notify-row"><strong>SMS</strong>{badge(state.sms)}</div>
@@ -48,7 +48,7 @@ export default function PlatformAlerts({token}) {
       {kf.smsMode==='fast2sms'&&<>{secretIn('fast2sms','apiKey','Fast2SMS API key',keys.fast2sms.apiKeySaved,keys.fast2sms.apiKeyHint)}<label>Route<select value={kf.fast2sms?.route||'quick'} onChange={e=>setK('fast2sms','route',e.target.value)}><option value="quick">Quick (no DLT)</option><option value="dlt">DLT (approved template)</option></select></label>
         {kf.fast2sms?.route==='dlt'&&<div className="notify-two">{textIn('fast2sms','senderId','DLT sender ID','ABCDEF')}{textIn('fast2sms','templateId','DLT message ID','123456')}</div>}</>}
       {kf.smsMode==='http'&&httpFields('smsHttp',keys.smsHttp,true)}
-      <div className="notify-actions"><button type="button" className="btn btn-green btn-small" disabled={Boolean(busy)} onClick={()=>saveProvider('sms')}><Busy active={busy==='k-sms'}>{kf.smsMode?'Save SMS provider':'Remove SMS provider'}</Busy></button></div></details>
+      <div className="notify-actions">{(kf.smsMode||state.sms.configured)&&<button type="button" className="btn btn-green btn-small" disabled={Boolean(busy)} onClick={()=>saveProvider('sms')}><Busy active={busy==='k-sms'}>{kf.smsMode?'Save SMS provider':'Remove SMS provider'}</Busy></button>}</div></details>
     <label className="check-label"><input type="checkbox" checked={set.smsAlerts} onChange={e=>setSet(x=>({...x,smsAlerts:e.target.checked}))}/> Text me for every new-store request</label>
     <label>Alert mobile number <small>(10-digit Indian number)</small><input type="tel" inputMode="numeric" value={set.alertPhone} onChange={e=>setSet(x=>({...x,alertPhone:e.target.value}))} placeholder="98765 43210"/></label>
     {msg?.ok&&<p className="notice success">{msg.ok}</p>}{msg?.error&&<p className="notice error">{msg.error}</p>}
