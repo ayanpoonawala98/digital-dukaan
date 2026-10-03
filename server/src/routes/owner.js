@@ -16,6 +16,7 @@ import { flowFor } from '../order-flows.js';
 import { featureForOwnerRoute, isLocked } from '../feature-locks.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { validateProductRows } from '../product-import.js';
+import { insights } from '../sales-insights.js';
 import { dateWhere, dateWindow, summarize, ordersCsv, csvCell as reportCell } from '../reporting.js';
 import { auth, roles } from '../middleware/auth.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap } from '../utils/core.js';
@@ -613,7 +614,7 @@ const salesReport = async req => {
   const [leads, orders] = await Promise.all([Lead.findAll({where,order:[['createdAt','DESC']]}),RestaurantOrder.findAll({where,order:[['createdAt','DESC']]})]);
   const movement = new Set(orders.filter(o=>o.status === 'served').flatMap(o=>(o.items || []).map(i=>i.name)));
   const products = isLocked(req.store,'products') ? [] : await Product.findAll({where:{businessId:bid(req),active:true}});
-  return { ...summarize(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
+  return { ...summarize(orders,leads), insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };
 r.get('/:storeId/sales-summary', wrap(async (req,res) => res.json(await salesReport(req))));
 r.get('/:storeId/sales-summary/report.csv', wrap(async (req,res) => {
