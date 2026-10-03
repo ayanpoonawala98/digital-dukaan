@@ -151,6 +151,41 @@ const FESTIVAL_PRESETS = [
   { name:'Eid moonlight', color:'#225caa', banner:'Eid Mubarak! Discover our festive picks 🌙', headline:'Wishing you a joyful Eid', message:'Take a look at our handpicked festive collection.' }
 ];
 
+function NotificationSettings({ token, storeId }) {
+  const [state, setState] = useState(null), [form, setForm] = useState(null), [busy, setBusy] = useState(false), [testing, setTesting] = useState(''), [msg, setMsg] = useState(null);
+  useEffect(() => { api(`/owner/${storeId}/notifications`, { token, feedback: false }).then(d => { setState(d.providers); setForm(d.settings); }).catch(() => setState(false)); }, [storeId, token]);
+  if (state === false) return null;
+  if (!form) return <div className="dashboard-panel settings-panel"><h3>SMS & email alerts</h3><p className="muted">Loading...</p></div>;
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+  const save = async e => {
+    e.preventDefault(); setBusy(true); setMsg(null);
+    try { const d = await api(`/owner/${storeId}/notifications`, { token, method: 'PUT', body: form, successMessage: 'Alert settings saved' }); setForm(d.settings); } catch (err) { setMsg({ error: err.message }); } finally { setBusy(false); }
+  };
+  const test = async channel => {
+    setTesting(channel); setMsg(null);
+    try { await api(`/owner/${storeId}/notifications/test`, { token, method: 'POST', body: { channel }, feedback: false }); setMsg({ ok: `Test ${channel === 'email' ? 'email' : 'SMS'} sent. Check your ${channel === 'email' ? 'inbox' : 'phone'}.` }); } catch (err) { setMsg({ error: err.message }); } finally { setTesting(''); }
+  };
+  const badge = p => <span className={`status-pill ${p.configured ? 'on' : 'off'}`}>{p.configured ? 'Ready' : 'Not set up by admin yet'}</span>;
+  return <form onSubmit={save} className="dashboard-panel settings-panel notify-settings">
+    <h3>SMS & email alerts</h3>
+    <p className="muted">Get told the moment a customer enquires or orders, and optionally text customers as their order moves. Nothing is sent until you switch an option on and the platform has the provider set up.</p>
+    <div className="notify-row"><strong>Email</strong>{badge(state.email)}</div>
+    <label className="check-label"><input type="checkbox" checked={form.ownerEmailAlerts} onChange={e => set('ownerEmailAlerts', e.target.checked)}/> Email me for every new enquiry or order</label>
+    <label>Alert email <small>(leave blank to use your login email)</small><input type="email" value={form.ownerEmail} onChange={e => set('ownerEmail', e.target.value)} placeholder="you@example.com"/></label>
+    <div className="notify-row"><strong>SMS</strong>{badge(state.sms)}</div>
+    <label className="check-label"><input type="checkbox" checked={form.ownerSmsAlerts} onChange={e => set('ownerSmsAlerts', e.target.checked)}/> Text me for every new enquiry or order</label>
+    <label>Your mobile number <small>(10-digit Indian number)</small><input type="tel" inputMode="numeric" value={form.ownerPhone} onChange={e => set('ownerPhone', e.target.value)} placeholder="98765 43210"/></label>
+    <label className="check-label"><input type="checkbox" checked={form.customerSms} onChange={e => set('customerSms', e.target.checked)}/> Text customers an order confirmation and status updates <small>(only if they gave a number)</small></label>
+    {msg?.ok && <p className="notice success">{msg.ok}</p>}{msg?.error && <p className="notice error">{msg.error}</p>}
+    <div className="notify-actions">
+      <button className="btn btn-green" disabled={busy}><Busy active={busy}>{busy ? 'Saving...' : 'Save alerts'}</Busy></button>
+      <button type="button" className="btn btn-outline" disabled={!!testing || !state.email.configured} onClick={() => test('email')}><Busy active={testing === 'email'}>Send test email</Busy></button>
+      <button type="button" className="btn btn-outline" disabled={!!testing || !state.sms.configured} onClick={() => test('sms')}><Busy active={testing === 'sms'}>Send test SMS</Busy></button>
+    </div>
+    <p className="muted">Save your settings before sending a test. SMS is charged by the SMS provider per message.</p>
+  </form>;
+}
+
 function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
   const [form, setForm] = useState(null);
   const [previewOffer, setPreviewOffer] = useState(false);
@@ -417,6 +452,7 @@ export default function Dashboard() {
         </form>
       </div>}
       {tab === 'settings' && data?.business?.storeType === 'restaurant' && <div className="dashboard-panel"><h3>Table QR codes</h3><p className="muted">Print one for each table. Scanning opens the menu with that table number selected.</p><div className="table-qr-grid">{Array.from({ length: data.business.tableCount }, (_, i) => <div key={i + 1} className="table-qr-card"><strong>Table {i + 1}</strong><img src={`${BASE}/api/public/stores/${data.business.slug}/qr?table=${i + 1}`} alt={`QR for table ${i + 1}`}/><a href={`${BASE}/api/public/stores/${data.business.slug}/qr?table=${i + 1}`} download={`table-${i + 1}.svg`}>Download QR</a></div>)}</div></div>}
+      {tab === 'settings' && data?.business && !staffMode && <NotificationSettings token={token} storeId={storeId} />}
       {tab === 'settings' && data?.business && <Settings business={data.business} token={token} storeId={storeId} onSaved={() => { load(); flash('Shop updated'); }} onRemoved={() => { setData(null); reloadStoreLists().then(() => flash('Store removed. You have 30 days to restore it.')).catch(e => setError(e.message)); }} onError={setError}/>}
       {(tab === 'overview' || !storeId) && !staffMode && <div className="overview-management"><div className="section-heading"><div><span className="kicker">SHOP MANAGEMENT</span><h2>Manage your stores</h2></div></div>
     {deletedStores.length > 0 && <div className="dashboard-panel removed-stores"><h3>Recently removed stores</h3>{deletedStores.map(store => <div className="removed-store" key={store.id}><div><strong>{store.name}</strong><small>Restore by {new Date(store.restoreUntil).toLocaleDateString('en-IN')} · {store.slug}</small></div><label>Store link<input value={restoreSlug[store.id] || ''} onChange={e => setRestoreSlug(prev => ({ ...prev, [store.id]: e.target.value }))} placeholder={store.slug}/></label><button className="btn btn-outline btn-small" disabled={busy || restoreSlug[store.id] !== store.slug || new Date() >= new Date(store.restoreUntil)} onClick={() => action(async () => { await api(`/owner/deleted-stores/${store.id}/restore`, { method: 'POST', token, body: { slug: restoreSlug[store.id] } }); await reloadStoreLists(); flash('Store restored'); })}>Restore store</button></div>)}</div>}
