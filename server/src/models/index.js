@@ -44,7 +44,8 @@ export const Business = sequelize.define('Business', {
   upiId: { type: DataTypes.STRING(60), defaultValue: '' },
   gstin: { type: DataTypes.STRING(15), defaultValue: '' },
   minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } },
-  featureLocks: { type: DataTypes.JSONB, defaultValue: {} }
+  featureLocks: { type: DataTypes.JSONB, defaultValue: {} },
+  notifySettings: { type: DataTypes.JSONB, defaultValue: {} }
 }, { tableName: 'businesses' });
 
 export const Category = sequelize.define('Category', {
