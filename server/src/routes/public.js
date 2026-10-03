@@ -10,6 +10,7 @@ import { validateAnswers } from '../custom-fields.js';
 import { invoiceSigValid, streamBill } from '../invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
 import { orderBotEnabledFor, withOrderRef } from '../whatsapp-orders.js';
+import { notifyNewOrderWhatsApp } from '../whatsapp-cloud.js';
 import { notifyShopRequest } from '../platform-alerts.js';
 const r = Router();
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
@@ -257,6 +258,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
   const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: product.price, ...(answers.length ? { items: [{ productId: product.id, name: product.name, price: product.price, qty: 1, answers }] } : {}), ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
+  void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
   const waUrl = whatsappUrl(business, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
   res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total: product.price } });
@@ -285,6 +287,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const total = Number((subtotal - discount + delivery).toFixed(2));
   const lead = await Lead.create({ businessId: business.id, productId: null, productName: `${lines.reduce((s, l) => s + l.qty, 0)} items`, price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
+  void notifyNewOrderWhatsApp(business, lead);
   const url = whatsappCartUrl(business, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
   const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
   res.set('Cache-Control', 'no-store');
