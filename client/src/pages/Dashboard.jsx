@@ -152,8 +152,9 @@ const FESTIVAL_PRESETS = [
 ];
 
 function NotificationSettings({ token, storeId }) {
-  const [state, setState] = useState(null), [form, setForm] = useState(null), [busy, setBusy] = useState(false), [testing, setTesting] = useState(''), [msg, setMsg] = useState(null);
-  useEffect(() => { api(`/owner/${storeId}/notifications`, { token, feedback: false }).then(d => { setState(d.providers); setForm(d.settings); }).catch(() => setState(false)); }, [storeId, token]);
+  const [state, setState] = useState(null), [form, setForm] = useState(null), [busy, setBusy] = useState(false), [testing, setTesting] = useState(''), [msg, setMsg] = useState(null), [keys, setKeys] = useState(null), [kf, setKf] = useState({}), [kBusy, setKBusy] = useState(false);
+  const applyKeys = k => { setKeys(k); setKf({ emailMode: k.emailMode, smsMode: k.smsMode, resend: { from: k.resend.from }, smtp: { host: k.smtp.host, port: k.smtp.port || 587, secure: k.smtp.secure, user: k.smtp.user, from: k.smtp.from }, emailHttp: { url: k.emailHttp.url, method: k.emailHttp.method || 'POST', contentType: k.emailHttp.contentType || 'json', headers: k.emailHttp.headers, body: k.emailHttp.body }, fast2sms: { route: k.fast2sms.route || 'quick', senderId: k.fast2sms.senderId, templateId: k.fast2sms.templateId }, smsHttp: { url: k.smsHttp.url, method: k.smsHttp.method || 'POST', contentType: k.smsHttp.contentType || 'json', headers: k.smsHttp.headers, body: k.smsHttp.body } }); };
+  useEffect(() => { api(`/owner/${storeId}/notifications`, { token, feedback: false }).then(d => { setState(d.providers); setForm(d.settings); applyKeys(d.keys); }).catch(() => setState(false)); }, [storeId, token]);
   if (state === false) return null;
   if (!form) return <div className="dashboard-panel settings-panel"><h3>SMS & email alerts</h3><p className="muted">Loading...</p></div>;
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -165,14 +166,53 @@ function NotificationSettings({ token, storeId }) {
     setTesting(channel); setMsg(null);
     try { await api(`/owner/${storeId}/notifications/test`, { token, method: 'POST', body: { channel }, feedback: false }); setMsg({ ok: `Test ${channel === 'email' ? 'email' : 'SMS'} sent. Check your ${channel === 'email' ? 'inbox' : 'phone'}.` }); } catch (err) { setMsg({ error: err.message }); } finally { setTesting(''); }
   };
-  const badge = p => <span className={`status-pill ${p.configured ? 'on' : 'off'}`}>{p.configured ? 'Ready' : 'Not set up by admin yet'}</span>;
+  const setK = (g, f, v) => setKf(x => ({ ...x, [g]: { ...x[g], [f]: v } }));
+  const sendKeys = async body => {
+    setKBusy(true); setMsg(null);
+    try { const d = await api(`/owner/${storeId}/notifications/keys`, { token, method: 'PUT', body, successMessage: 'Provider saved' }); setState(d.providers); applyKeys(d.keys); } catch (err) { setMsg({ error: err.message }); } finally { setKBusy(false); }
+  };
+  const saveProvider = channel => {
+    const mode = kf[`${channel}Mode`], groups = { email: { resend: 'resend', smtp: 'smtp', http: 'emailHttp' }, sms: { fast2sms: 'fast2sms', http: 'smsHttp' } }[channel];
+    if (!mode) return sendKeys({ clear: [channel] });
+    const g = groups[mode], body = { [`${channel}Mode`]: mode, [g]: { ...kf[g], ...(kf[`${g}_secret`] || {}) } };
+    if (g === 'smtp') body.smtp.port = Number(body.smtp.port);
+    sendKeys(body).then(() => setKf(x => ({ ...x, [`${g}_secret`]: {} })));
+  };
+  const secretIn = (g, f, label, saved, hint) => <label>{label}<input type="password" autoComplete="new-password" value={kf[`${g}_secret`]?.[f] || ''} onChange={e => setKf(x => ({ ...x, [`${g}_secret`]: { ...x[`${g}_secret`], [f]: e.target.value } }))} placeholder={saved ? `${hint || '••••••••'} saved. Type to replace` : 'Paste it here'}/></label>;
+  const textIn = (g, f, label, ph) => <label>{label}<input value={kf[g]?.[f] ?? ''} onChange={e => setK(g, f, e.target.value)} placeholder={ph}/></label>;
+  const httpFields = (g, kview, isSms) => <>
+    <div className="notify-two">{textIn(g, 'url', 'API URL (https)', isSms ? 'https://api.yourgateway.com/send?to={{to}}' : 'https://api.yourmail.com/v1/send')}
+      <label>Method<select value={kf[g]?.method || 'POST'} onChange={e => setK(g, 'method', e.target.value)}><option>POST</option><option>GET</option></select></label></div>
+    <div className="notify-two"><label>Body format<select value={kf[g]?.contentType || 'json'} onChange={e => setK(g, 'contentType', e.target.value)}><option value="json">JSON</option><option value="form">Form (key=value)</option><option value="text">Plain text</option></select></label>
+      {secretIn(g, 'key', 'API key or token', kview.keySaved, kview.keyHint)}</div>
+    <label>Headers <small>(one per line, e.g. Authorization: Bearer {'{{key}}'})</small><textarea rows={2} value={kf[g]?.headers || ''} onChange={e => setK(g, 'headers', e.target.value)}/></label>
+    <label>Body template <small>(for POST)</small><textarea rows={3} value={kf[g]?.body || ''} onChange={e => setK(g, 'body', e.target.value)} placeholder={isSms ? '{"to":"{{to_intl}}","message":"{{message}}"}' : '{"to":"{{to}}","subject":"{{subject}}","text":"{{message}}"}'}/></label>
+    <p className="muted">Placeholders: {isSms ? '{{to}} (10-digit), {{to_intl}} (with country code), ' : '{{to}}, {{subject}}, '}{'{{message}}, {{store}}, {{key}}, {{key_b64}} (key as base64, handy for Basic auth)'}. Put secrets only in the key field and use {'{{key}}'}.</p>
+  </>;
+  const badge = p => <span className={`status-pill ${p.configured ? 'on' : 'off'}`}>{p.configured ? (p.source === 'own' ? `Ready: your ${p.label}` : 'Ready: platform default') : 'Not connected'}</span>;
   return <form onSubmit={save} className="dashboard-panel settings-panel notify-settings">
     <h3>SMS & email alerts</h3>
-    <p className="muted">Get told the moment a customer enquires or orders, and optionally text customers as their order moves. Nothing is sent until you switch an option on and the platform has the provider set up.</p>
+    <p className="muted">Get told the moment a customer enquires or orders, and optionally text customers as their order moves. Nothing is sent until you connect a provider below and switch an option on.</p>
     <div className="notify-row"><strong>Email</strong>{badge(state.email)}</div>
+    <details className="notify-provider"><summary>{state.email.configured && state.email.source === 'own' ? 'Change my email provider' : 'Connect my own email provider'}</summary>
+      <label>Provider<select value={kf.emailMode || ''} onChange={e => setKf(x => ({ ...x, emailMode: e.target.value }))}><option value="">Not set (use platform default if any)</option><option value="resend">Resend (easy, free tier)</option><option value="smtp">SMTP (Gmail, Zoho, Brevo, any mail host)</option><option value="http">Custom email API (any HTTP service)</option></select></label>
+      {kf.emailMode === 'resend' && <>{secretIn('resend', 'apiKey', 'Resend API key', keys?.resend.apiKeySaved, keys?.resend.apiKeyHint)}{textIn('resend', 'from', 'Send from', 'Shop <alerts@yourdomain.com>')}</>}
+      {kf.emailMode === 'smtp' && <><div className="notify-two">{textIn('smtp', 'host', 'SMTP server', 'smtp.example.com')}<label>Port<select value={kf.smtp?.port || 587} onChange={e => setK('smtp', 'port', e.target.value)}><option value="587">587 (STARTTLS)</option><option value="465">465 (SSL)</option><option value="2525">2525</option><option value="25">25</option></select></label></div>
+        <label className="check-label"><input type="checkbox" checked={Boolean(kf.smtp?.secure)} onChange={e => setK('smtp', 'secure', e.target.checked)}/> Use SSL from the start (port 465)</label>
+        <div className="notify-two">{textIn('smtp', 'user', 'Username', 'usually your email')}{secretIn('smtp', 'pass', 'Password or app password', keys?.smtp.passSaved)}</div>{textIn('smtp', 'from', 'Send from', 'Shop <alerts@yourdomain.com>')}</>}
+      {kf.emailMode === 'http' && httpFields('emailHttp', keys?.emailHttp || {}, false)}
+      <div className="notify-actions"><button type="button" className="btn btn-green btn-small" disabled={kBusy} onClick={() => saveProvider('email')}><Busy active={kBusy}>{kf.emailMode ? 'Save email provider' : 'Remove my email provider'}</Busy></button></div>
+      <p className="muted">Your keys are encrypted and never shown again after saving.</p></details>
     <label className="check-label"><input type="checkbox" checked={form.ownerEmailAlerts} onChange={e => set('ownerEmailAlerts', e.target.checked)}/> Email me for every new enquiry or order</label>
     <label>Alert email <small>(leave blank to use your login email)</small><input type="email" value={form.ownerEmail} onChange={e => set('ownerEmail', e.target.value)} placeholder="you@example.com"/></label>
     <div className="notify-row"><strong>SMS</strong>{badge(state.sms)}</div>
+    <details className="notify-provider"><summary>{state.sms.configured && state.sms.source === 'own' ? 'Change my SMS provider' : 'Connect my own SMS provider'}</summary>
+      <label>Provider<select value={kf.smsMode || ''} onChange={e => setKf(x => ({ ...x, smsMode: e.target.value }))}><option value="">Not set (use platform default if any)</option><option value="fast2sms">Fast2SMS (easy, India)</option><option value="http">Custom SMS API (MSG91, Twilio, Textlocal, any gateway)</option></select></label>
+      {kf.smsMode === 'fast2sms' && <>{secretIn('fast2sms', 'apiKey', 'Fast2SMS API key', keys?.fast2sms.apiKeySaved, keys?.fast2sms.apiKeyHint)}<label>Route<select value={kf.fast2sms?.route || 'quick'} onChange={e => setK('fast2sms', 'route', e.target.value)}><option value="quick">Quick (no DLT, for owner alerts and testing)</option><option value="dlt">DLT (approved template, for customer SMS)</option></select></label>
+        {kf.fast2sms?.route === 'dlt' && <div className="notify-two">{textIn('fast2sms', 'senderId', 'DLT sender ID', 'ABCDEF')}{textIn('fast2sms', 'templateId', 'DLT message ID', '123456')}</div>}</>}
+      {kf.smsMode === 'http' && httpFields('smsHttp', keys?.smsHttp || {}, true)}
+      <div className="notify-actions"><button type="button" className="btn btn-green btn-small" disabled={kBusy} onClick={() => saveProvider('sms')}><Busy active={kBusy}>{kf.smsMode ? 'Save SMS provider' : 'Remove my SMS provider'}</Busy></button></div>
+      <p className="muted">SMS is charged by your provider. Your keys are encrypted and never shown again after saving.</p></details>
     <label className="check-label"><input type="checkbox" checked={form.ownerSmsAlerts} onChange={e => set('ownerSmsAlerts', e.target.checked)}/> Text me for every new enquiry or order</label>
     <label>Your mobile number <small>(10-digit Indian number)</small><input type="tel" inputMode="numeric" value={form.ownerPhone} onChange={e => set('ownerPhone', e.target.value)} placeholder="98765 43210"/></label>
     <label className="check-label"><input type="checkbox" checked={form.customerSms} onChange={e => set('customerSms', e.target.checked)}/> Text customers an order confirmation and status updates <small>(only if they gave a number)</small></label>

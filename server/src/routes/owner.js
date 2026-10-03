@@ -16,13 +16,16 @@ import { flowFor } from '../order-flows.js';
 import { featureForOwnerRoute, isLocked } from '../feature-locks.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { validateProductRows } from '../product-import.js';
+import { insights } from '../sales-insights.js';
 import { dateWhere, dateWindow, summarize, ordersCsv, csvCell as reportCell } from '../reporting.js';
 import { auth, roles } from '../middleware/auth.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap } from '../utils/core.js';
 
 const r = Router();
 import { restoreDeadline } from '../retention.js';
-import { notifyStatusChange, providerStatus, cleanSettings, saveSettings, sendEmail, sendSms } from '../notify.js';
+import { notifyStatusChange, providerStatus, resolveProviders, cleanSettings, saveSettings, sendEmail, sendSms } from '../notify.js';
+import { NotifySecret } from '../models/index.js';
+import { encryptJson, decryptJson, mergeSecrets, publicView } from '../notify-secrets.js';
 const restoreUntil = restoreDeadline;
 r.use(auth, roles('owner', 'staff'));
 const ownerOnly = roles('owner');
@@ -84,22 +87,32 @@ r.use('/:storeId', wrap(async (req, res, next) => {
 }));
 
 const testCooldown = new Map();
-r.get('/:storeId/notifications', ownerOnly, wrap(async (req, res) => res.json({ settings: cleanSettings(req.store.notifySettings), providers: providerStatus() })));
+const loadCreds = async store => decryptJson((await NotifySecret.findByPk(store.id))?.payload);
+const notifyState = async store => { const creds = await loadCreds(store); return { settings: cleanSettings(store.notifySettings), providers: providerStatus(resolveProviders(creds)), keys: publicView(creds) }; };
+r.get('/:storeId/notifications', ownerOnly, wrap(async (req, res) => res.json(await notifyState(req.store))));
+r.put('/:storeId/notifications/keys', ownerOnly, wrap(async (req, res) => {
+  let next;
+  try { next = mergeSecrets(await loadCreds(req.store), req.body || {}); } catch (err) { throw bad(err.status || 500, err.message); }
+  let payload;
+  try { payload = encryptJson(next); } catch { throw bad(500, 'Saving keys is not available on this server yet'); }
+  await NotifySecret.upsert({ businessId: req.store.id, payload });
+  res.json(await notifyState(req.store));
+}));
 r.put('/:storeId/notifications', ownerOnly, wrap(async (req, res) => {
   const b = req.body || {};
   for (const k of ['ownerEmailAlerts', 'ownerSmsAlerts', 'customerSms']) if (b[k] !== undefined && typeof b[k] !== 'boolean') throw bad(400, 'Invalid notification setting');
   const input = {}; for (const k of ['ownerEmailAlerts', 'ownerEmail', 'ownerSmsAlerts', 'ownerPhone', 'customerSms']) if (Object.hasOwn(b, k)) input[k] = b[k];
-  try { res.json({ settings: await saveSettings(req.store, input), providers: providerStatus() }); } catch (err) { throw bad(err.status || 500, err.message); }
+  try { await saveSettings(req.store, input); res.json(await notifyState(req.store)); } catch (err) { throw bad(err.status || 500, err.message); }
 }));
 r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
-  const channel = req.body?.channel, s = cleanSettings(req.store.notifySettings), providers = providerStatus();
+  const channel = req.body?.channel, s = cleanSettings(req.store.notifySettings), providerSet = resolveProviders(await loadCreds(req.store)), providers = providerStatus(providerSet);
   if (!['email', 'sms'].includes(channel)) throw bad(400, 'Choose email or SMS');
   if (Date.now() - (testCooldown.get(req.store.id) || 0) < 20000) throw bad(429, 'Wait a few seconds before sending another test');
-  if (!providers[channel].configured) throw bad(400, `${channel === 'email' ? 'Email' : 'SMS'} sending is not set up on this server yet. Ask the platform admin to add the provider key.`);
+  if (!providers[channel].configured) throw bad(400, `${channel === 'email' ? 'Email' : 'SMS'} sending is not set up yet. Add your own key in the section above.`);
   const to = channel === 'email' ? (s.ownerEmail || req.user.email) : s.ownerPhone;
   if (!to) throw bad(400, channel === 'email' ? 'Add an alert email first' : 'Save a mobile number for SMS alerts first');
   testCooldown.set(req.store.id, Date.now());
-  const result = channel === 'email' ? await sendEmail({ to, subject: `Test alert - ${req.store.name}`, text: `This is a test alert from ${req.store.name}. Order alerts will arrive here.` }) : await sendSms({ to, text: `Test alert from ${req.store.name}. Order alerts will arrive on this number.` });
+  const result = channel === 'email' ? await sendEmail({ to, subject: `Test alert - ${req.store.name}`, text: `This is a test alert from ${req.store.name}. Order alerts will arrive here.` }, { providers: providerSet }) : await sendSms({ to, text: `Test alert from ${req.store.name}. Order alerts will arrive on this number.` }, { providers: providerSet });
   if (!result.ok) throw bad(502, result.error || result.skipped || 'Could not send the test');
   res.json({ ok: true });
 }));
@@ -601,7 +614,7 @@ const salesReport = async req => {
   const [leads, orders] = await Promise.all([Lead.findAll({where,order:[['createdAt','DESC']]}),RestaurantOrder.findAll({where,order:[['createdAt','DESC']]})]);
   const movement = new Set(orders.filter(o=>o.status === 'served').flatMap(o=>(o.items || []).map(i=>i.name)));
   const products = isLocked(req.store,'products') ? [] : await Product.findAll({where:{businessId:bid(req),active:true}});
-  return { ...summarize(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
+  return { ...summarize(orders,leads), insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };
 r.get('/:storeId/sales-summary', wrap(async (req,res) => res.json(await salesReport(req))));
 r.get('/:storeId/sales-summary/report.csv', wrap(async (req,res) => {

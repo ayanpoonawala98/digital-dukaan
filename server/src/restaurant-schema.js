@@ -1,5 +1,5 @@
 import { sequelize } from './db.js';
-import { RestaurantOrder, OrderPushSubscription, Coupon, Referral } from './models/index.js';
+import { RestaurantOrder, OrderPushSubscription, Coupon, Referral, NotifySecret } from './models/index.js';
 import { ensureCrmSchema } from './crm.js';
 let ready;
 export function ensureRestaurantSchema() {
@@ -31,6 +31,7 @@ export function ensureRestaurantSchema() {
     for (const value of ['shipped', 'in-progress', 'completed']) await sequelize.query(`ALTER TYPE "enum_leads_status" ADD VALUE IF NOT EXISTS '${value}'`);
     await Coupon.sync(); // New table only.
     await Referral.sync();
+    await NotifySecret.sync(); // New table only.
     await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "managerId" integer');
     await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "staffBusinessId" integer');
     await sequelize.query("ALTER TYPE \"enum_users_role\" ADD VALUE IF NOT EXISTS 'staff'");
