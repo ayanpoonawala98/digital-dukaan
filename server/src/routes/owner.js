@@ -11,7 +11,6 @@ import { effective as staffPerms, clean as cleanPerms, staffAllowed } from '../p
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { whatsappCloudOwnerRoutes, sendOrderStatusWhatsApp } from '../whatsapp-cloud.js';
-import { aisensyOwnerRoutes } from '../aisensy.js';
 import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
 import { flowFor } from '../order-flows.js';
@@ -121,7 +120,6 @@ r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
   if (!result.ok) throw bad(502, result.error || result.skipped || 'Could not send the test');
   res.json({ ok: true });
 }));
-r.use('/:storeId/aisensy', aisensyOwnerRoutes);
 r.use('/:storeId/whatsapp-cloud', whatsappCloudOwnerRoutes); // owner owns connect/manage; staff may read the inbox and send reviewed replies (allow-list above)
 r.use('/:storeId/customers', (req,res,next)=>req.user.role === 'staff' && !/^\/import\/(preview|commit)$/.test(req.path) ? res.status(403).json({error:'Staff can preview and import customers only.'}) : next(), crmRoutes);
 
