@@ -297,7 +297,7 @@ export default function ShopPage({ hostedSlug }) {
       </div>}
       <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : t('talkKicker')}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>{t('talkTitle')} <em>{t('talkAccent')}</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : t('talkBody')}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> {t('callOwner')}</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> {t('whatsappMsg')}</a></div></div></div>
     </main>
-    <Footer><span>{business.name} · Powered by Digital Dukaan</span></Footer>
+    <Footer><span>{business.name} · Powered by Digital Shop</span></Footer>
     {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span className="cart-badge">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
     {offerOpen && <OfferPopup business={business} onClose={dismissOffer}/>}
     {business.storeType === 'restaurant' ? <RestaurantCheckout slug={slug} business={business} cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/> : <CartDrawer slug={slug} business={business} cart={cart} orders={orders} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/>}
