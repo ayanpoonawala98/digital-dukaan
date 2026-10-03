@@ -269,13 +269,13 @@ const listWhere = (req, kind) => {
   const statuses = kind === 'restaurant' ? ['new','preparing','served','cancelled'] : ['new','confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed','cancelled'];
   if (req.query.status && req.query.status !== 'all') { if (!statuses.includes(req.query.status)) throw bad(400, 'Invalid order status'); where.status = req.query.status; }
   const q = String(req.query.q || '').trim().slice(0,100);
-  if (q) { const escaped = q.replace(/[\\%_]/g, '\\$&'); where[Op.or] = [{ customerPhone: { [Op.iLike]: `%${escaped}%` } }, { [kind === 'restaurant' ? 'customerName' : 'productName']: { [Op.iLike]: `%${escaped}%` } }]; if (/^#?\d+$/.test(q)) where[Op.or].push({ id: Number(q.replace('#','')) }); }
+  if (q) { const escaped = q.replace(/[\\%_]/g, '\\$&'); where[Op.or] = [{ customerPhone: { [Op.iLike]: `%${escaped}%` } }, { customerName: { [Op.iLike]: `%${escaped}%` } }, ...(kind === 'restaurant' ? [] : [{ productName: { [Op.iLike]: `%${escaped}%` } }])]; if (/^#?\d+$/.test(q)) where[Op.or].push({ id: Number(q.replace('#','')) }); }
   return where;
 };
 const orderPage = async (req, Model, kind) => {
   const page = Number(req.query.page || 1);
   if(!Number.isSafeInteger(page) || page<1 || page>100000) throw bad(400,'Invalid page');
-  const limit = req.query.page ? 50 : kind === 'restaurant' ? 200 : 500;
+  const asked = Number(req.query.pageSize); const limit = req.query.page ? (Number.isInteger(asked) && asked >= 5 && asked <= 100 ? asked : 50) : kind === 'restaurant' ? 200 : 500;
   const { rows, count } = await Model.findAndCountAll({ where: listWhere(req, kind), order: [['createdAt','DESC'],['id','DESC']], limit, offset: (page-1)*limit });
   return { [kind === 'restaurant' ? 'orders':'leads']: rows, total: count, page, pageSize: limit };
 };
