@@ -79,6 +79,7 @@ export const Lead = sequelize.define('Lead', {
   items: { type: DataTypes.JSONB, allowNull: true },
   status: { type: DataTypes.ENUM('new', 'confirmed', 'packed', 'shipped', 'out-for-delivery', 'delivered', 'in-progress', 'completed', 'cancelled'), defaultValue: 'new' },
   customerPhone: { type: DataTypes.STRING, defaultValue: '' },
+  customerName: { type: DataTypes.STRING(100), defaultValue: '' },
   source: { type: DataTypes.STRING(80), defaultValue: '' },
   discount: { type: DataTypes.FLOAT, defaultValue: 0 },
   couponCode: { type: DataTypes.STRING(24), allowNull: true },
