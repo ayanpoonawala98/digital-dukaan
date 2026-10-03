@@ -72,6 +72,6 @@ export default function ProductPage({ hostedSlug }) {
         </div>
       </div>
     </div></main>
-    <Footer><span>{business.name} · Powered by Digital Dukaan</span></Footer>
+    <Footer><span>{business.name} · Powered by Digital Shop</span></Footer>
   </div>;
 }
