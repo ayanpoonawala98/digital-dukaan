@@ -22,6 +22,7 @@ import { bad, slugify, validEmail, validPhone, validPrice, wrap } from '../utils
 
 const r = Router();
 import { restoreDeadline } from '../retention.js';
+import { notifyStatusChange, providerStatus, cleanSettings, saveSettings, sendEmail, sendSms } from '../notify.js';
 const restoreUntil = restoreDeadline;
 r.use(auth, roles('owner', 'staff'));
 const ownerOnly = roles('owner');
@@ -68,6 +69,26 @@ r.post('/stores', ownerOnly, wrap(async (req, res) => {
 }));
 
 const bid = req => req.store.id;
+const testCooldown = new Map();
+r.get('/:storeId/notifications', ownerOnly, wrap(async (req, res) => res.json({ settings: cleanSettings(req.store.notifySettings), providers: providerStatus() })));
+r.put('/:storeId/notifications', ownerOnly, wrap(async (req, res) => {
+  const b = req.body || {};
+  for (const k of ['ownerEmailAlerts', 'ownerSmsAlerts', 'customerSms']) if (b[k] !== undefined && typeof b[k] !== 'boolean') throw bad(400, 'Invalid notification setting');
+  const input = {}; for (const k of ['ownerEmailAlerts', 'ownerEmail', 'ownerSmsAlerts', 'ownerPhone', 'customerSms']) if (Object.hasOwn(b, k)) input[k] = b[k];
+  try { res.json({ settings: await saveSettings(req.store, input), providers: providerStatus() }); } catch (err) { throw bad(err.status || 500, err.message); }
+}));
+r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
+  const channel = req.body?.channel, s = cleanSettings(req.store.notifySettings), providers = providerStatus();
+  if (!['email', 'sms'].includes(channel)) throw bad(400, 'Choose email or SMS');
+  if (Date.now() - (testCooldown.get(req.store.id) || 0) < 20000) throw bad(429, 'Wait a few seconds before sending another test');
+  if (!providers[channel].configured) throw bad(400, `${channel === 'email' ? 'Email' : 'SMS'} sending is not set up on this server yet. Ask the platform admin to add the provider key.`);
+  const to = channel === 'email' ? (s.ownerEmail || req.user.email) : s.ownerPhone;
+  if (!to) throw bad(400, channel === 'email' ? 'Add an alert email first' : 'Save a mobile number for SMS alerts first');
+  testCooldown.set(req.store.id, Date.now());
+  const result = channel === 'email' ? await sendEmail({ to, subject: `Test alert - ${req.store.name}`, text: `This is a test alert from ${req.store.name}. Order alerts will arrive here.` }) : await sendSms({ to, text: `Test alert from ${req.store.name}. Order alerts will arrive on this number.` });
+  if (!result.ok) throw bad(502, result.error || result.skipped || 'Could not send the test');
+  res.json({ ok: true });
+}));
 r.use('/:storeId', wrap(async (req, res, next) => {
   const store = await Business.findOne({ where: { id: numId(req.params.storeId, 'store ID'), ownerId: req.user.role === 'owner' ? req.user.id : req.user.managerId, deletedAt: null } });
   if (!store || (req.user.role === 'staff' && Number(req.user.staffBusinessId) !== store.id)) throw bad(404, 'Store not found');
@@ -375,6 +396,7 @@ r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {
   let url = '';
   if (status && status !== 'new' && lead.customerPhone) {
     const labels = { confirmed: 'confirmed', packed: 'packed and getting ready', shipped: 'shipped', 'out-for-delivery': 'out for delivery', delivered: 'delivered. Thank you for shopping with us!', 'in-progress': 'in progress', completed: 'completed. Thank you!', cancelled: 'cancelled. Sorry for the inconvenience.' };
+    if (statusChanged && labels[status]) void notifyStatusChange(req.store, 'lead', lead, labels[status]);
     const items = Array.isArray(lead.items) && lead.items.length ? lead.items.map(i => `${i.qty} x ${i.name}`).join(', ') : lead.productName;
     const text = `Hi! Update on your order from ${req.store.name} (${items}): your order is ${labels[status]}. Total: Rs.${Number(lead.price).toFixed(2)}`;
     url = `https://wa.me/${lead.customerPhone}?text=${encodeURIComponent(text)}`;
@@ -606,6 +628,7 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   const changed = order.status !== req.body.status;
   await order.update({ status: req.body.status });
   if (changed) await notifyOrderSubscribers(req.store, 'restaurant', order);
+  if (changed && order.customerPhone) void notifyStatusChange(req.store, 'restaurant', order, { preparing: 'being prepared', served: 'ready and served. Enjoy your meal!', cancelled: 'cancelled' }[order.status]);
   res.json({ order });
 }));
 export default r;
