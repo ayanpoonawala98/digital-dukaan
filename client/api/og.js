@@ -26,7 +26,7 @@ export async function GET(req) {
       type:'div', props:{ style:{ display:'flex', width:'100%', height:'100%', background:'#f7f4ec', color:'#14251a', padding:48, fontFamily:'Dukaan' }, children:[
         { type:'div', props:{ style:{ display:'flex', width:485, height:'100%', borderRadius:22, overflow:'hidden', background:'#e2e9dc' }, children:{ type:'img', props:{ src:photo, width:485, height:534, style:{objectFit:'cover'} } } } },
         { type:'div', props:{ style:{ display:'flex', flexDirection:'column', flex:1, padding:'26px 0 10px 52px', minWidth:0 }, children:[
-          { type:'div', props:{ style:{ display:'flex', fontSize:25, fontWeight:700, color:accent, letterSpacing:1 }, children:'DIGITAL DUKAAN' } },
+          { type:'div', props:{ style:{ display:'flex', fontSize:25, fontWeight:700, color:accent, letterSpacing:1 }, children:'DIGITAL SHOP' } },
           { type:'div', props:{ style:{ display:'flex', marginTop:58, fontSize:27, color:'#526257' }, children:business.name.slice(0,55) } },
           { type:'div', props:{ style:{ display:'flex', marginTop:18, fontSize:title.length>40?49:62, fontWeight:700, lineHeight:1.08, overflow:'hidden', maxHeight:213 }, children:title.slice(0,93) } },
           { type:'div', props:{ style:{ display:'flex', marginTop:'auto', paddingTop:20, fontSize:product?58:35, fontWeight:700, color:accent }, children:price } },
