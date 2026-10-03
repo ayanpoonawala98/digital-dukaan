@@ -32,10 +32,10 @@ export const ensureByoSchema = () => (ready ||= WhatsAppByoConnection.sync().cat
 const safeEqual = (a, b) => { if (typeof a !== 'string' || typeof b !== 'string') return false; const l = Buffer.from(a), r = Buffer.from(b); return l.length === r.length && timingSafeEqual(l, r); };
 const digits = v => String(v || '').replace(/\D/g, '');
 const PHONE = /^[1-9]\d{7,14}$/;
-const credsOf = c => JSON.parse(decryptCredential(c.credCipher, `byo:${c.businessId}`));
-export function webhookUrl(conn) {
+const credsOf = c => { const o = JSON.parse(decryptCredential(c.credCipher, `byo:${c.businessId}`)); if (c.provider === 'twilio') { const u = webhookUrl(c, 'status'); if (u) o.statusCallback = u; } return o; };
+export function webhookUrl(conn, kind = '') {
   const base = process.env.WHATSAPP_BYO_PUBLIC_BASE || (process.env.WHATSAPP_WEBHOOK_CALLBACK_URL ? new URL(process.env.WHATSAPP_WEBHOOK_CALLBACK_URL).origin : '');
-  return base ? `${base.replace(/\/$/, '')}/api/integrations/whatsapp-byo/${conn.provider}/${conn.secret}` : null;
+  return base ? `${base.replace(/\/$/, '')}/api/integrations/whatsapp-byo/${conn.provider}/${conn.secret}${kind === 'status' ? '/status' : ''}` : null;
 }
 const fail = (msg, code) => { const e = bad(502, msg); e.metaCode = code; return e; };
 
@@ -106,7 +106,7 @@ export const adapters = {
     credentialFields: ['accountSid', 'authToken', 'from'], required: ['accountSid', 'authToken', 'from'],
     senderOf: c => c.from,
     async post(c, form, fetcher) {
-      let res; try { res = await fetcher(`https://api.twilio.com/2010-04-01/Accounts/${c.accountSid}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${c.accountSid}:${c.authToken}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(form).toString(), signal: AbortSignal.timeout(15000) }); } catch { throw fail('Twilio did not respond'); }
+      let res; try { res = await fetcher(`https://api.twilio.com/2010-04-01/Accounts/${c.accountSid}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${c.accountSid}:${c.authToken}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(c.statusCallback ? { ...form, StatusCallback: c.statusCallback } : form).toString(), signal: AbortSignal.timeout(15000) }); } catch { throw fail('Twilio did not respond'); }
       const j = await res.json().catch(() => ({})); if (!res.ok || !j.sid) throw fail('Twilio did not accept the message', j.code); return j.sid;
     },
     sendText(c, to, text, fetcher = fetch) { return this.post(c, { From: `whatsapp:+${digits(c.from)}`, To: `whatsapp:+${to}`, Body: text }, fetcher); },
@@ -115,8 +115,8 @@ export const adapters = {
       const res = await fetcher(`https://api.twilio.com/2010-04-01/Accounts/${c.accountSid}.json`, { headers: { authorization: `Basic ${Buffer.from(`${c.accountSid}:${c.authToken}`).toString('base64')}` }, signal: AbortSignal.timeout(15000) });
       if (!res.ok) throw fail('Twilio rejected this Account SID or Auth Token'); return c.from;
     },
-    verify(req, c, conn) { // X-Twilio-Signature: base64 HMAC-SHA1 of the exact URL + sorted POST params
-      const sig = req.header('x-twilio-signature'); const url = webhookUrl(conn);
+    verify(req, c, conn, kind) { // X-Twilio-Signature: base64 HMAC-SHA1 of the exact URL + sorted POST params
+      const sig = req.header('x-twilio-signature'); const url = webhookUrl(conn, kind);
       return Boolean(sig && url && safeEqual(twilioSignature(c.authToken, url, req.body || {}), sig));
     },
     parse(req) {
@@ -224,15 +224,19 @@ byoWebhook.get('/:provider/:secret', wrap(async (req, res) => { // Meta-style su
   if (!c || req.query['hub.mode'] !== 'subscribe' || !safeEqual(String(req.query['hub.verify_token'] || ''), c.verifyToken)) return res.sendStatus(403);
   res.type('text/plain').send(String(req.query['hub.challenge'] || ''));
 }));
-byoWebhook.post('/:provider/:secret', wrap(async (req, res) => {
+async function handleWebhook(req, res, kind) {
   const c = await connBySecret(req.params.provider, req.params.secret);
   if (!c) return res.sendStatus(404);
   let creds; try { creds = credsOf(c); } catch { return res.sendStatus(503); }
   const a = adapters[c.provider];
-  if (!a.verify(req, creds, c)) return res.sendStatus(403);
-  if (c.enabled) await processInbound(c, a.parse(req));
+  if (!a.verify(req, creds, c, kind)) return res.sendStatus(403);
+  const parsed = a.parse(req);
+  if (kind === 'status') await processInbound(c, { messages: [], statuses: parsed.statuses }); // delivery updates only, kept even when the shop is OFF
+  else await processInbound(c, c.enabled ? parsed : { messages: [], statuses: parsed.statuses });
   res.sendStatus(200);
-}));
+}
+byoWebhook.post('/:provider/:secret', wrap((req, res) => handleWebhook(req, res, '')));
+byoWebhook.post('/:provider/:secret/status', wrap((req, res) => handleWebhook(req, res, 'status')));
 
 // ---- owner routes (mounted at /api/owner/:storeId/whatsapp-byo) ----
 export const TEMPLATE_GUIDE = [
@@ -243,7 +247,7 @@ export const TEMPLATE_GUIDE = [
 export const byoOwnerRoutes = Router({ mergeParams: true });
 byoOwnerRoutes.use((req, res, next) => byoAllowedFor(req.store?.id) ? next() : res.status(404).json({ error: 'Integration not available for this shop' }));
 const ownerOnly = (req, res, next) => req.user?.role === 'owner' ? next() : res.status(403).json({ error: 'Only the shop owner can manage the WhatsApp connection' });
-const view = c => c ? { connected: true, provider: c.provider, enabled: c.enabled, sender: c.sender, webhookUrl: webhookUrl(c), verifyToken: c.provider === 'meta' ? c.verifyToken : undefined, templates: c.templates || {} } : { connected: false };
+const view = c => c ? { connected: true, provider: c.provider, enabled: c.enabled, sender: c.sender, webhookUrl: webhookUrl(c), statusUrl: c.provider === 'twilio' ? webhookUrl(c, 'status') : undefined, verifyToken: c.provider === 'meta' ? c.verifyToken : undefined, templates: c.templates || {} } : { connected: false };
 const base = { providers: PROVIDERS.map(p => ({ id: p, label: adapters[p].label, fields: adapters[p].credentialFields, required: adapters[p].required })), guide: TEMPLATE_GUIDE };
 byoOwnerRoutes.get('/status', wrap(async (req, res) => { await ensureByoSchema(); res.json({ ...base, ...view(await WhatsAppByoConnection.findByPk(req.store.id)) }); }));
 function cleanTemplates(input) {
