@@ -2,8 +2,8 @@ import React, {useEffect,useState} from 'react';
 import {api} from '../lib/api.js';
 import {useFeedbackState} from './Toasts.jsx';
 // Owner-only, off by default. The shop owner writes the exact text; nothing is sent until it is switched on.
-export default function AutoReplyCard({token,storeId}) {
-  const root=`/owner/${storeId}/whatsapp-cloud/auto-reply`;
+export default function AutoReplyCard({token,storeId,base='whatsapp-cloud'}) {
+  const root=`/owner/${storeId}/${base}/auto-reply`;
   const [enabled,setEnabled]=useState(false),[text,setText]=useState(''),[busy,setBusy]=useState(false),[loaded,setLoaded]=useState(false),[error,setError]=useFeedbackState('');
   useEffect(()=>{let live=true;setLoaded(false);api(root,{token,feedback:false}).then(r=>{if(live){setEnabled(r.enabled);setText(r.text||'');setLoaded(true);}}).catch(e=>{if(live)setError(e.message);});return ()=>{live=false;};},[root,token]);
   async function save(next){
