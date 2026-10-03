@@ -1,11 +1,15 @@
 import crypto from 'node:crypto';
 import PDFDocument from 'pdfkit';
 const secret = () => process.env.INVOICE_LINK_SECRET || process.env.JWT_SECRET || '';
-export const invoiceSig = (kind, id) => crypto.createHmac('sha256', secret()).update(`bill:${kind}:${id}`).digest('hex').slice(0, 32);
+// Links signed before INVOICE_LINK_SECRET existed used JWT_SECRET; keep accepting them.
+const secrets = () => [...new Set([process.env.INVOICE_LINK_SECRET, process.env.JWT_SECRET].filter(Boolean))];
+const sigWith = (key, kind, id) => crypto.createHmac('sha256', key).update(`bill:${kind}:${id}`).digest('hex').slice(0, 32);
+export const invoiceSig = (kind, id) => sigWith(secret(), kind, id);
 export function invoiceSigValid(kind, id, sig) {
-  if (!secret()) return false;
-  const a = Buffer.from(invoiceSig(kind, id)), b = Buffer.from(String(sig || ''));
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+  const b = Buffer.from(String(sig || ''));
+  let ok = false;
+  for (const key of secrets()) { const a = Buffer.from(sigWith(key, kind, id)); if (a.length === b.length && crypto.timingSafeEqual(a, b)) ok = true; }
+  return ok;
 }
 export const invoiceUrl = (base, kind, id) => `${String(base).replace(/\/$/, '')}/api/public/bill/${kind}/${id}/${invoiceSig(kind, id)}`;
 
