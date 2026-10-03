@@ -1083,3 +1083,19 @@ footer { background:#101d15; }
 .notify-settings .status-pill.off { background: #f1efe9; color: #6b6b6b; }
 .notify-actions { display: flex; flex-wrap: wrap; gap: 10px; }
 @media (max-width: 560px) { .notify-actions .btn { flex: 1 1 100%; } }
+
+/* Sidebar: the menu itself scrolls when items overflow a short screen; footer links stay pinned. */
+@media (min-width:761px) {
+  .admin-layout .sidebar { overflow:hidden; }
+  .admin-layout .sidebar nav { min-height:0; overflow-y:auto; overflow-x:hidden; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.28) transparent; padding-right:2px; }
+  .admin-layout .sidebar nav::-webkit-scrollbar { width:6px; }
+  .admin-layout .sidebar nav::-webkit-scrollbar-thumb { background:rgba(255,255,255,.28); border-radius:6px; }
+  .admin-layout .sidebar nav button { flex-shrink:0; }
+}
+
+.notify-provider { border: 1px solid var(--line, rgba(128,128,128,.28)); border-radius: 12px; padding: 10px 14px; display: flex; flex-direction: column; gap: 12px; }
+.notify-provider > summary { cursor: pointer; font-weight: 700; font-size: 14px; }
+.notify-provider[open] > summary { margin-bottom: 4px; }
+.notify-provider textarea, .notify-provider select { width: 100%; }
+.notify-two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 640px) { .notify-two { grid-template-columns: 1fr; } }
