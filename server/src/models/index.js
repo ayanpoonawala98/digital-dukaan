@@ -10,7 +10,8 @@ export const User = sequelize.define('User', {
   role: { type: DataTypes.ENUM('owner', 'superadmin', 'staff'), defaultValue: 'owner' },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
   managerId: { type: DataTypes.INTEGER, allowNull: true },
-  staffBusinessId: { type: DataTypes.INTEGER, allowNull: true }
+  staffBusinessId: { type: DataTypes.INTEGER, allowNull: true },
+  permissions: { type: DataTypes.JSONB, allowNull: true }
 }, { tableName: 'users', defaultScope: { attributes: { exclude: ['passwordHash'] } } });
 
 export const Business = sequelize.define('Business', {
@@ -68,7 +69,8 @@ export const Product = sequelize.define('Product', {
   duration: { type: DataTypes.STRING(60), defaultValue: '' },
   stock: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 0 } },
   featured: { type: DataTypes.BOOLEAN, defaultValue: false },
-  active: { type: DataTypes.BOOLEAN, defaultValue: true }
+  active: { type: DataTypes.BOOLEAN, defaultValue: true },
+  customFields: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] }
 }, { tableName: 'products', indexes: [{ fields: ['businessId', 'categoryId'] }] });
 
 export const Lead = sequelize.define('Lead', {
@@ -84,7 +86,11 @@ export const Lead = sequelize.define('Lead', {
   source: { type: DataTypes.STRING(80), defaultValue: '' },
   discount: { type: DataTypes.FLOAT, defaultValue: 0 },
   couponCode: { type: DataTypes.STRING(24), allowNull: true },
-  referralCode: { type: DataTypes.STRING(24), allowNull: true }
+  referralCode: { type: DataTypes.STRING(24), allowNull: true },
+  paymentStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: '' },
+  paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
+  paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
+  paidAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'leads', timestamps: true, updatedAt: false });
 
 User.hasMany(Business, { foreignKey: 'ownerId' });
@@ -147,7 +153,11 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
   couponCode: { type: DataTypes.STRING(24), allowNull: true },
   referralCode: { type: DataTypes.STRING(24), allowNull: true },
   total: { type: DataTypes.FLOAT, allowNull: false },
-  status: { type: DataTypes.STRING(20), defaultValue: 'new', allowNull: false }
+  status: { type: DataTypes.STRING(20), defaultValue: 'new', allowNull: false },
+  paymentStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: '' },
+  paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
+  paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
+  paidAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'restaurant_orders', indexes: [{ fields: ['businessId', 'createdAt'] }] });
 Business.hasMany(RestaurantOrder, { foreignKey: 'businessId' });
 RestaurantOrder.belongsTo(Business, { foreignKey: 'businessId' });
@@ -185,3 +195,8 @@ export const NotifySecret = sequelize.define('NotifySecret', {
   businessId: { type: DataTypes.INTEGER, primaryKey: true, references: { model: 'businesses', key: 'id' }, onDelete: 'CASCADE' },
   payload: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
 }, { tableName: 'notify_secrets' });
+
+export const PaymentSecret = sequelize.define('PaymentSecret', {
+  businessId: { type: DataTypes.INTEGER, primaryKey: true, references: { model: 'businesses', key: 'id' }, onDelete: 'CASCADE' },
+  payload: { type: DataTypes.TEXT, allowNull: false, defaultValue: '' },
+}, { tableName: 'payment_secrets' });
