@@ -69,6 +69,20 @@ r.post('/stores', ownerOnly, wrap(async (req, res) => {
 }));
 
 const bid = req => req.store.id;
+r.use('/:storeId', wrap(async (req, res, next) => {
+  const store = await Business.findOne({ where: { id: numId(req.params.storeId, 'store ID'), ownerId: req.user.role === 'owner' ? req.user.id : req.user.managerId, deletedAt: null } });
+  if (!store || (req.user.role === 'staff' && Number(req.user.staffBusinessId) !== store.id)) throw bad(404, 'Store not found');
+  req.store = store;
+  if (req.user.role === 'staff') {
+    const route = req.path.replace(/^\//, '');
+    const allowed = (req.method === 'GET' && /^(?:overview|shop-qr\.pdf|restaurant-orders(?:\/report\.csv)?|whatsapp-cloud\/(?:status|messages))$/.test(route)) || (req.method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) || (req.method === 'POST' && (route === 'whatsapp-cloud/send' || /^(?:products\/import|customers\/import)\/(?:preview|commit)$/.test(route)));
+    if (!allowed) throw bad(403, 'Staff access is read-only except restaurant order status');
+  }
+  const lockedFeature = featureForOwnerRoute(req.method, req.path);
+  if (lockedFeature && isLocked(req.store, lockedFeature)) throw bad(403, 'Kindly contact admin to enable this feature.');
+  next();
+}));
+
 const testCooldown = new Map();
 r.get('/:storeId/notifications', ownerOnly, wrap(async (req, res) => res.json({ settings: cleanSettings(req.store.notifySettings), providers: providerStatus() })));
 r.put('/:storeId/notifications', ownerOnly, wrap(async (req, res) => {
@@ -89,20 +103,6 @@ r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
   if (!result.ok) throw bad(502, result.error || result.skipped || 'Could not send the test');
   res.json({ ok: true });
 }));
-r.use('/:storeId', wrap(async (req, res, next) => {
-  const store = await Business.findOne({ where: { id: numId(req.params.storeId, 'store ID'), ownerId: req.user.role === 'owner' ? req.user.id : req.user.managerId, deletedAt: null } });
-  if (!store || (req.user.role === 'staff' && Number(req.user.staffBusinessId) !== store.id)) throw bad(404, 'Store not found');
-  req.store = store;
-  if (req.user.role === 'staff') {
-    const route = req.path.replace(/^\//, '');
-    const allowed = (req.method === 'GET' && /^(?:overview|shop-qr\.pdf|restaurant-orders(?:\/report\.csv)?|whatsapp-cloud\/(?:status|messages))$/.test(route)) || (req.method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) || (req.method === 'POST' && (route === 'whatsapp-cloud/send' || /^(?:products\/import|customers\/import)\/(?:preview|commit)$/.test(route)));
-    if (!allowed) throw bad(403, 'Staff access is read-only except restaurant order status');
-  }
-  const lockedFeature = featureForOwnerRoute(req.method, req.path);
-  if (lockedFeature && isLocked(req.store, lockedFeature)) throw bad(403, 'Kindly contact admin to enable this feature.');
-  next();
-}));
-
 r.use('/:storeId/whatsapp-cloud', whatsappCloudOwnerRoutes); // owner owns connect/manage; staff may read the inbox and send reviewed replies (allow-list above)
 r.use('/:storeId/customers', (req,res,next)=>req.user.role === 'staff' && !/^\/import\/(preview|commit)$/.test(req.path) ? res.status(403).json({error:'Staff can preview and import customers only.'}) : next(), crmRoutes);
 
