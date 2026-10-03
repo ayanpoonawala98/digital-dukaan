@@ -1,5 +1,5 @@
 import { sequelize } from './db.js';
-import { RestaurantOrder, OrderPushSubscription, Coupon, Referral, NotifySecret } from './models/index.js';
+import { RestaurantOrder, OrderPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from './models/index.js';
 import { ensureCrmSchema } from './crm.js';
 let ready;
 export function ensureRestaurantSchema() {
@@ -31,9 +31,20 @@ export function ensureRestaurantSchema() {
     for (const value of ['shipped', 'in-progress', 'completed']) await sequelize.query(`ALTER TYPE "enum_leads_status" ADD VALUE IF NOT EXISTS '${value}'`);
     await Coupon.sync(); // New table only.
     await Referral.sync();
+    await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "customFields" jsonb NOT NULL DEFAULT '[]'::jsonb`);
+    await PaymentSecret.sync(); // additive table
+    await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paymentStatus" varchar(20) NOT NULL DEFAULT ''`);
+    await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paymentLinkId" varchar(60)`);
+    await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paymentLinkUrl" varchar(300)`);
+    await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paidAt" timestamp with time zone`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "paymentStatus" varchar(20) NOT NULL DEFAULT ''`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "paymentLinkId" varchar(60)`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "paymentLinkUrl" varchar(300)`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "paidAt" timestamp with time zone`);
     await NotifySecret.sync(); // New table only.
     await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "managerId" integer');
     await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "staffBusinessId" integer');
+    await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions jsonb');
     await sequelize.query("ALTER TYPE \"enum_users_role\" ADD VALUE IF NOT EXISTS 'staff'");
     // Workhorse owner views filter by store and order recent enquiries.
     await sequelize.query('CREATE INDEX IF NOT EXISTS leads_business_created_at_idx ON leads ("businessId", "createdAt" DESC)');
