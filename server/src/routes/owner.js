@@ -332,7 +332,7 @@ r.get('/:storeId/shop-qr.pdf', wrap(async(req,res)=>{
   const doc=new PDFDocument({size:'A4',margin:50});
   res.type('application/pdf').attachment(`${req.store.slug}-shop-qr.pdf`);doc.pipe(res);
   doc.registerFont('ShopText',path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../fonts/DejaVuSans.ttf'));doc.font('ShopText');
-  doc.fontSize(16).fillColor('#0e9f6e').text('DIGITAL DUKAAN',{align:'center'});doc.moveDown();doc.fontSize(28).fillColor('#162b1d').text(req.store.name,{align:'center'});doc.moveDown();doc.fontSize(16).text('Scan to browse our shop',{align:'center'});const qrTop=Math.max(220,doc.y+20);doc.image(png,137,qrTop,{width:320});doc.fontSize(11).text(url,50,qrTop+340,{align:'center',width:495});doc.fontSize(12).text('Your shop. One link away.',50,qrTop+385,{align:'center',width:495});doc.end();
+  doc.fontSize(16).fillColor('#0e9f6e').text('DIGITAL SHOP',{align:'center'});doc.moveDown();doc.fontSize(28).fillColor('#162b1d').text(req.store.name,{align:'center'});doc.moveDown();doc.fontSize(16).text('Scan to browse our shop',{align:'center'});const qrTop=Math.max(220,doc.y+20);doc.image(png,137,qrTop,{width:320});doc.fontSize(11).text(url,50,qrTop+340,{align:'center',width:495});doc.fontSize(12).text('Your shop. One link away.',50,qrTop+385,{align:'center',width:495});doc.end();
 }));
 r.get('/:storeId/leads', wrap(async (req,res) => res.json(await orderPage(req,Lead,'whatsapp'))));
 r.get('/:storeId/leads/report.csv', wrap(async (req,res) => {
@@ -439,7 +439,7 @@ r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
   const delivery = Math.max(0, Number(lead.price) - subtotal + discount);
   if (Array.isArray(lead.items) && lead.items.length) totalRow('Delivery', delivery > 0 ? `Rs.${delivery.toFixed(2)}` : 'FREE');
   totalRow('Total', `Rs.${Number(lead.price).toFixed(2)}`);
-  doc.fontSize(8).fillColor('#777').text('This is an estimate generated from a WhatsApp enquiry on Digital Dukaan. It is not a tax invoice. Prices confirmed on WhatsApp at order time.', 50, y + 30, { width: 495, align: 'center' });
+  doc.fontSize(8).fillColor('#777').text('This is an estimate generated from a WhatsApp enquiry on Digital Shop. It is not a tax invoice. Prices confirmed on WhatsApp at order time.', 50, y + 30, { width: 495, align: 'center' });
   doc.end();
 }));
 
@@ -684,7 +684,7 @@ const salesReport = async req => {
 r.get('/:storeId/sales-summary', wrap(async (req,res) => res.json(await salesReport(req))));
 r.get('/:storeId/sales-summary/report.csv', wrap(async (req,res) => {
   const report = await salesReport(req);
-  const rows = [['Digital Dukaan recorded sales report',req.store.name],['From (IST)',report.from || 'All time'],['Through (IST)',report.to || 'All time'],['Important',report.caveat],['Recorded total INR',report.recordedTotal],['Served orders',report.completedOrders],['Average served order INR',report.averageOrder],['Pending restaurant orders',report.restaurantPending],['Cancelled restaurant orders',report.cancelledOrders],['WhatsApp requests (not sales)',report.whatsappEnquiries],[],['Date (IST)','Recorded total INR','Served orders'],...report.daily.map(d=>[d.date,d.total,d.orders]),[],['Item','Units in served orders','Item value INR (before discounts/delivery)'],...report.topProducts.map(p=>[p.name,p.quantity,p.itemValue]),[],['No recorded movement (not proof of unsold stock)','Stock','Listed price INR'],...report.noMovement.map(p=>[p.name,p.stock,p.price])];
+  const rows = [['Digital Shop recorded sales report',req.store.name],['From (IST)',report.from || 'All time'],['Through (IST)',report.to || 'All time'],['Important',report.caveat],['Recorded total INR',report.recordedTotal],['Served orders',report.completedOrders],['Average served order INR',report.averageOrder],['Pending restaurant orders',report.restaurantPending],['Cancelled restaurant orders',report.cancelledOrders],['WhatsApp requests (not sales)',report.whatsappEnquiries],[],['Date (IST)','Recorded total INR','Served orders'],...report.daily.map(d=>[d.date,d.total,d.orders]),[],['Item','Units in served orders','Item value INR (before discounts/delivery)'],...report.topProducts.map(p=>[p.name,p.quantity,p.itemValue]),[],['No recorded movement (not proof of unsold stock)','Stock','Listed price INR'],...report.noMovement.map(p=>[p.name,p.stock,p.price])];
   res.type('text/csv').attachment(`sales-report-${req.store.slug}.csv`).send('\uFEFF'+rows.map(row=>row.map(reportCell).join(',')).join('\r\n'));
 }));
 r.get('/:storeId/restaurant-orders', wrap(async (req,res) => {
