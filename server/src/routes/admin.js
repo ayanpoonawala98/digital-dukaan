@@ -6,6 +6,7 @@ import { auth, roles } from '../middleware/auth.js';
 import { bad, slugify, validEmail, validPhone, wrap } from '../utils/core.js';
 import { restoreDeadline } from '../retention.js';
 import { LOCKABLE_FEATURES, LOCKABLE_KEYS, locksOf } from '../feature-locks.js';
+import { alertState, saveAlertKeys, saveAlertSettings, sendAlertTest } from '../platform-alerts.js';
 const r = Router();
 r.use(auth, roles('superadmin'));
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
@@ -37,6 +38,16 @@ r.post('/owners', wrap(async (req, res) => {
     throw bad(503, 'Store domain could not be registered. No owner or store was created. Try again later.');
   }
   res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role }, store });
+}));
+// New-store request alerts (superadmin only). Keys are encrypted and never returned.
+let alertTestAt = 0;
+r.get('/alerts', wrap(async (_, res) => res.json(await alertState())));
+r.put('/alerts/keys', wrap(async (req, res) => res.json(await saveAlertKeys(req.body || {}))));
+r.put('/alerts', wrap(async (req, res) => res.json(await saveAlertSettings(req.body || {}))));
+r.post('/alerts/test', wrap(async (req, res) => {
+  if (Date.now() - alertTestAt < 20000) throw bad(429, 'Wait a few seconds before sending another test');
+  alertTestAt = Date.now();
+  res.json(await sendAlertTest(req.body?.channel));
 }));
 r.get('/shop-requests', wrap(async (_, res) => {
   await ShopRequest.sync();
