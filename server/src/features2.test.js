@@ -60,3 +60,16 @@ test('low stock list and weekly text; settings keep new fields', () => {
   const s = cleanSettings({ lowStockAlerts: true, lowStockThreshold: 500, weeklyReport: true, lastWeeklyDate: '2026-10-05' });
   assert.equal(s.lowStockThreshold, 100); assert.equal(s.weeklyReport, true); assert.equal(s.lastWeeklyDate, '2026-10-05'); assert.equal(cleanSettings({}).lowStockThreshold, 5);
 });
+
+test('bill links signed with the legacy JWT_SECRET stay valid after INVOICE_LINK_SECRET is set', () => {
+  const prevJwt = process.env.JWT_SECRET, prevInv = process.env.INVOICE_LINK_SECRET;
+  try {
+    process.env.JWT_SECRET = 'legacy-jwt-secret-for-bill-test-0123456789'; delete process.env.INVOICE_LINK_SECRET;
+    const oldSig = invoiceSig('lead', 9);
+    process.env.INVOICE_LINK_SECRET = 'new-invoice-secret-for-bill-test-0123456789';
+    assert.ok(invoiceSigValid('lead', 9, oldSig));
+    assert.ok(invoiceSigValid('lead', 9, invoiceSig('lead', 9)));
+    assert.notEqual(oldSig, invoiceSig('lead', 9));
+    assert.ok(!invoiceSigValid('lead', 10, oldSig));
+  } finally { process.env.JWT_SECRET = prevJwt; if (prevInv === undefined) delete process.env.INVOICE_LINK_SECRET; else process.env.INVOICE_LINK_SECRET = prevInv; }
+});
