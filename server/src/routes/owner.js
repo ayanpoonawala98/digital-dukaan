@@ -7,6 +7,7 @@ import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { uploadImageKit } from '../utils/imagekit.js';
 import { registerStoreDomain, storeDomain, storeUrl } from '../utils/store-domain.js';
+import { effective as staffPerms, clean as cleanPerms, staffAllowed } from '../permissions.js';
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
 import { whatsappCloudOwnerRoutes } from '../whatsapp-cloud.js';
@@ -23,8 +24,12 @@ import { bad, slugify, validEmail, validPhone, validPrice, wrap } from '../utils
 
 const r = Router();
 import { restoreDeadline } from '../retention.js';
+import { mergePaymentKeys, paymentView, createPaymentLink, fetchPaymentLink, verifyKeys } from '../razorpay.js';
+import { cleanFieldDefs } from '../custom-fields.js';
+import { invoiceUrl } from '../invoice.js';
+import { sendWeeklyReport } from '../reports.js';
 import { notifyStatusChange, providerStatus, resolveProviders, cleanSettings, saveSettings, sendEmail, sendSms } from '../notify.js';
-import { NotifySecret } from '../models/index.js';
+import { NotifySecret, PaymentSecret } from '../models/index.js';
 import { encryptJson, decryptJson, mergeSecrets, publicView } from '../notify-secrets.js';
 const restoreUntil = restoreDeadline;
 r.use(auth, roles('owner', 'staff'));
@@ -78,8 +83,7 @@ r.use('/:storeId', wrap(async (req, res, next) => {
   req.store = store;
   if (req.user.role === 'staff') {
     const route = req.path.replace(/^\//, '');
-    const allowed = (req.method === 'GET' && /^(?:overview|shop-qr\.pdf|restaurant-orders(?:\/report\.csv)?|whatsapp-cloud\/(?:status|messages))$/.test(route)) || (req.method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) || (req.method === 'POST' && (route === 'whatsapp-cloud/send' || /^(?:products\/import|customers\/import)\/(?:preview|commit)$/.test(route)));
-    if (!allowed) throw bad(403, 'Staff access is read-only except restaurant order status');
+    if (!staffAllowed(staffPerms(req.user), req.method, route)) throw bad(403, 'Your owner has not given you access to this. Ask them to update your permissions.');
   }
   const lockedFeature = featureForOwnerRoute(req.method, req.path);
   if (lockedFeature && isLocked(req.store, lockedFeature)) throw bad(403, 'Kindly contact admin to enable this feature.');
@@ -100,8 +104,8 @@ r.put('/:storeId/notifications/keys', ownerOnly, wrap(async (req, res) => {
 }));
 r.put('/:storeId/notifications', ownerOnly, wrap(async (req, res) => {
   const b = req.body || {};
-  for (const k of ['ownerEmailAlerts', 'ownerSmsAlerts', 'customerSms']) if (b[k] !== undefined && typeof b[k] !== 'boolean') throw bad(400, 'Invalid notification setting');
-  const input = {}; for (const k of ['ownerEmailAlerts', 'ownerEmail', 'ownerSmsAlerts', 'ownerPhone', 'customerSms']) if (Object.hasOwn(b, k)) input[k] = b[k];
+  for (const k of ['ownerEmailAlerts', 'ownerSmsAlerts', 'customerSms', 'lowStockAlerts', 'weeklyReport']) if (b[k] !== undefined && typeof b[k] !== 'boolean') throw bad(400, 'Invalid notification setting');
+  const input = {}; for (const k of ['ownerEmailAlerts', 'ownerEmail', 'ownerSmsAlerts', 'ownerPhone', 'customerSms', 'lowStockAlerts', 'lowStockThreshold', 'weeklyReport']) if (Object.hasOwn(b, k)) input[k] = b[k];
   try { await saveSettings(req.store, input); res.json(await notifyState(req.store)); } catch (err) { throw bad(err.status || 500, err.message); }
 }));
 r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
@@ -125,20 +129,26 @@ r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
   await req.store.update({ active: false, deletedAt, wasActiveBeforeDelete: req.store.active });
   res.json({ removed: true, slug: req.store.slug, restoreUntil: restoreUntil(deletedAt) });
 }));
-r.get('/:storeId/staff', ownerOnly, wrap(async (req, res) => res.json({ staff: (await User.findAll({ where: { managerId: req.user.id, staffBusinessId: bid(req), role: 'staff' } })).map(u => ({ id:u.id, name:u.name, email:u.email, active:u.active })) })));
+r.get('/:storeId/staff', ownerOnly, wrap(async (req, res) => res.json({ staff: (await User.findAll({ where: { managerId: req.user.id, staffBusinessId: bid(req), role: 'staff' } })).map(u => ({ id:u.id, name:u.name, email:u.email, active:u.active, permissions:staffPerms(u) })) })));
 r.post('/:storeId/staff', ownerOnly, wrap(async (req, res) => {
   const name = String(req.body?.name || '').trim(), email = String(req.body?.email || '').trim().toLowerCase(), password = req.body?.password;
   if (!name || name.length > 100 || !validEmail(email) || typeof password !== 'string' || password.length < 12 || password.length > 128) throw bad(400, 'Name, valid email and a temporary password of at least 12 characters are required');
   const passwordHash = await bcrypt.hash(password, 12);
-  const staff = await User.create({ name, email, passwordHash, role:'staff', managerId:req.user.id, staffBusinessId:bid(req), active:true });
-  res.status(201).json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:true } });
+  let permissions = null;
+  if (req.body?.permissions !== undefined) { permissions = cleanPerms(req.body.permissions); if (!permissions) throw bad(400, 'Unknown permission'); }
+  const staff = await User.create({ name, email, passwordHash, role:'staff', managerId:req.user.id, staffBusinessId:bid(req), active:true, permissions });
+  res.status(201).json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:true, permissions:staffPerms(staff) } });
 }));
 r.patch('/:storeId/staff/:id', ownerOnly, wrap(async (req, res) => {
-  if (typeof req.body?.active !== 'boolean') throw bad(400, 'Active must be true or false');
+  const hasActive = req.body?.active !== undefined, hasPerms = req.body?.permissions !== undefined;
+  if (!hasActive && !hasPerms) throw bad(400, 'Send active or permissions');
+  if (hasActive && typeof req.body.active !== 'boolean') throw bad(400, 'Active must be true or false');
+  let permissions;
+  if (hasPerms) { permissions = cleanPerms(req.body.permissions); if (!permissions) throw bad(400, 'Unknown permission'); }
   const staff = await User.findOne({ where: { id:numId(req.params.id), managerId:req.user.id, staffBusinessId:bid(req), role:'staff' } });
   if (!staff) throw bad(404, 'Staff not found');
-  await staff.update({ active:req.body.active });
-  res.json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:staff.active } });
+  await staff.update({ ...(hasActive ? { active:req.body.active } : {}), ...(hasPerms ? { permissions } : {}) });
+  res.json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:staff.active, permissions:staffPerms(staff) } });
 }));
 
 r.get('/:storeId/overview', wrap(async (req, res) => {
@@ -242,6 +252,7 @@ async function productFields(req) {
     fields.price = Number(fields.price);
     if (!validPrice(fields.price)) throw bad(400, 'Price must be a non-negative number');
   }
+  if (Object.hasOwn(req.body, 'customFields')) fields.customFields = cleanFieldDefs(req.body.customFields);
   if (fields.active !== undefined) fields.active = Boolean(fields.active);
   if (fields.featured !== undefined) fields.featured = Boolean(fields.featured);
   if (fields.imageUrl && !(/^https?:\/\//i.test(fields.imageUrl) || fields.imageUrl.startsWith('/uploads/'))) throw bad(400, 'Image must be an HTTP(S) URL or uploaded image');
@@ -331,6 +342,59 @@ r.get('/:storeId/leads/report.csv', wrap(async (req,res) => {
   res.type('text/csv').attachment(`orders-${req.store.slug}.csv`).send(ordersCsv(orders,'whatsapp'));
 }));
 
+
+// ---- Online payments (Razorpay payment links, owner's own keys) ----
+const apiBase = req => `${req.hostname === 'localhost' ? 'http' : 'https'}://${req.get('host')}`;
+const loadPayCreds = async store => decryptJson((await PaymentSecret.findByPk(store.id))?.payload);
+const orderModel = kind => (kind === 'leads' ? Lead : kind === 'restaurant-orders' ? RestaurantOrder : null);
+r.get('/:storeId/payments', ownerOnly, wrap(async (req, res) => res.json({ razorpay: paymentView(await loadPayCreds(req.store)) })));
+r.put('/:storeId/payments', ownerOnly, wrap(async (req, res) => {
+  let next; try { next = mergePaymentKeys(await loadPayCreds(req.store), req.body || {}); } catch (err) { throw bad(err.status || 500, err.message); }
+  let payload; try { payload = encryptJson(next); } catch { throw bad(500, 'Saving keys is not available on this server yet'); }
+  if (req.body?.verify !== false && next.keyId && next.keySecret) { try { await verifyKeys(next); } catch (err) { throw bad(err.status || 502, err.message); } }
+  await PaymentSecret.upsert({ businessId: req.store.id, payload });
+  res.json({ razorpay: paymentView(next) });
+}));
+r.post('/:storeId/:kind(leads|restaurant-orders)/:id/payment-link', ownerOnly, wrap(async (req, res) => {
+  const Model = orderModel(req.params.kind), order = await Model.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
+  if (!order) throw bad(404, 'Order not found');
+  if (order.status === 'cancelled') throw bad(400, 'This order is cancelled');
+  if (order.paymentStatus === 'paid') throw bad(409, 'This order is already paid');
+  const creds = await loadPayCreds(req.store);
+  if (order.paymentLinkUrl && order.paymentStatus === 'created' && !req.body?.renew) return res.json({ order, url: order.paymentLinkUrl, whatsappUrl: payWhatsapp(req.store, order) });
+  const amount = req.params.kind === 'leads' ? order.price : order.total;
+  const link = await createPaymentLink(creds, { amount, referenceId: `${req.params.kind === 'leads' ? 'L' : 'R'}${order.id}-${Date.now().toString(36)}`, description: `Order #${order.id} at ${req.store.name}`, name: order.customerName, phone: order.customerPhone }).catch(err => { throw bad(err.status || 502, err.message); });
+  await order.update({ paymentStatus: 'created', paymentLinkId: link.id, paymentLinkUrl: link.url, paidAt: null });
+  res.status(201).json({ order, url: link.url, whatsappUrl: payWhatsapp(req.store, order) });
+}));
+r.post('/:storeId/:kind(leads|restaurant-orders)/:id/payment-link/refresh', ownerOnly, wrap(async (req, res) => {
+  const Model = orderModel(req.params.kind), order = await Model.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
+  if (!order || !order.paymentLinkId) throw bad(404, 'No payment link on this order');
+  const st = await fetchPaymentLink(await loadPayCreds(req.store), order.paymentLinkId).catch(err => { throw bad(err.status || 502, err.message); });
+  const map = { paid: 'paid', expired: 'expired', cancelled: 'cancelled', partially_paid: 'created', created: 'created' };
+  const paymentStatus = map[st.status] || order.paymentStatus;
+  await order.update({ paymentStatus, paidAt: st.paid ? (order.paidAt || new Date()) : order.paidAt });
+  res.json({ order, status: paymentStatus });
+}));
+function payWhatsapp(store, order) {
+  const phone = String(order.customerPhone || '').replace(/\D/g, ''); if (!phone || !order.paymentLinkUrl) return '';
+  const total = Number(order.price ?? order.total) || 0;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(`Hi! Your order #${order.id} at ${store.name} is Rs.${total.toFixed(2)}. Pay securely online (UPI, cards, netbanking): ${order.paymentLinkUrl}`)}`;
+}
+r.get('/:storeId/:kind(leads|restaurant-orders)/:id/bill-link', wrap(async (req, res) => {
+  const Model = orderModel(req.params.kind), order = await Model.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
+  if (!order) throw bad(404, 'Order not found');
+  const url = invoiceUrl(apiBase(req), req.params.kind === 'leads' ? 'lead' : 'restaurant', order.id), phone = String(order.customerPhone || '').replace(/\D/g, '');
+  res.json({ url, whatsappUrl: phone ? `https://wa.me/${phone}?text=${encodeURIComponent(`Hi! Here is your bill for order #${order.id} from ${req.store.name}: ${url}`)}` : '' });
+}));
+r.post('/:storeId/notifications/report', ownerOnly, wrap(async (req, res) => {
+  if (Date.now() - (testCooldown.get(`r${req.store.id}`) || 0) < 20000) throw bad(429, 'Wait a few seconds before sending another report');
+  testCooldown.set(`r${req.store.id}`, Date.now());
+  const out = await sendWeeklyReport(req.store);
+  if (!out.sent) throw bad(400, 'Turn on email or SMS alerts and add a provider first, then send a sample report.');
+  res.json({ sent: out.sent, channels: out.channels, preview: out.text });
+}));
+
 r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
   const lead = await Lead.findOne({ where: { id: numId(req.params.leadId, 'enquiry ID'), businessId: bid(req) } });
   if (!lead) throw bad(404, 'Enquiry not found');
@@ -409,9 +473,10 @@ r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {
   let url = '';
   if (status && status !== 'new' && lead.customerPhone) {
     const labels = { confirmed: 'confirmed', packed: 'packed and getting ready', shipped: 'shipped', 'out-for-delivery': 'out for delivery', delivered: 'delivered. Thank you for shopping with us!', 'in-progress': 'in progress', completed: 'completed. Thank you!', cancelled: 'cancelled. Sorry for the inconvenience.' };
-    if (statusChanged && labels[status]) void notifyStatusChange(req.store, 'lead', lead, labels[status]);
+    const billable = !['new', 'cancelled'].includes(status), billLink = billable ? invoiceUrl(apiBase(req), 'lead', lead.id) : '';
+    if (statusChanged && labels[status]) void notifyStatusChange(req.store, 'lead', lead, labels[status], undefined, billLink);
     const items = Array.isArray(lead.items) && lead.items.length ? lead.items.map(i => `${i.qty} x ${i.name}`).join(', ') : lead.productName;
-    const text = `Hi! Update on your order from ${req.store.name} (${items}): your order is ${labels[status]}. Total: Rs.${Number(lead.price).toFixed(2)}`;
+    const text = `Hi! Update on your order from ${req.store.name} (${items}): your order is ${labels[status]}. Total: Rs.${Number(lead.price).toFixed(2)}${billLink ? `. Your bill: ${billLink}` : ''}`;
     url = `https://wa.me/${lead.customerPhone}?text=${encodeURIComponent(text)}`;
   }
   res.json({ lead, url });
