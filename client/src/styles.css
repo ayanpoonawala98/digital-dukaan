@@ -1125,3 +1125,6 @@ footer { background:#101d15; }
 .perm-checks legend { font-size: 12px; opacity: .75; padding: 0 6px; }
 .perm-check { display: flex; align-items: flex-start; gap: 8px; font-size: 14px; }
 .perm-check input { margin-top: 3px; }
+
+.creator-credit a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.creator-credit a:hover { opacity: .85; }
