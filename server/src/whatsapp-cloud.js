@@ -5,7 +5,7 @@ import { sequelize } from './db.js';
 import { bad, wrap } from './utils/core.js';
 import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
 import { Lead, Business } from './models/index.js';
-import { orderBotEnabledFor, parseOrderRef, confirmationText, statusMessage } from './whatsapp-orders.js';
+import { orderBotEnabledFor, parseOrderRef, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
@@ -127,6 +127,34 @@ export async function orderBot({ connection, businessId, phone, text, eventAt, f
     if (!store || store.deletedAt) return false;
     if (!lead.customerPhone) await lead.update({ customerPhone: phone });
     return await sendOnce({ connection, businessId, phone, text: confirmationText(store, lead), key: `bot:confirm:${businessId}:${lead.id}`, fetcher });
+  } catch { return false; }
+}
+// Generic bot send: free text if the 24h window is open, else the named approved template (env), else nothing.
+async function botSend(store, phone, text, key, templateEnv, params, fetcher) {
+  const connection = await merchantConnection(store.id);
+  if (!canSend(connection) || !/^[1-9]\d{7,14}$/.test(String(phone || ''))) return false;
+  await ensureSchema();
+  const latest = await WhatsAppMessage.findOne({ where: { businessId: store.id, phone, direction: 'inbound' }, order: [['eventAt', 'DESC']] });
+  if (latest && serviceWindowOpen(latest.eventAt)) return sendOnce({ connection, businessId: store.id, phone, text, key, fetcher });
+  const template = process.env[templateEnv];
+  if (!template) return false;
+  const [record, created] = await WhatsAppMessage.findOrCreate({ where: { requestKey: key.slice(0, 100) }, defaults: { businessId: store.id, phoneNumberId: connection.phoneNumberId, direction: 'outbound', phone, text, messageType: 'template', eventAt: new Date(), status: 'submitting' } });
+  if (!created) return false;
+  try { const messageId = await sendCloudTemplate(phone, template, process.env.WHATSAPP_TEMPLATE_LANG || 'en', params, fetcher, connection); await record.update({ messageId, status: 'accepted' }); return true; }
+  catch (err) { await record.update({ status: err.metaCode ? 'failed' : 'unknown', errorCode: err.metaCode ? String(err.metaCode) : null }); return false; }
+}
+// New order: alert the owner (notify settings ownerPhone) and confirm to the customer if their phone is known.
+export async function notifyNewOrderWhatsApp(store, lead, fetcher = fetch) {
+  try {
+    if (!orderBotEnabledFor(store.id)) return false;
+    const ref = `DD-${lead.id}`, items = itemsText(lead), total = `Rs.${Number(lead.price || 0).toFixed(2)}`;
+    const owner = String(store.notifySettings?.ownerPhone || '').replace(/\D/g, '');
+    const jobs = [];
+    if (owner) jobs.push(botSend(store, owner, `New order ${ref} at ${store.name}: ${items}, ${total}. Open your dashboard to review it.`, `bot:alert:${store.id}:${lead.id}`, 'WHATSAPP_TEMPLATE_ORDER_ALERT', [ref, items, total], fetcher));
+    const cust = String(lead.customerPhone || '').replace(/\D/g, '');
+    if (cust) jobs.push(botSend(store, cust, confirmationText(store, lead), `bot:confirm:${store.id}:${lead.id}`, 'WHATSAPP_TEMPLATE_ORDER_CONFIRM', [store.name, ref, total], fetcher));
+    await Promise.all(jobs);
+    return true;
   } catch { return false; }
 }
 // Status update to the customer. Free text inside the 24-hour window, else an approved template
