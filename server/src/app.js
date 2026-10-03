@@ -15,6 +15,7 @@ import ownerRoutes from './routes/owner.js';
 import adminRoutes from './routes/admin.js';
 import { purgeExpiredStore } from './retention.js';
 import { whatsappWebhook } from './whatsapp-cloud.js';
+import { byoWebhook } from './whatsapp-byo.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -26,6 +27,7 @@ app.use(cors({ origin(origin, callback) {
   callback(null, false);
 } }));
 app.use('/api/integrations/whatsapp/webhook', whatsappWebhook);
+app.use('/api/integrations/whatsapp-byo', rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false } }), byoWebhook);
 app.use(express.json({ limit: '100kb' }));
 app.use('/uploads', express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../uploads')));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false } }), authRoutes);
