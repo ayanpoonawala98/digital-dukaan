@@ -23,8 +23,10 @@ export function ensureRestaurantSchema() {
     await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "couponCode" varchar(24)');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "referralCode" varchar(24)');
     await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "referralCode" varchar(24)');
+    await sequelize.query("ALTER TABLE leads ADD COLUMN IF NOT EXISTS \"customerName\" varchar(100) NOT NULL DEFAULT ''");
     await sequelize.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS \"imageUrls\" jsonb NOT NULL DEFAULT '[]'::jsonb");
     await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"featureLocks\" jsonb NOT NULL DEFAULT '{}'::jsonb");
+    await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"notifySettings\" jsonb NOT NULL DEFAULT '{}'::jsonb");
     // Additive enum values for per-store-type order flows. ADD VALUE IF NOT EXISTS never rewrites data.
     for (const value of ['shipped', 'in-progress', 'completed']) await sequelize.query(`ALTER TYPE "enum_leads_status" ADD VALUE IF NOT EXISTS '${value}'`);
     await Coupon.sync(); // New table only.

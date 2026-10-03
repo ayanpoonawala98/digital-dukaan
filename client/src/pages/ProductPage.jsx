@@ -11,19 +11,20 @@ import { storePath } from '../lib/store-domain.js';
 import { saveOrder } from '../lib/my-orders.js';
 import { useCart, useWishlist } from '../lib/shop.js';
 import { Footer, Header } from '../components/chrome.jsx';
+import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 
 function BuyButton({ slug, id, qty, children }) {
-  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState('');
+  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [contact, setContact] = useContact();
   const buy = async () => {
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
-      const { url, tracking } = await api(`/public/stores/${slug}/products/${id}/enquire`, { method: 'POST', body: { qty } });
+      const { url, tracking } = await api(`/public/stores/${slug}/products/${id}/enquire`, { method: 'POST', body: { qty, ...contactBody(contact) } });
       if (tracking) saveOrder(slug, { kind: 'lead', id: tracking.id, token: tracking.token, total: tracking.total });
       if (tab) tab.location.href = url; else window.location.href = url;
     } catch (e) { if (tab) tab.close(); setError(e.message); } finally { setBusy(false); }
   };
-  return <><button onClick={buy} disabled={busy} className="btn btn-green">{busy ? 'Opening...' : children || 'Buy on WhatsApp'} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{error}</small>}</>;
+  return <><ContactFields contact={contact} onChange={setContact}/><button onClick={buy} disabled={busy} className="btn btn-green">{busy ? 'Opening...' : children || 'Buy on WhatsApp'} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{error}</small>}</>;
 }
 
 export default function ProductPage({ hostedSlug }) {
