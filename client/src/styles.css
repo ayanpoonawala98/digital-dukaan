@@ -951,3 +951,18 @@ footer { background:#101d15; }
 .enquiries-panel.reveal-ready,.enquiries-panel.reveal-ready:not(.in-view){opacity:1!important;transform:none!important}
 .enquiry-table td small,.enquiry-table td .enq-id{white-space:nowrap}
 @media (max-width:900px){.enquiries-panel .data-toolbar label:first-child{flex:1 1 100%;min-width:100%}}
+/* Admin sidebar: stays pinned (nav + footer links) at every scroll position on tablet and laptop. */
+@media (min-width:761px) {
+  .admin-layout { grid-template-columns:minmax(200px,252px) minmax(0,1fr); align-items:start; }
+  .admin-layout .sidebar { position:sticky; top:0; align-self:start; height:100vh; max-height:100vh; overflow-y:auto; flex-direction:column; flex-wrap:nowrap; align-items:stretch; gap:24px; padding:26px 14px 18px; }
+  .admin-layout .sidebar nav { flex-direction:column; flex-wrap:nowrap; flex:1 1 auto; }
+  .admin-layout .sidebar-label { display:block; }
+  .admin-layout .sidebar-bottom { flex-direction:column; flex:0 0 auto; margin-top:auto; }
+}
+@media (min-width:761px) and (max-height:900px) {
+  .admin-layout .sidebar { gap:14px; padding-top:18px; }
+  .admin-layout .sidebar nav { gap:3px; }
+  .admin-layout .sidebar nav button { min-height:40px; padding:8px 12px; }
+  .admin-layout .sidebar-bottom { padding-top:8px; gap:2px; }
+  .admin-layout .sidebar-bottom > * { padding:8px 12px; }
+}
