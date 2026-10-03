@@ -13,7 +13,7 @@ export default function WhatsAppIntegration({token,storeId,staff}) {
   const root=`/owner/${storeId}/whatsapp-cloud`;
   async function refresh(){
     const current=generation.current;setError('');
-    try {const s=await api(`${root}/status`,{token});if(current!==generation.current)return;setStatus(s);if(!selfServeComingSoon&&s.signup?.available)loadMetaSdk(s.signup).then(()=>{if(current===generation.current)setSdkReady(true);}).catch(e=>{if(current===generation.current)setError(e.message);});}
+    try {const s=await api(`${root}/status`,{token,feedback:false});if(current!==generation.current)return;setStatus(s);if(!selfServeComingSoon&&s.signup?.available)loadMetaSdk(s.signup).then(()=>{if(current===generation.current)setSdkReady(true);}).catch(e=>{if(current===generation.current)setError(e.message);});}
     catch(e){if(current!==generation.current)return;if(/not available for this shop/i.test(e.message||''))setUnavailable(true);else setError(e.message);}
   }
   useEffect(()=>{generation.current++;stopSignup.current?.();setStatus(null);setUnavailable(false);setMessages([]);setReview(null);setBusy(false);setSdkReady(false);setSignupSession(null);refresh();return ()=>{generation.current++;stopSignup.current?.();};},[token,storeId]);
