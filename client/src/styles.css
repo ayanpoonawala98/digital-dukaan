@@ -1074,3 +1074,12 @@ footer { background:#101d15; }
   .admin-layout .sidebar-bottom { padding-top:6px; gap:0; }
   .admin-layout .sidebar-bottom > * { padding:6px 12px; font-size:13px; }
 }
+
+.notify-settings { margin-top: 18px; }
+.notify-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 6px; border-top: 1px solid var(--line, #e6e6e6); }
+.notify-row:first-of-type { border-top: 0; }
+.notify-settings .status-pill { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+.notify-settings .status-pill.on { background: var(--accent-soft); color: var(--accent-ink); }
+.notify-settings .status-pill.off { background: #f1efe9; color: #6b6b6b; }
+.notify-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 560px) { .notify-actions .btn { flex: 1 1 100%; } }
