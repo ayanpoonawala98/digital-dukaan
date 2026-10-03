@@ -1,0 +1,14 @@
+[build]
+  functions = "netlify/functions"
+  publish = "public"
+  command = "mkdir -p public"
+
+[functions]
+  node_bundler = "nft"
+  included_files = ["fonts/**"]
+
+[[redirects]]
+  from = "/*"
+  to = "/.netlify/functions/api"
+  status = 200
+  force = true
