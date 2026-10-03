@@ -11,15 +11,18 @@ import { storePath } from '../lib/store-domain.js';
 import { saveOrder } from '../lib/my-orders.js';
 import { useCart, useWishlist } from '../lib/shop.js';
 import { Footer, Header } from '../components/chrome.jsx';
+import { CustomFieldInputs, missingRequired } from '../components/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 
-function BuyButton({ slug, id, qty, children }) {
+function BuyButton({ slug, id, qty, fields, answers, children }) {
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [contact, setContact] = useContact();
   const buy = async () => {
+    const missing = missingRequired(fields, answers);
+    if (missing.length) { setError(`Please answer: ${missing.map(f => f.label).join(', ')}`); return; }
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
-      const { url, tracking } = await api(`/public/stores/${slug}/products/${id}/enquire`, { method: 'POST', body: { qty, ...contactBody(contact) } });
+      const { url, tracking } = await api(`/public/stores/${slug}/products/${id}/enquire`, { method: 'POST', body: { qty, answers, ...contactBody(contact) } });
       if (tracking) saveOrder(slug, { kind: 'lead', id: tracking.id, token: tracking.token, total: tracking.total });
       if (tab) tab.location.href = url; else window.location.href = url;
     } catch (e) { if (tab) tab.close(); setError(e.message); } finally { setBusy(false); }
@@ -31,7 +34,7 @@ export default function ProductPage({ hostedSlug }) {
   const { slug: pathSlug, id } = useParams();
   const slug = hostedSlug || pathSlug;
   const { theme } = useTheme();
-  const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [qty, setQtyState] = useState(1);
+  const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [qty, setQtyState] = useState(1), [answers, setAnswers] = useState({});
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
   if (error) return <><Header/><div className="container empty-state page-fade">{error}</div></>;
@@ -55,9 +58,10 @@ export default function ProductPage({ hostedSlug }) {
           <p className="detail-description">{product.description || (restaurant ? 'Freshly prepared for you.' : 'A lovely find from our collection. Message us to know more.')}</p>
           {!business.isOpen && <p className="notice warn"><Clock size={15}/> {business.name} is closed right now. Your order will be confirmed when the shop opens{business.openingHours ? ` (${business.openingHours})` : ''}.</p>}
           {!out && <div className="qty-row"><span>Quantity</span><div className="qty-stepper"><button onClick={() => setQtyState(Math.max(1, qty - 1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{qty}</span><button onClick={() => setQtyState(product.stock !== null ? Math.min(product.stock, qty + 1) : qty + 1)} aria-label="Increase quantity"><Plus size={14}/></button></div></div>}
+          {!out && !restaurant && <CustomFieldInputs fields={product.customFields} answers={answers} onChange={setAnswers}/>}
           <div className="detail-actions">
-            {!out && !restaurant && <BuyButton slug={slug} id={id} qty={qty}>{isService ? 'Book on WhatsApp' : undefined}</BuyButton>}
-            {!out && <button className="btn btn-outline" onClick={() => cart.add(product, qty)}><ShoppingBag size={17}/> {restaurant ? 'Add to order' : isService ? 'Add to booking' : 'Add to cart'}</button>}
+            {!out && !restaurant && <BuyButton slug={slug} id={id} qty={qty} fields={product.customFields} answers={answers}>{isService ? 'Book on WhatsApp' : undefined}</BuyButton>}
+            {!out && <button className="btn btn-outline" onClick={() => { const m = missingRequired(product.customFields, answers); if (!restaurant && m.length) { notify('error', `Please answer: ${m.map(f => f.label).join(', ')}`); return; } cart.add(product, qty, answers); }}><ShoppingBag size={17}/> {restaurant ? 'Add to order' : isService ? 'Add to booking' : 'Add to cart'}</button>}
             <button className={`icon-btn heart-lg ${wishlist.has(product.id) ? 'active' : ''}`} onClick={() => wishlist.toggle(product.id)} aria-label="Save to favorites"><Heart size={19}/></button>
           </div>
           {cart.count > 0 && <Link className="text-link" to={`${storePath(slug)}${restaurant ? window.location.search : ''}`}>View cart ({cart.count} items, {inr(cart.subtotal)}) on the shop page <ArrowUpRight size={14}/></Link>}

@@ -5,7 +5,8 @@ import { User } from '../models/index.js';
 import { auth } from '../middleware/auth.js';
 import { bad, wrap } from '../utils/core.js';
 const r = Router();
-const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, staffBusinessId: u.staffBusinessId || null });
+import { effective as staffPerms } from '../permissions.js';
+const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, staffBusinessId: u.staffBusinessId || null, ...(u.role === 'staff' ? { permissions: staffPerms(u) } : {}) });
 const sign = u => jwt.sign({ sub: u.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
 // Public registration is intentionally disabled. Existing clients cannot create accounts.
 r.post('/signup', (_, res) => res.status(403).json({ error: 'New accounts are created by the superadmin. Request a shop instead.' }));

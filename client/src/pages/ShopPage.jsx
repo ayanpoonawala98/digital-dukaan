@@ -8,6 +8,7 @@ import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCir
 import { api, imageSrc, inr } from '../lib/api.js';
 import { storeLink, storePath } from '../lib/store-domain.js';
 import { translate } from '../lib/i18n.js';
+import { CustomFieldInputs, missingRequired } from '../components/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 import RestaurantCheckout from '../components/RestaurantCheckout.jsx';
 import { saveOrder } from '../lib/my-orders.js';
@@ -117,11 +118,12 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   const delivery = freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = cart.subtotal + delivery;
   const belowMin = business.minOrder > 0 && cart.subtotal < business.minOrder;
+  const unanswered = cart.items.find(i => missingRequired(i.customFields, i.answers).length);
   const checkout = async () => {
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
-      const { url, total: confirmedTotal, tracking } = await api(`/public/stores/${slug}/enquire-cart`, { method: 'POST', body: { items: cart.items.map(i => ({ id: i.id, qty: i.qty })), couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(), ...contactBody(contact) } });
+      const { url, total: confirmedTotal, tracking } = await api(`/public/stores/${slug}/enquire-cart`, { method: 'POST', body: { items: cart.items.map(i => ({ id: i.id, qty: i.qty, answers: i.answers || {} })), couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(), ...contactBody(contact) } });
       orders.record(cart.items, confirmedTotal);
       if (tracking) saveOrder(slug, { kind: 'lead', id: tracking.id, token: tracking.token, total: tracking.total });
       cart.clear();
@@ -131,13 +133,13 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   if (!open) return null;
   return <div className="drawer-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <aside className="drawer anim-slide">
-      <div className="drawer-head"><h3><ShoppingBag size={20}/> Your cart {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}</h3><button className="icon-btn" onClick={onClose} aria-label="Close cart"><X size={20}/></button></div>
+      <div className="drawer-head"><h3><ShoppingBag size={20}/> {t('cartTitle')} {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}</h3><button className="icon-btn" onClick={onClose} aria-label="Close cart"><X size={20}/></button></div>
       {!business.isOpen && <p className="notice warn"><Clock size={15}/> The shop is closed right now. You can still send your order - it will be confirmed when the shop opens.</p>}
-      {!cart.items.length ? <div className="empty-state"><ShoppingBag size={36}/><h3>Your cart is empty</h3><p>Add items from the shop to order them together on WhatsApp.</p><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>My orders</Link></div> : <>
+      {!cart.items.length ? <div className="empty-state"><ShoppingBag size={36}/><h3>{t('cartEmpty')}</h3><p>{t('cartEmptyHint')}</p><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>{t('myOrders')}</Link></div> : <>
         <div className="drawer-items">
           {cart.items.map(item => <div className="cart-row" key={item.id}>
             <div className="cart-thumb">{item.imageUrl ? <img src={imageSrc(item.imageUrl)} alt=""/> : <Package size={20}/>}</div>
-            <div className="cart-info"><strong>{item.name}</strong><span>{inr(item.price)}</span></div>
+            <div className="cart-info"><strong>{item.name}</strong><span>{inr(item.price)}</span><CustomFieldInputs compact fields={item.customFields} answers={item.answers} onChange={a => cart.setAnswers(item.id, a)}/></div>
             <div className="qty-stepper">
               <button onClick={() => cart.setQty(item.id, item.qty - 1)} aria-label="Decrease"><Minus size={14}/></button>
               <span>{item.qty}</span>
@@ -147,18 +149,18 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
           </div>)}
         </div>
         <div className="drawer-totals">
-          <div><span>Subtotal</span><b>{inr(cart.subtotal)}</b></div>
-          <div><span>Delivery {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? 'FREE' : inr(delivery)}</b></div>
-          <div className="grand"><span>Total</span><b>{inr(total)}</b></div>
+          <div><span>{t('subtotal')}</span><b>{inr(cart.subtotal)}</b></div>
+          <div><span>{t('deliveryLbl')} {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
+          <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
         </div>
         <ContactFields contact={contact} onChange={setContact}/>
-        <label className="coupon-field">Referral code <small>(optional; rewards only after confirmation)</small><input value={referralCode} onChange={e => setReferralCode(e.target.value)} maxLength={24} placeholder="FR..."/></label>
-        <label className="coupon-field">Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
+        <label className="coupon-field">{t('referral')}<input value={referralCode} onChange={e => setReferralCode(e.target.value)} maxLength={24} placeholder="FR..."/></label>
+        <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
         {couponCode && <p className="drawer-hint">The shop verifies the code before opening WhatsApp. Total above does not include a possible discount.</p>}
-        {belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}
+        {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}
         {error && <p className="notice error">{error}</p>}
-        <button className="btn btn-green full" disabled={busy || belowMin} onClick={checkout}>{busy ? 'Opening WhatsApp...' : t('cart')} <ArrowUpRight size={18}/></button>
-        <p className="drawer-hint">Your order opens as a WhatsApp message to {business.name}. Nothing is charged online.</p>
+        <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered)} onClick={checkout}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
+        <p className="drawer-hint">{t('noCharge')}</p>
       </>}
     </aside>
   </div>;

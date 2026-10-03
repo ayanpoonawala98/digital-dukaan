@@ -3,7 +3,7 @@
 import { publicAddress } from './net-guard.js';
 import { sendSmtp } from './smtp.js';
 
-export const DEFAULT_SETTINGS = Object.freeze({ ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false });
+export const DEFAULT_SETTINGS = Object.freeze({ ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false, lowStockAlerts: false, lowStockThreshold: 5, weeklyReport: false, lastLowStockDate: '', lastLowStockSig: '', lastWeeklyDate: '' });
 
 // Indian mobile numbers: 10 digits, optionally prefixed with 91 / +91 / 0.
 export function indianMobile(value) {
@@ -16,7 +16,7 @@ const anyNumber = v => { const d = String(v || '').replace(/\D/g, ''); const i =
 
 export function cleanSettings(raw) {
   const s = { ...DEFAULT_SETTINGS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  return { ownerEmailAlerts: s.ownerEmailAlerts === true, ownerEmail: typeof s.ownerEmail === 'string' ? s.ownerEmail.trim().slice(0, 160) : '', ownerSmsAlerts: s.ownerSmsAlerts === true, ownerPhone: typeof s.ownerPhone === 'string' ? s.ownerPhone.trim().slice(0, 20) : '', customerSms: s.customerSms === true };
+  return { ownerEmailAlerts: s.ownerEmailAlerts === true, ownerEmail: typeof s.ownerEmail === 'string' ? s.ownerEmail.trim().slice(0, 160) : '', ownerSmsAlerts: s.ownerSmsAlerts === true, ownerPhone: typeof s.ownerPhone === 'string' ? s.ownerPhone.trim().slice(0, 20) : '', customerSms: s.customerSms === true, lowStockAlerts: s.lowStockAlerts === true, lowStockThreshold: Math.min(100, Math.max(1, Math.round(Number(s.lowStockThreshold)) || 5)), weeklyReport: s.weeklyReport === true, lastLowStockDate: String(s.lastLowStockDate || '').slice(0, 10), lastLowStockSig: String(s.lastLowStockSig || '').slice(0, 400), lastWeeklyDate: String(s.lastWeeklyDate || '').slice(0, 10) };
 }
 
 // Pick the provider per channel: the store's own complete setup first, then the platform env presets.
@@ -129,13 +129,13 @@ export async function notifyNewOrder(store, kind, order, deps0) {
     return await Promise.all(jobs);
   } catch (err) { console.error('Order notification failed', err.message); return []; }
 }
-export async function notifyStatusChange(store, kind, order, statusText, deps0) {
+export async function notifyStatusChange(store, kind, order, statusText, deps0, billLink = '') {
   try {
     const s = cleanSettings(store.notifySettings);
     if (!s.customerSms || !order.customerPhone || !statusText) return [];
     const deps = await resolveDeps(store, deps0);
     if (!deps.providers.sms) return [];
-    return [await sendSms({ to: order.customerPhone, text: `${store.name}: your order #${order.id} is ${statusText}.`, store: store.name }, deps)];
+    return [await sendSms({ to: order.customerPhone, text: `${store.name}: your order #${order.id} is ${statusText}.${billLink ? ` Bill: ${billLink}` : ''}`, store: store.name }, deps)];
   } catch (err) { console.error('Status notification failed', err.message); return []; }
 }
 export async function saveSettings(store, input) {

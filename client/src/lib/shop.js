@@ -9,17 +9,18 @@ export function useStored(key, fallback) {
 
 export function useCart(slug) {
   const [items, save] = useStored(`dd-cart-${slug}`, []);
-  const add = (product, qty = 1) => {
-    const found = items.find(i => i.id === product.id);
-    if (found) save(items.map(i => i.id === product.id ? { ...i, qty: Math.min((product.stock ?? 99) || 99, i.qty + qty) } : i));
-    else save([...items, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, stock: product.stock, qty }]);
+  const add = (product, qty = 1, answers) => {
+    const found = items.find(i => i.id === product.id), customFields = Array.isArray(product.customFields) ? product.customFields : [];
+    if (found) save(items.map(i => i.id === product.id ? { ...i, customFields, answers: answers || i.answers || {}, qty: Math.min((product.stock ?? 99) || 99, i.qty + qty) } : i));
+    else save([...items, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, stock: product.stock, qty, customFields, answers: answers || {} }]);
     notify('success', 'Added to cart.');
   };
   const setQty = (id, qty) => qty <= 0 ? save(items.filter(i => i.id !== id)) : save(items.map(i => i.id === id ? { ...i, qty } : i));
+  const setAnswers = (id, answers) => save(items.map(i => i.id === id ? { ...i, answers } : i));
   const clear = () => save([]);
   const count = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
-  return { items, add, setQty, clear, count, subtotal };
+  return { items, add, setQty, setAnswers, clear, count, subtotal };
 }
 
 export function useWishlist(slug) {

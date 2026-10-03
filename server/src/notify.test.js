@@ -22,7 +22,7 @@ test('nothing is sent and nothing throws with no provider', async () => {
 });
 test('indian mobile normalising + settings default off', () => {
   assert.equal(indianMobile('+91 98765-43210'), '9876543210'); assert.equal(indianMobile('12345'), null); assert.equal(indianMobile('+1 415 555 0123'), null);
-  assert.deepEqual(cleanSettings(undefined), { ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false });
+  assert.deepEqual(cleanSettings(undefined), { ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false, lowStockAlerts: false, lowStockThreshold: 5, weeklyReport: false, lastLowStockDate: '', lastLowStockSig: '', lastWeeklyDate: '' });
 });
 test('platform presets still work and alert owner + customer', async () => {
   calls.length = 0;

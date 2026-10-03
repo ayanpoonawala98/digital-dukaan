@@ -1,3 +1,4 @@
+import { runDailyJobs } from './reports.js';
 import dotenv from 'dotenv';
 import { fileURLToPath as envFilePath } from 'node:url';
 import { dirname as envDirname, resolve as envResolve } from 'node:path';
@@ -35,6 +36,11 @@ app.get('/api/internal/purge-expired-stores', async (req, res, next) => {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
   try { res.json(await purgeExpiredStore()); } catch (err) { next(err); }
+});
+app.get('/api/internal/daily-alerts', async (req, res, next) => {
+  const secret = process.env.CRON_SECRET;
+  if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
+  try { res.json(await runDailyJobs()); } catch (err) { next(err); }
 });
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 app.use((err, req, res, next) => {

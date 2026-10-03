@@ -6,6 +6,8 @@ import QRCode from 'qrcode';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { isLocked } from '../feature-locks.js';
 import { notifyNewOrder } from '../notify.js';
+import { validateAnswers } from '../custom-fields.js';
+import { invoiceSigValid, streamBill } from '../invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
 const r = Router();
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
@@ -249,10 +251,11 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const product = id && await Product.findOne({ where: { id, businessId: business.id, active: true } });
   if (!product) throw bad(404, 'Product not found');
   if (product.stock === 0) throw bad(400, 'This product is out of stock right now');
-  const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: product.price, ...optionalContact(req.body) });
+  const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
+  const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: product.price, ...(answers.length ? { items: [{ productId: product.id, name: product.name, price: product.price, qty: 1, answers }] } : {}), ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   res.set('Cache-Control', 'no-store');
-  res.status(201).json({ url: whatsappUrl(business, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL)), tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total: product.price } });
+  res.status(201).json({ url: whatsappUrl(business, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers), tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total: product.price } });
 }));
 
 r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
@@ -267,7 +270,8 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
     const product = await Product.findOne({ where: { id, businessId: business.id, active: true } });
     if (!product) throw bad(400, 'A product in your cart is no longer available');
     if (product.stock !== null && qty > product.stock) throw bad(400, `Only ${product.stock} left in stock for ${product.name}`);
-    lines.push({ productId: product.id, name: product.name, price: product.price, qty });
+    const answers = validateAnswers(product.customFields, entry.answers, product.name);
+    lines.push({ productId: product.id, name: product.name, price: product.price, qty, ...(answers.length ? { answers } : {}) });
   }
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
@@ -281,6 +285,15 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ url: finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total } });
+}));
+
+r.get('/bill/:kind(lead|restaurant)/:id/:sig', wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1 || !invoiceSigValid(req.params.kind, id, req.params.sig)) throw bad(404, 'Bill not found');
+  const order = await (req.params.kind === 'lead' ? Lead : RestaurantOrder).findByPk(id);
+  const shopRow = order && await Business.findByPk(order.businessId);
+  if (!order || !shopRow || shopRow.deletedAt) throw bad(404, 'Bill not found');
+  streamBill(res, shopRow, order, req.params.kind);
 }));
 
 r.get('/stores/:slug/qr', wrap(async (req, res) => {
