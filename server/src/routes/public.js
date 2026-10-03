@@ -5,6 +5,7 @@ import { storeUrl } from '../utils/store-domain.js';
 import QRCode from 'qrcode';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { isLocked } from '../feature-locks.js';
+import { notifyNewOrder } from '../notify.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
 const r = Router();
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
@@ -86,6 +87,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const referral = await checkReferral(business.id, req.body?.referralCode);
   const total = Number((subtotal - discount).toFixed(2));
   const order = await RestaurantOrder.create({ businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: orderType === 'dine-in' ? null : customerName.trim(), customerPhone: orderType === 'dine-in' ? null : customerPhone.trim(), deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
+  void notifyNewOrder(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ orderId: order.id, status: order.status, subtotal, discount, total, trackingToken });
@@ -248,6 +250,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   if (!product) throw bad(404, 'Product not found');
   if (product.stock === 0) throw bad(400, 'This product is out of stock right now');
   const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: product.price, ...optionalContact(req.body) });
+  void notifyNewOrder(business, 'lead', lead);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ url: whatsappUrl(business, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL)), tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total: product.price } });
 }));
@@ -273,6 +276,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const delivery = business.freeDeliveryAbove !== null && subtotal >= business.freeDeliveryAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = Number((subtotal - discount + delivery).toFixed(2));
   const lead = await Lead.create({ businessId: business.id, productId: null, productName: `${lines.reduce((s, l) => s + l.qty, 0)} items`, price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
+  void notifyNewOrder(business, 'lead', lead);
   const url = whatsappCartUrl(business, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
   const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
   res.set('Cache-Control', 'no-store');
