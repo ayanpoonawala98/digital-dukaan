@@ -15,7 +15,7 @@ export function downloadStatusCreative(business, products = []) {
   const shade = ctx.createLinearGradient(0, 0, width, height); shade.addColorStop(0, '#102a20'); shade.addColorStop(.6, '#15513c'); shade.addColorStop(1, '#0e9f6e');
   ctx.fillStyle = shade; ctx.fillRect(0, 0, width, height);
   ctx.fillStyle = 'rgba(255,255,255,.07)'; ctx.beginPath(); ctx.arc(980, 290, 420, 0, Math.PI * 2); ctx.fill(); ctx.beginPath(); ctx.arc(70, 1510, 390, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#b1f5d2'; ctx.font = '700 32px sans-serif'; ctx.fillText('DIGITAL DUKAAN  ✳', 78, 122);
+  ctx.fillStyle = '#b1f5d2'; ctx.font = '700 32px sans-serif'; ctx.fillText('DIGITAL SHOP  ✳', 78, 122);
   ctx.fillStyle = '#ffffff'; ctx.font = '800 94px sans-serif';
   const words = String(business.name || 'Your shop').split(/\s+/); let lines = [], line = '';
   for (const word of words) { const candidate = line ? `${line} ${word}` : word; if (ctx.measureText(candidate).width > 910 && line) { lines.push(line); line = word; } else line = candidate; }
