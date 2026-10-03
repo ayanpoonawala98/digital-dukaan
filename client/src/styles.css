@@ -1004,3 +1004,46 @@ footer { background:#101d15; }
   .enquiry-table tbody tr:nth-child(n), .coupon-list > div:nth-child(n), .category-list > *:nth-child(n) { animation-delay:0ms; }
   .stat-card:hover { transform:none; box-shadow:none; }
 }
+
+/* Storefront motion: CSS only, opacity/transform, visible by default (backwards fill). */
+@media (prefers-reduced-motion:no-preference) {
+  @keyframes ddZoomIn { from { opacity:0; transform:scale(.97); } to { opacity:1; transform:scale(1); } }
+  @keyframes ddBounceIn { 0% { opacity:0; transform:translate3d(0,24px,0) scale(.9); } 70% { transform:translate3d(0,-3px,0) scale(1.03); } 100% { opacity:1; transform:translate3d(0,0,0) scale(1); } }
+  @keyframes ddPulse { 0%,100% { transform:scale(1); } 45% { transform:scale(1.25); } }
+  .store-identity > *, .store-banner-actions > * { animation:ddRise .5s var(--ease) backwards; }
+  .store-identity > *:nth-child(2) { animation-delay:70ms; } .store-identity > *:nth-child(3) { animation-delay:140ms; } .store-identity > *:nth-child(n+4) { animation-delay:200ms; }
+  .store-banner-actions > *:nth-child(2) { animation-delay:90ms; } .store-banner-actions > *:nth-child(n+3) { animation-delay:160ms; }
+  .catalog-head { animation:ddFade .5s ease backwards; }
+  .filter-tabs button { animation:ddRise .35s var(--ease) backwards; }
+  .filter-tabs button:nth-child(2) { animation-delay:40ms; } .filter-tabs button:nth-child(3) { animation-delay:80ms; } .filter-tabs button:nth-child(n+4) { animation-delay:120ms; }
+  .filter-tabs button.active { animation:ddPop .25s var(--ease); }
+  .filter-tabs button:active { transform:scale(.96); }
+  .search-box { transition:box-shadow .25s ease, transform .25s var(--ease); }
+  .search-box:focus-within { transform:translate3d(0,-1px,0); box-shadow:0 8px 22px rgba(0,0,0,.08); }
+  .product-grid { animation:ddFade .3s ease backwards; }
+  .product-card { transition:box-shadow .3s ease, transform .3s var(--ease), border-color .3s ease; }
+  .product-card:hover { box-shadow:0 14px 32px rgba(0,0,0,.10); }
+  .product-card .round-arrow { transition:transform .25s var(--ease), background-color .25s ease; }
+  .product-card:hover .round-arrow { transform:translate3d(3px,-3px,0) rotate(0deg); }
+  .product-card .icon-btn:active, .qty-stepper button:active { transform:scale(.9); }
+  .icon-btn { transition:transform .2s var(--ease), background-color .2s ease; }
+  .icon-btn:hover { transform:scale(1.08); }
+  .cart-fab { animation:ddBounceIn .6s var(--ease) .4s backwards; }
+  .cart-badge { animation:ddPulse .5s var(--ease); }
+  .drawer { animation:slideIn .38s var(--ease) both; }
+  .drawer-items > *, .cart-row, .order-card { animation:ddRise .32s var(--ease) backwards; }
+  .drawer-items > *:nth-child(2) { animation-delay:40ms; } .drawer-items > *:nth-child(n+3) { animation-delay:80ms; }
+  .modal-overlay { animation:fadeIn .25s ease backwards; }
+  .modal-overlay > * { animation:ddZoomIn .3s var(--ease) backwards; }
+  .push-prompt, .offer-banner { animation:ddRise .45s var(--ease) backwards; }
+  .detail-wrap, .breadcrumbs { animation:ddFade .4s ease backwards; }
+  .detail-grid > :first-child { animation:ddZoomIn .5s var(--ease) backwards; }
+  .detail-info > * { animation:ddRise .45s var(--ease) backwards; }
+  .detail-info > *:nth-child(2) { animation-delay:60ms; } .detail-info > *:nth-child(3) { animation-delay:110ms; } .detail-info > *:nth-child(4) { animation-delay:160ms; } .detail-info > *:nth-child(n+5) { animation-delay:210ms; }
+  .store-end, .store-contact { transition:transform .3s var(--ease); }
+  .store-contact-actions .btn:not(:disabled):hover { transform:translate3d(0,-3px,0); box-shadow:0 8px 20px rgba(0,0,0,.12); }
+}
+@media (prefers-reduced-motion:no-preference) and (max-width:640px) {
+  .filter-tabs button:nth-child(n), .store-identity > *:nth-child(n), .store-banner-actions > *:nth-child(n) { animation-delay:0ms; }
+  .product-card:hover { box-shadow:none; }
+}
