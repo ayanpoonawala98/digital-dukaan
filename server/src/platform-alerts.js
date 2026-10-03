@@ -58,7 +58,7 @@ export async function sendAlertTest(channel, env = process.env, deps = {}) {
   const to = channel === 'email' ? settings.alertEmail : settings.alertPhone;
   if (!to) throw bad(400, channel === 'email' ? 'Save an alert email first' : 'Save an alert mobile number first');
   const d = { ...deps, providers };
-  const r = channel === 'email' ? await sendEmail({ to, subject: 'Test alert - Digital Dukaan', text: 'This is a test. New-store requests will be sent here.' }, d) : await sendSms({ to, text: 'Test alert from Digital Dukaan. New-store requests will be sent to this number.' }, d);
+  const r = channel === 'email' ? await sendEmail({ to, subject: 'Test alert - Digital Shop', text: 'This is a test. New-store requests will be sent here.' }, d) : await sendSms({ to, text: 'Test alert from Digital Shop. New-store requests will be sent to this number.' }, d);
   if (!r.ok) throw bad(502, r.error || r.skipped || 'Could not send the test');
   return { ok: true };
 }
