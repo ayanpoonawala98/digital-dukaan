@@ -2,11 +2,14 @@
 import crypto from 'node:crypto';
 import { looksInternal } from './net-guard.js';
 
+const hashKey = secret => crypto.createHash('sha256').update(`dukaan-notify:${secret}`).digest();
 const keyFrom = env => {
   const secret = env.NOTIFY_ENC_KEY || env.JWT_SECRET;
   if (!secret) throw new Error('Server has no encryption secret configured');
-  return crypto.createHash('sha256').update(`dukaan-notify:${secret}`).digest();
+  return hashKey(secret);
 };
+// Keys tried when reading: the dedicated key first, then the legacy JWT_SECRET (rows written before the split).
+const readKeys = env => [...new Set([env.NOTIFY_ENC_KEY, env.JWT_SECRET].filter(Boolean))].map(hashKey);
 export function encryptJson(obj, env = process.env) {
   const iv = crypto.randomBytes(12), c = crypto.createCipheriv('aes-256-gcm', keyFrom(env), iv);
   const enc = Buffer.concat([c.update(JSON.stringify(obj), 'utf8'), c.final()]);
@@ -14,13 +17,24 @@ export function encryptJson(obj, env = process.env) {
 }
 export function decryptJson(text, env = process.env) {
   if (!text) return {};
+  const [v, iv, tag, data] = String(text).split('.');
+  if (v !== 'v1') return {};
+  for (const key of readKeys(env)) {
+    try {
+      const d = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(iv, 'base64'));
+      d.setAuthTag(Buffer.from(tag, 'base64'));
+      return JSON.parse(Buffer.concat([d.update(Buffer.from(data, 'base64')), d.final()]).toString('utf8'));
+    } catch { /* try the next key */ }
+  }
+  return {}; // wrong key or tampered: behave as "no own keys"
+}
+// True when the blob decrypts only with a legacy key, so it should be re-encrypted with the current one.
+export function needsReencrypt(text, env = process.env) {
+  if (!text || !env.NOTIFY_ENC_KEY) return false;
   try {
-    const [v, iv, tag, data] = text.split('.');
-    if (v !== 'v1') return {};
-    const d = crypto.createDecipheriv('aes-256-gcm', keyFrom(env), Buffer.from(iv, 'base64'));
-    d.setAuthTag(Buffer.from(tag, 'base64'));
-    return JSON.parse(Buffer.concat([d.update(Buffer.from(data, 'base64')), d.final()]).toString('utf8'));
-  } catch { return {}; } // wrong key or tampered: behave as "no own keys"
+    const [v, iv, tag, data] = String(text).split('.'); if (v !== 'v1') return false;
+    const d = crypto.createDecipheriv('aes-256-gcm', keyFrom(env), Buffer.from(iv, 'base64')); d.setAuthTag(Buffer.from(tag, 'base64')); d.update(Buffer.from(data, 'base64')); d.final(); return false;
+  } catch { return true; }
 }
 
 const bad = m => Object.assign(new Error(m), { status: 400 });
