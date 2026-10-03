@@ -10,7 +10,7 @@ import { registerStoreDomain, storeDomain, storeUrl } from '../utils/store-domai
 import { effective as staffPerms, clean as cleanPerms, staffAllowed } from '../permissions.js';
 import QRCode from 'qrcode';
 import PDFDocument from 'pdfkit';
-import { whatsappCloudOwnerRoutes } from '../whatsapp-cloud.js';
+import { whatsappCloudOwnerRoutes, sendOrderStatusWhatsApp } from '../whatsapp-cloud.js';
 import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
 import { flowFor } from '../order-flows.js';
@@ -470,6 +470,7 @@ r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {
   if (customerPhone !== undefined) changes.customerPhone = customerPhone;
   await lead.update(changes);
   if (statusChanged) await notifyOrderSubscribers(req.store, 'lead', lead);
+  if (statusChanged) void sendOrderStatusWhatsApp(req.store, lead, status);
   let url = '';
   if (status && status !== 'new' && lead.customerPhone) {
     const labels = { confirmed: 'confirmed', packed: 'packed and getting ready', shipped: 'shipped', 'out-for-delivery': 'out for delivery', delivered: 'delivered. Thank you for shopping with us!', 'in-progress': 'in progress', completed: 'completed. Thank you!', cancelled: 'cancelled. Sorry for the inconvenience.' };
