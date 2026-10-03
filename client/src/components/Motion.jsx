@@ -21,9 +21,11 @@ export default function Motion() {
       observer.observe(element);
     });
     scan();
+    // Fail-safe: never leave content hidden if observer timing misses an element.
+    const failsafe = setInterval(() => document.querySelectorAll('.reveal-ready:not(.in-view)').forEach(el => { const r = el.getBoundingClientRect(); if (r.top < window.innerHeight + 200 || r.height > window.innerHeight) el.classList.add('in-view'); }), 1500);
     const mutation = new MutationObserver(scan);
     mutation.observe(document.getElementById('root'), { childList: true, subtree: true });
-    return () => { mutation.disconnect(); observer.disconnect(); };
+    return () => { clearInterval(failsafe); mutation.disconnect(); observer.disconnect(); };
   }, [pathname]);
   return null;
 }
