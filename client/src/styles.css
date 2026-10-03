@@ -966,3 +966,5 @@ footer { background:#101d15; }
   .admin-layout .sidebar-bottom { padding-top:8px; gap:2px; }
   .admin-layout .sidebar-bottom > * { padding:8px 12px; }
 }
+@media (max-width:640px) { .data-toolbar > label:first-child { flex:1 1 100%; min-width:100%; } .data-toolbar > label:first-child input { width:100%; } }
+@media (max-width:900px) { .enquiry-table td.row-actions { flex-wrap:wrap; justify-content:flex-end; } .enquiry-table .phone-input, .enquiry-table .status-select { max-width:60%; } }
