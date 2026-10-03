@@ -6,7 +6,6 @@ import { bad, wrap } from './utils/core.js';
 import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
 import { Lead, Business } from './models/index.js';
 import { installInboxRoutes } from './whatsapp-inbox.js';
-import { aisensyRoutes, aisensyNewOrder, aisensyStatus } from './aisensy.js';
 import { orderBotEnabledFor, parseOrderRef, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
@@ -148,7 +147,6 @@ async function botSend(store, phone, text, key, templateEnv, params, fetcher) {
 // New order: alert the owner (notify settings ownerPhone) and confirm to the customer if their phone is known.
 export async function notifyNewOrderWhatsApp(store, lead, fetcher = fetch) {
   try {
-    const as = await aisensyRoutes(store); if (as) return await aisensyNewOrder(as, store, lead, fetcher);
     if (!orderBotEnabledFor(store.id)) return false;
     const ref = `DD-${lead.id}`, items = itemsText(lead), total = `Rs.${Number(lead.price || 0).toFixed(2)}`;
     const owner = String(store.notifySettings?.ownerPhone || '').replace(/\D/g, '');
@@ -164,7 +162,6 @@ export async function notifyNewOrderWhatsApp(store, lead, fetcher = fetch) {
 // (WHATSAPP_TEMPLATE_ORDER_STATUS, body params: order ref, status) if configured, else nothing.
 export async function sendOrderStatusWhatsApp(store, lead, status, fetcher = fetch) {
   try {
-    const as = await aisensyRoutes(store); if (as) return await aisensyStatus(as, store, lead, status, fetcher);
     if (!orderBotEnabledFor(store.id) || !status || !/^[1-9]\d{7,14}$/.test(String(lead.customerPhone || ''))) return false;
     const connection = await merchantConnection(store.id);
     if (!canSend(connection)) return false;
