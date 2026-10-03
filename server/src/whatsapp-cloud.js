@@ -4,6 +4,8 @@ import { DataTypes, Op } from 'sequelize';
 import { sequelize } from './db.js';
 import { bad, wrap } from './utils/core.js';
 import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
+import { Lead, Business } from './models/index.js';
+import { orderBotEnabledFor, parseOrderRef, confirmationText, statusMessage } from './whatsapp-orders.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
@@ -90,13 +92,85 @@ export async function maybeAutoReply({connection,businessId,phoneNumberId,phone,
     }
   } catch { return false; }
 }
+const coexistenceOn = () => process.env.WHATSAPP_COEXISTENCE_ENABLED === 'true';
+export async function sendCloudTemplate(to, name, lang, params, fetcher = fetch, connection = legacyConnection()) {
+  if (!connection) throw bad(503, 'No connected sender');
+  const components = params?.length ? [{ type: 'body', parameters: params.map(text => ({ type: 'text', text: String(text).slice(0, 1024) })) }] : [];
+  const result = await fetcher(`https://graph.facebook.com/${process.env.WHATSAPP_GRAPH_VERSION}/${connection.phoneNumberId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${connectionToken(connection)}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'template', template: { name, language: { code: lang || 'en' }, components } }), signal: AbortSignal.timeout(15000) });
+  const body = await result.json().catch(() => ({}));
+  if (!result.ok || !body.messages?.[0]?.id) { const err = bad(502, 'Meta did not accept the template'); err.metaCode = body.error?.code; throw err; }
+  return body.messages[0].id;
+}
+const canSend = connection => Boolean(connection) && enabled() && process.env.WHATSAPP_OUTBOUND_ENABLED === 'true' && /^v\d+\.0$/.test(process.env.WHATSAPP_GRAPH_VERSION || '');
+async function sendOnce({ connection, businessId, phone, text, key, fetcher }) {
+  const [record, created] = await WhatsAppMessage.findOrCreate({ where: { requestKey: key.slice(0, 100) }, defaults: { businessId, phoneNumberId: connection.phoneNumberId, direction: 'outbound', phone, text, eventAt: new Date(), status: 'submitting' } });
+  if (!created) return false;
+  try {
+    const messageId = await sendCloudText(phone, text, fetcher, connection);
+    await record.update({ messageId, status: 'accepted' });
+    return true;
+  } catch (err) {
+    await record.update({ status: err.metaCode ? 'failed' : 'unknown', errorCode: err.metaCode ? String(err.metaCode) : null });
+    return false;
+  }
+}
+// Customer messaged with "Order ref: DD-<id>": link the phone to the order and send a confirmation.
+// Free text is allowed because the customer just messaged us (24-hour window is open).
+export async function orderBot({ connection, businessId, phone, text, eventAt, fetcher = fetch }) {
+  try {
+    if (!orderBotEnabledFor(businessId) || !canSend(connection) || !serviceWindowOpen(eventAt)) return false;
+    const id = parseOrderRef(text);
+    if (!id) return false;
+    const lead = await Lead.findOne({ where: { id, businessId } });
+    if (!lead || Date.now() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000) return false;
+    const store = await Business.findByPk(businessId);
+    if (!store || store.deletedAt) return false;
+    if (!lead.customerPhone) await lead.update({ customerPhone: phone });
+    return await sendOnce({ connection, businessId, phone, text: confirmationText(store, lead), key: `bot:confirm:${businessId}:${lead.id}`, fetcher });
+  } catch { return false; }
+}
+// Status update to the customer. Free text inside the 24-hour window, else an approved template
+// (WHATSAPP_TEMPLATE_ORDER_STATUS, body params: order ref, status) if configured, else nothing.
+export async function sendOrderStatusWhatsApp(store, lead, status, fetcher = fetch) {
+  try {
+    if (!orderBotEnabledFor(store.id) || !status || !/^[1-9]\d{7,14}$/.test(String(lead.customerPhone || ''))) return false;
+    const connection = await merchantConnection(store.id);
+    if (!canSend(connection)) return false;
+    const msg = statusMessage(store, lead, status);
+    if (!msg) return false;
+    await ensureSchema();
+    const phone = String(lead.customerPhone);
+    const latest = await WhatsAppMessage.findOne({ where: { businessId: store.id, phone, direction: 'inbound' }, order: [['eventAt', 'DESC']] });
+    const key = `bot:status:${store.id}:${lead.id}:${status}`;
+    if (latest && serviceWindowOpen(latest.eventAt)) return await sendOnce({ connection, businessId: store.id, phone, text: msg, key, fetcher });
+    const template = process.env.WHATSAPP_TEMPLATE_ORDER_STATUS;
+    if (!template) return false;
+    const [record, created] = await WhatsAppMessage.findOrCreate({ where: { requestKey: key.slice(0, 100) }, defaults: { businessId: store.id, phoneNumberId: connection.phoneNumberId, direction: 'outbound', phone, text: msg, messageType: 'template', eventAt: new Date(), status: 'submitting' } });
+    if (!created) return false;
+    try { const messageId = await sendCloudTemplate(phone, template, process.env.WHATSAPP_TEMPLATE_LANG || 'en', [`DD-${lead.id}`, status], fetcher, connection); await record.update({ messageId, status: 'accepted' }); return true; }
+    catch (err) { await record.update({ status: err.metaCode ? 'failed' : 'unknown', errorCode: err.metaCode ? String(err.metaCode) : null }); return false; }
+  } catch { return false; }
+}
 export async function persistWhatsAppEvents(payload) {
   if (!bound() && process.env.WHATSAPP_MULTI_MERCHANT_ENABLED!=='true') return;
   await ensureSchema();
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
       const value = change.value;
-      if (change.field !== 'messages' || !value?.metadata?.phone_number_id) continue;
+      if (!value?.metadata?.phone_number_id) continue;
+      if (change.field === 'smb_message_echoes' && coexistenceOn()) {
+        // Messages the shop sent from its own WhatsApp Business app: mirror them into the inbox.
+        const echoConn = await connectionForEvent(entry.id, value.metadata.phone_number_id);
+        if (!echoConn) continue;
+        for (const m of value.message_echoes || []) {
+          const at = new Date(Number(m.timestamp) * 1000);
+          if (!m.id || !/^[1-9]\d{7,14}$/.test(String(m.to || '')) || !Number.isFinite(at.getTime())) continue;
+          await WhatsAppMessage.findOrCreate({ where: { messageId: m.id }, defaults: { businessId: echoConn.businessId, phoneNumberId: echoConn.phoneNumberId, direction: 'outbound', phone: String(m.to), text: m.type === 'text' ? String(m.text?.body || '').slice(0, 4096) : '[Message sent from the WhatsApp Business app: ' + String(m.type || 'unknown').slice(0, 30) + ']', messageType: String(m.type || 'unknown').slice(0, 30), eventAt: at, status: 'sent' } });
+        }
+        continue;
+      }
+      // history and smb_app_state_sync are acknowledged and not stored yet.
+      if (change.field !== 'messages') continue;
       const connection=await connectionForEvent(entry.id,value.metadata.phone_number_id);
       if(!connection)continue;
       const {businessId,phoneNumberId}=connection;
@@ -104,7 +178,7 @@ export async function persistWhatsAppEvents(payload) {
         const eventAt = new Date(Number(message.timestamp) * 1000);
         if (!message.id || !/^[1-9]\d{7,14}$/.test(message.from || '') || !Number.isFinite(eventAt.getTime()) || eventAt.getTime() > Date.now() + 60000) continue;
         const [inboundRecord,inboundCreated]=await WhatsAppMessage.findOrCreate({where:{messageId:message.id}, defaults:{businessId,phoneNumberId,direction:'inbound',phone:message.from,text:message.type === 'text' ? String(message.text?.body || '').slice(0,4096) : '[Unsupported message: ' + String(message.type || 'unknown').slice(0,30) + ']',messageType:String(message.type || 'unknown').slice(0,30),eventAt,status:'received'}});
-        if (inboundCreated) await maybeAutoReply({connection,businessId,phoneNumberId,phone:message.from,inboundId:message.id,eventAt});
+        if (inboundCreated) { const handled = message.type === 'text' && await orderBot({connection,businessId,phone:message.from,text:message.text?.body,eventAt}); if (!handled) await maybeAutoReply({connection,businessId,phoneNumberId,phone:message.from,inboundId:message.id,eventAt}); }
       }
       for (const status of value.statuses || []) {
         const record = await WhatsAppMessage.findOne({where:{messageId:status.id,businessId,direction:'outbound'}});
