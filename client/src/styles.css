@@ -1128,3 +1128,15 @@ footer { background:#101d15; }
 
 .creator-credit a { color: inherit; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .creator-credit a:hover { opacity: .85; }
+
+/* Settings: collapsible cards and aligned form fields */
+.accordion-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; background: none; border: 0; padding: 0; cursor: pointer; color: inherit; text-align: left; font: inherit; }
+.accordion-head h3 { margin: 0; }
+.accordion-chev { font-size: 18px; line-height: 1; color: var(--muted); }
+.accordion-panel > .accordion-head + * { margin-top: 14px; }
+.accordion-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+.notify-settings form { display: flex; flex-direction: column; gap: 14px; }
+.notify-two { align-items: start; }
+.notify-two label { min-width: 0; }
+.notify-two label input { height: 46px; box-sizing: border-box; }
+.notify-settings .notify-row { align-items: center; min-height: 36px; }
