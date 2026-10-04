@@ -14,7 +14,8 @@ import { parseOrderRef, confirmationText, statusMessage, itemsText } from './wha
 
 export const PROVIDERS = ['meta', '360dialog', 'twilio'];
 export const byoBusinessIds = () => (process.env.WHATSAPP_BYO_BUSINESS_IDS || '').split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s));
-export const byoAllowedFor = id => process.env.WHATSAPP_BYO_ENABLED === 'true' && byoBusinessIds().includes(String(id));
+// WHATSAPP_BYO_ENABLED=true opens the feature for every shop. WHATSAPP_BYO_BUSINESS_IDS is an optional restriction: leave it empty or unset for all shops, or list ids to limit it.
+export const byoAllowedFor = id => process.env.WHATSAPP_BYO_ENABLED === 'true' && (byoBusinessIds().length === 0 || byoBusinessIds().includes(String(id)));
 
 export const WhatsAppByoConnection = sequelize.define('WhatsAppByoConnection', {
   businessId: { type: DataTypes.INTEGER, primaryKey: true },
