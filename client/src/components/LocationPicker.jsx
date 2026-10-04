@@ -52,23 +52,22 @@ export default function LocationPicker({ form, set }) {
     catch (e) { setMsg(e.message); } finally { setBusy(false); }
   };
 
-  return <div className="lp" style={{ borderTop: '1px solid var(--line)', marginTop: 18, paddingTop: 14 }}>
+  return <div className="lp">
     <h4>Shop location (nearby directory)</h4>
     <p className="muted">Tap the map or drag the pin to your shop. Free OpenStreetMap, no Google key needed.</p>
-    <div className="inline-form" style={{ flexWrap: 'wrap' }}>
-      <button type="button" className="btn btn-outline btn-small" disabled={busy} onClick={useMine}>Use my current location</button>
-      <button type="button" className="btn btn-outline btn-small" disabled={busy} onClick={search}>Find from area / pincode</button>
+    <div className="lp-actions">
+      <button type="button" className="btn btn-outline" disabled={busy} onClick={useMine}>Use my current location</button>
+      <button type="button" className="btn btn-outline" disabled={busy} onClick={search}>Find from area / pincode</button>
     </div>
     {msg && <p role="status" className="muted">{msg}</p>}
     {mapErr ? <p className="nb-err">{mapErr} You can still type the coordinates below.</p> : <div ref={el} className="lp-map" aria-label="Shop location map"/>}
     <div className="lp-grid">
       <label>Latitude<input inputMode="decimal" value={form.latitude ?? ''} onChange={e => set('latitude', e.target.value)} placeholder="19.0760" aria-invalid={Boolean(latErr(form.latitude))}/>{latErr(form.latitude) && <small className="nb-err">{latErr(form.latitude)}</small>}</label>
       <label>Longitude<input inputMode="decimal" value={form.longitude ?? ''} onChange={e => set('longitude', e.target.value)} placeholder="72.8777" aria-invalid={Boolean(lngErr(form.longitude))}/>{lngErr(form.longitude) && <small className="nb-err">{lngErr(form.longitude)}</small>}</label>
-      <label>Area / locality<input value={form.area || ''} maxLength={80} onChange={e => set('area', e.target.value)} placeholder="Mumbra, Thane"/></label>
+      <label className="lp-wide">Area / locality<input value={form.area || ''} maxLength={80} onChange={e => set('area', e.target.value)} placeholder="Mumbra, Thane"/></label>
       <label>Pincode<input inputMode="numeric" value={form.pincode || ''} maxLength={10} onChange={e => set('pincode', e.target.value)} placeholder="400612"/></label>
-      <label>Delivery radius in km (optional)<input inputMode="decimal" value={form.serviceRadiusKm ?? ''} onChange={e => set('serviceRadiusKm', e.target.value)} placeholder="5"/></label>
+      <label className="lp-wide">Delivery radius in km (optional)<input inputMode="decimal" value={form.serviceRadiusKm ?? ''} onChange={e => set('serviceRadiusKm', e.target.value)} placeholder="5"/></label>
     </div>
-    <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}><input type="checkbox" style={{ width: 'auto' }} checked={Boolean(form.listInDirectory)} onChange={e => set('listInDirectory', e.target.checked)}/> List my shop in the nearby directory (digitalshop.website/near)</label>
-    <p className="muted">Off by default. Needs a saved location. Customers see your shop name, area, distance and whether you are open.</p>
+    <label className="lp-toggle"><input type="checkbox" checked={Boolean(form.listInDirectory)} onChange={e => set('listInDirectory', e.target.checked)}/><span><strong>List my shop in the nearby directory</strong><small>digitalshop.website/near. Off by default and needs a saved location. Customers see your shop name, area, distance and whether you are open.</small></span></label>
   </div>;
 }
