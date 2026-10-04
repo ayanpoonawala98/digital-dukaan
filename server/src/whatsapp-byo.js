@@ -32,6 +32,8 @@ export const ensureByoSchema = () => (ready ||= WhatsAppByoConnection.sync().cat
 
 const safeEqual = (a, b) => { if (typeof a !== 'string' || typeof b !== 'string') return false; const l = Buffer.from(a), r = Buffer.from(b); return l.length === r.length && timingSafeEqual(l, r); };
 const digits = v => String(v || '').replace(/\D/g, '');
+// Indian 10-digit mobiles (or 0-prefixed) get the 91 country code so WhatsApp sees full E.164.
+const e164 = v => { const d = digits(v); if (/^[6-9]\d{9}$/.test(d)) return `91${d}`; if (/^0[6-9]\d{9}$/.test(d)) return `91${d.slice(1)}`; return d; };
 const PHONE = /^[1-9]\d{7,14}$/;
 const credsOf = c => { const o = JSON.parse(decryptCredential(c.credCipher, `byo:${c.businessId}`)); if (c.provider === 'twilio') { const u = webhookUrl(c, 'status'); if (u) o.statusCallback = u; } return o; };
 export function webhookUrl(conn, kind = '') {
@@ -161,7 +163,7 @@ export async function notifyNewOrder(store, lead, fetcher = fetch) {
   if (!conn) return notifyNewOrderWhatsApp(store, lead, fetcher);
   try {
     const ref = `DD-${lead.id}`, items = itemsText(lead), total = `Rs.${Number(lead.price || 0).toFixed(2)}`;
-    const owner = digits(store.notifySettings?.ownerPhone), cust = digits(lead.customerPhone), jobs = [];
+    const owner = e164(store.notifySettings?.ownerPhone), cust = e164(lead.customerPhone), jobs = [];
     if (owner) jobs.push(byoSendOrTemplate(conn, store.id, owner, `New order ${ref} at ${store.name}: ${items}, ${total}. Open your dashboard to review it.`, `byo:alert:${store.id}:${lead.id}`, 'orderAlert', [ref, items, total], fetcher));
     if (cust) jobs.push(byoSendOrTemplate(conn, store.id, cust, confirmationText(store, lead), `byo:confirm:${store.id}:${lead.id}`, 'orderConfirm', [store.name, ref, total], fetcher));
     await Promise.all(jobs); return true;
@@ -171,7 +173,7 @@ export async function sendOrderStatus(store, lead, status, fetcher = fetch) {
   let conn = null; try { conn = await activeConnection(store.id); } catch { /* fall through */ }
   if (!conn) return sendOrderStatusWhatsApp(store, lead, status, fetcher);
   try {
-    const msg = status && statusMessage(store, lead, status); const phone = digits(lead.customerPhone);
+    const msg = status && statusMessage(store, lead, status); const phone = e164(lead.customerPhone);
     if (!msg || !PHONE.test(phone)) return false;
     return await byoSendOrTemplate(conn, store.id, phone, msg, `byo:status:${store.id}:${lead.id}:${status}`, 'orderStatus', [`DD-${lead.id}`, status], fetcher);
   } catch { return false; }
