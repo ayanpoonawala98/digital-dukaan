@@ -50,7 +50,7 @@ export default function Nearby() {
 
   return <main className="nb-wrap">
     <div className="nb-hero"><Link to="/" className="muted">digitalshop.</Link><h1>Shops near you</h1><p className="muted">Find local shops, restaurants and services close to you. We only use your location on this page while you search, and never save it.</p></div>
-    <form className="nb-row" onSubmit={search}>
+    <form className="nb-search" onSubmit={search}>
       <input value={q} onChange={e => setQ(e.target.value)} placeholder="City, area or pincode" aria-label="City, area or pincode"/>
       <button className="btn btn-green" disabled={busy}>Search</button>
       <button type="button" className="btn btn-outline" disabled={busy} onClick={useMine}>Use my location</button>
@@ -60,8 +60,8 @@ export default function Nearby() {
       <p className="muted">Showing shops within {radius} km of {me.label}.</p>
       <div className="nb-chips" role="group" aria-label="Category">{TYPES.map(([v, l]) => <button key={v || 'all'} type="button" className="nb-chip" aria-pressed={type === v} onClick={() => setType(v)}>{l}</button>)}
         <button type="button" className="nb-chip" aria-pressed={openNow} onClick={() => setOpenNow(!openNow)}>Open now</button></div>
-      <div className="nb-row"><label style={{ display: 'flex', gap: 8, alignItems: 'center' }}>Within <select value={radius} onChange={e => setRadius(Number(e.target.value))} style={{ width: 'auto' }}>{[2, 5, 10, 25, 50].map(r => <option key={r} value={r}>{r} km</option>)}</select></label>
-        <div className="nb-chips" style={{ margin: 0 }}><button type="button" className="nb-chip" aria-pressed={view === 'list'} onClick={() => setView('list')}>List</button><button type="button" className="nb-chip" aria-pressed={view === 'map'} onClick={() => setView('map')}>Map</button></div></div>
+      <div className="nb-ctrl"><label className="nb-within"><span>Within</span><select value={radius} onChange={e => setRadius(Number(e.target.value))}>{[2, 5, 10, 25, 50].map(r => <option key={r} value={r}>{r} km</option>)}</select></label>
+        <div className="nb-seg" role="group" aria-label="View"><button type="button" aria-pressed={view === 'list'} onClick={() => setView('list')}>List</button><button type="button" aria-pressed={view === 'map'} onClick={() => setView('map')}>Map</button></div></div>
       {busy && !shops && <p role="status">Finding shops...</p>}
       {shops && shops.length === 0 && <div className="nb-card" role="status"><div className="nb-body"><h3>No shops listed here yet</h3><p className="muted">No listed shops within {radius} km{type || openNow ? ' for these filters' : ''}. Try a bigger distance or another area.</p></div></div>}
       {shops && shops.length > 0 && (view === 'map' ? <NearbyMap me={me} shops={shops}/> : <div className="nb-grid">{shops.map(s => <article key={s.slug} className="nb-card">
