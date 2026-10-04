@@ -12,6 +12,7 @@ export default function Landing() {
         <p className="anim-up" style={{ animationDelay: '160ms' }}>Your products, your story, your own storefront. Share one link and let customers come straight to you on WhatsApp.</p>
         <div className="hero-actions anim-up" style={{ animationDelay: '240ms' }}>
           <Link className="btn btn-green" to="/signup">Request your shop <ArrowUpRight size={19}/></Link>
+          <Link className="btn btn-outline" to="/near">Find shops near you</Link>
           <Link className="text-link" to="/store/apna-kirana-store">Explore a live shop <ArrowRight size={17}/></Link>
         </div>
         <div className="hero-foot anim-up" style={{ animationDelay: '320ms' }}><span className="hero-rule" aria-hidden="true"/><span>For the stores we know by name.<br/>And the people behind their counters.</span></div>
