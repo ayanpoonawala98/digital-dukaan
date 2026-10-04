@@ -1173,3 +1173,14 @@ footer { background:#101d15; }
   .enquiry-table td.row-actions { gap:6px; }
   .enquiry-table td.row-actions button, .enquiry-table td.row-actions .table-button { padding:7px 9px; font-size:12.5px; gap:4px; }
 }
+@media (max-width:1280px) {
+  .orders-table td:first-child { flex-direction:column; align-items:flex-start; text-align:left; gap:4px; }
+  .orders-table td:first-child strong { font-size:16px; }
+  .orders-table td .lead-items { text-align:left; white-space:normal; overflow-wrap:anywhere; display:block; max-width:100%; }
+  .orders-table td small { white-space:normal; }
+  .orders-table td.row-actions { display:flex; flex-flow:row wrap; align-items:center; justify-content:flex-start; gap:6px; }
+  .orders-table td.row-actions::before { flex:0 0 100%; }
+  .orders-table td.row-actions .pay-actions { display:contents; }
+  .orders-table td.row-actions button, .orders-table td.row-actions .table-button { padding:7px 10px; font-size:12.5px; gap:4px; }
+  .orders-table td.row-actions .error-text { flex:0 0 100%; text-align:left; }
+}
