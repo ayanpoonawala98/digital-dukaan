@@ -173,7 +173,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -196,6 +196,25 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   const ctaText = changes.offerPopupCtaText ?? req.store.offerPopupCtaText;
   const ctaUrl = changes.offerPopupCtaUrl ?? req.store.offerPopupCtaUrl;
   if (!!ctaText?.trim() !== !!ctaUrl?.trim()) throw bad(400, 'Provide both a button label and its link, or leave both blank');
+  for (const [k, lo, hi, label] of [['latitude', -90, 90, 'Latitude'], ['longitude', -180, 180, 'Longitude']]) {
+    if (changes[k] === undefined) continue;
+    if (changes[k] === '' || changes[k] === null) { changes[k] = null; continue; }
+    const n = Number(changes[k]);
+    if (typeof changes[k] === 'boolean' || !Number.isFinite(n) || n < lo || n > hi) throw bad(400, `${label} must be a number between ${lo} and ${hi}`);
+    changes[k] = Number(n.toFixed(6));
+  }
+  if (changes.serviceRadiusKm !== undefined) {
+    if (changes.serviceRadiusKm === '' || changes.serviceRadiusKm === null) changes.serviceRadiusKm = null;
+    else { const n = Number(changes.serviceRadiusKm); if (typeof changes.serviceRadiusKm === 'boolean' || !Number.isFinite(n) || n < 0.5 || n > 100) throw bad(400, 'Delivery radius must be between 0.5 and 100 km'); changes.serviceRadiusKm = Number(n.toFixed(1)); }
+  }
+  if (changes.area !== undefined) { changes.area = String(changes.area ?? '').trim(); if (changes.area.length > 80) throw bad(400, 'Area is too long (80 characters max)'); }
+  if (changes.pincode !== undefined) { changes.pincode = String(changes.pincode ?? '').trim(); if (changes.pincode && !/^[A-Za-z0-9 -]{3,10}$/.test(changes.pincode)) throw bad(400, 'Enter a valid pincode'); }
+  if (changes.listInDirectory !== undefined) {
+    changes.listInDirectory = changes.listInDirectory === true || changes.listInDirectory === 'true';
+    const la = changes.latitude !== undefined ? changes.latitude : req.store.latitude, lo2 = changes.longitude !== undefined ? changes.longitude : req.store.longitude;
+    if (changes.listInDirectory && (la === null || la === undefined || lo2 === null || lo2 === undefined)) throw bad(400, 'Set your shop location on the map before listing it in the nearby directory');
+  }
+  if (changes.latitude !== undefined || changes.longitude !== undefined) { const laN = (changes.latitude !== undefined ? changes.latitude : req.store.latitude) == null, loN = (changes.longitude !== undefined ? changes.longitude : req.store.longitude) == null; if (laN !== loN) throw bad(400, 'Set both latitude and longitude, or clear both'); }
   if (changes.notifyImageUrl !== undefined && changes.notifyImageUrl && (typeof changes.notifyImageUrl !== 'string' || !/^https:\/\/ik\.imagekit\.io\//.test(changes.notifyImageUrl) || changes.notifyImageUrl.length > 255)) throw bad(400, 'Use an uploaded image');
   if (changes.offerPopupImageUrl !== undefined && changes.offerPopupImageUrl && (!/^https:\/\/ik\.imagekit\.io\//.test(changes.offerPopupImageUrl) || changes.offerPopupImageUrl.length > 255)) throw bad(400, 'Use an ImageKit image');
   for (const key of ['bannerActive', 'offerPopupActive', 'isOpen']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
