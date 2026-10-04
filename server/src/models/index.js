@@ -41,6 +41,7 @@ export const Business = sequelize.define('Business', {
   freeDeliveryAbove: { type: DataTypes.FLOAT, allowNull: true },
   logoUrl: { type: DataTypes.STRING, defaultValue: '' },
   coverUrl: { type: DataTypes.STRING, defaultValue: '' },
+  notifyImageUrl: { type: DataTypes.STRING(255), defaultValue: '' },
   accentColor: { type: DataTypes.STRING(9), defaultValue: '', validate: { is: /^$|^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/ } },
   upiId: { type: DataTypes.STRING(60), defaultValue: '' },
   gstin: { type: DataTypes.STRING(15), defaultValue: '' },
