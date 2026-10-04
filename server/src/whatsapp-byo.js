@@ -147,14 +147,23 @@ async function recordSend(conn, businessId, phone, text, key, messageType, run) 
   try { const messageId = await run(); await record.update({ messageId, status: 'accepted' }); return true; }
   catch (err) { await record.update({ status: err.metaCode ? 'failed' : 'unknown', errorCode: err.metaCode ? String(err.metaCode).slice(0, 30) : null }); return false; }
 }
+// A skipped send is recorded so the shop can see why nothing went out (never silent).
+async function recordSkip(conn, businessId, phone, text, key, reason) {
+  try {
+    await ensureByoSchema();
+    const [rec, created] = await WhatsAppMessage.findOrCreate({ where: { requestKey: `${String(key).slice(0, 80)}:skip` }, defaults: { businessId, phoneNumberId: `byo:${conn.provider}`.slice(0, 40), direction: 'outbound', phone: String(phone || '').slice(0, 30), text, messageType: 'skipped', eventAt: new Date(), status: 'skipped', errorCode: reason } });
+    if (!created) await rec.update({ eventAt: new Date(), errorCode: reason });
+  } catch { /* diagnostics only */ }
+  return false;
+}
 export const byoSendText = (conn, businessId, phone, text, key, fetcher = fetch) =>
   recordSend(conn, businessId, phone, text, key, 'text', () => adapters[conn.provider].sendText(credsOf(conn), phone, text, fetcher));
 // Free text if the customer wrote in the last 24h, else the shop's approved template for this event, else nothing.
 export async function byoSendOrTemplate(conn, businessId, phone, text, key, templateKey, params, fetcher = fetch) {
-  if (!PHONE.test(String(phone || ''))) return false;
+  if (!PHONE.test(String(phone || ''))) return recordSkip(conn, businessId, phone, text, key, 'bad_phone');
   const latest = await WhatsAppMessage.findOne({ where: { businessId, phone, direction: 'inbound' }, order: [['eventAt', 'DESC']] });
   if (latest && serviceWindowOpen(latest.eventAt)) return byoSendText(conn, businessId, phone, text, key, fetcher);
-  const t = conn.templates?.[templateKey]; if (!t?.name) return false;
+  const t = conn.templates?.[templateKey]; if (!t?.name) return recordSkip(conn, businessId, phone, text, key, 'no_window_no_template');
   return recordSend(conn, businessId, phone, text, key, 'template', () => adapters[conn.provider].sendTemplate(credsOf(conn), phone, { name: t.name, lang: t.lang || 'en' }, params, fetcher));
 }
 // ---- order notifications (dispatch: own connection if ON, else the existing shared path) ----
@@ -253,7 +262,11 @@ byoOwnerRoutes.use((req, res, next) => byoAllowedFor(req.store?.id) ? next() : r
 const ownerOnly = (req, res, next) => req.user?.role === 'owner' ? next() : res.status(403).json({ error: 'Only the shop owner can manage the WhatsApp connection' });
 const view = c => c ? { connected: true, provider: c.provider, enabled: c.enabled, sender: c.sender, webhookUrl: webhookUrl(c), statusUrl: c.provider === 'twilio' ? webhookUrl(c, 'status') : undefined, verifyToken: c.provider === 'meta' ? c.verifyToken : undefined, templates: c.templates || {} } : { connected: false };
 const base = { providers: PROVIDERS.map(p => ({ id: p, label: adapters[p].label, fields: adapters[p].credentialFields, required: adapters[p].required })), guide: TEMPLATE_GUIDE };
-byoOwnerRoutes.get('/status', wrap(async (req, res) => { await ensureByoSchema(); res.json({ ...base, ...view(await WhatsAppByoConnection.findByPk(req.store.id)) }); }));
+byoOwnerRoutes.get('/status', wrap(async (req, res) => {
+  await ensureByoSchema(); const c = await WhatsAppByoConnection.findByPk(req.store.id); let lastSend = null;
+  if (c) { const m = await WhatsAppMessage.findOne({ where: { businessId: req.store.id, direction: 'outbound', phoneNumberId: `byo:${c.provider}` }, order: [['eventAt', 'DESC']] }); if (m) lastSend = { status: m.status, reason: m.errorCode || null, at: m.eventAt, kind: m.messageType, to: String(m.phone || '').replace(/\d(?=\d{3})/g, '*') }; }
+  res.json({ ...base, ...view(c), lastSend });
+}));
 function cleanTemplates(input) {
   const out = {};
   for (const k of ['orderConfirm', 'orderAlert', 'orderStatus']) { const t = input?.[k]; if (t && typeof t.name === 'string' && t.name.trim()) { const name = t.name.trim(); if (name.length > 80 || /\s/.test(name)) throw bad(400, 'Template names cannot contain spaces'); const lang = typeof t.lang === 'string' && /^[a-z]{2}(_[A-Z]{2})?$/.test(t.lang) ? t.lang : 'en'; out[k] = { name, lang }; } }
