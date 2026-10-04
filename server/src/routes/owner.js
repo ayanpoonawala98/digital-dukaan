@@ -453,6 +453,7 @@ r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
 
 
 // Customers opt in from their private tracking page or My Orders; the store-wide broadcast flow is untouched.
+const pushImage = store => [store?.coverUrl, store?.logoUrl].find(u => /^https:\/\/[^\s]+$/.test(String(u || ''))) || '';
 async function notifyOrderSubscribers(store, kind, order) {
   const label = flowFor(kind === 'restaurant' ? 'restaurant' : store.storeType).push[order.status];
   if (!label || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
@@ -460,7 +461,7 @@ async function notifyOrderSubscribers(store, kind, order) {
     const subs = await OrderPushSubscription.findAll({ where: { orderType: kind, orderId: order.id, businessId: store.id } });
     await Promise.allSettled(subs.map(async sub => {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({ title: `Order #${order.id} at ${store.name}`, body: `${label} Tap to view.`, url: sub.returnPath }));
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({ title: `Order #${order.id} at ${store.name}`, body: `${label} Tap to view.`, url: sub.returnPath, ...(pushImage(store) ? { image: pushImage(store) } : {}) }));
       } catch (err) { if (err.statusCode === 404 || err.statusCode === 410) await sub.destroy(); }
     }));
   } catch (err) { console.error('Order push failed', err.message); }
@@ -616,7 +617,7 @@ r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
   const bodyText = String(req.body.body || '').trim().slice(0, 200);
   if (!title || !bodyText) throw bad(400, 'Title and message required');
   const subs = await PushSubscription.findAll({ where: { businessId: bid(req) } });
-  const payload = JSON.stringify({ title, body: bodyText, url: `/store/${req.store.slug}` });
+  const payload = JSON.stringify({ title, body: bodyText, url: `/store/${req.store.slug}`, ...(pushImage(req.store) ? { image: pushImage(req.store) } : {}) });
   let sent = 0, gone = 0;
   await Promise.all(subs.map(async sub => {
     try {
