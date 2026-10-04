@@ -305,7 +305,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       bannerText: business.bannerText || '', bannerActive: Boolean(business.bannerActive), offerPopupActive: Boolean(business.offerPopupActive), offerPopupText: business.offerPopupText || '', offerPopupTitle: business.offerPopupTitle || '', offerPopupCtaText: business.offerPopupCtaText || '', offerPopupCtaUrl: business.offerPopupCtaUrl || '', offerPopupImageUrl: business.offerPopupImageUrl || '',
       isOpen: business.isOpen !== false, openingHours: business.openingHours || '', storeType: business.storeType || 'retail', tableCount: business.tableCount || 0,
       deliveryCharge: business.deliveryCharge ?? 0, freeDeliveryAbove: business.freeDeliveryAbove ?? '', minOrder: business.minOrder ?? 0,
-      accentColor: business.accentColor || '#0e9f6e', logoUrl: business.logoUrl || '', coverUrl: business.coverUrl || ''
+      accentColor: business.accentColor || '#0e9f6e', logoUrl: business.logoUrl || '', coverUrl: business.coverUrl || '', notifyImageUrl: business.notifyImageUrl || ''
     } : null);
   }, [business?.id]);
   if (!form) return <div className="dashboard-panel">Loading...</div>;
@@ -346,6 +346,8 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       <label>Offer banner text <small>(scrolling strip on top of your shop)</small><input value={form.bannerText} onChange={e => set('bannerText', e.target.value)} placeholder="Free delivery above ₹499!"/></label><label className="check-label"><input type="checkbox" checked={form.bannerActive} onChange={e => set('bannerActive', e.target.checked)}/> Show text announcement bar</label><fieldset className="theme-choices"><legend>Festive presets</legend><p className="muted">Prepares a color, banner and offer. Review and save to publish; existing text can be edited first.</p><div className="festival-presets">{FESTIVAL_PRESETS.map(preset => <button type="button" className="btn btn-outline btn-small" key={preset.name} onClick={() => setForm(f => ({ ...f, accentColor:preset.color, bannerText:preset.banner, bannerActive:true, offerPopupTitle:preset.headline, offerPopupText:preset.message, offerPopupActive:true }))}>{preset.name}</button>)}</div></fieldset><fieldset className="theme-choices"><legend>Shop color theme</legend><p className="muted">Sets your shop and this dashboard together. Original green is the default.</p><div className="theme-swatches">{[...STORE_THEMES, ...(!STORE_THEMES.some(t => t.color.toLowerCase() === String(form.accentColor || '').toLowerCase()) ? [{ name: 'Current custom', color:form.accentColor }] : [])].map(option => <button key={option.color} type="button" className={`theme-swatch ${form.accentColor === option.color ? 'chosen' : ''}`} onClick={() => set('accentColor', option.color)} aria-pressed={form.accentColor === option.color} title={option.name}><span style={{ background:option.color }}/>{option.name}</button>)}</div><small>Save all changes to publish this color to your shop.</small></fieldset>
       <label>Shop logo<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={uploadImage('logoUrl')}/>{uploading === 'logoUrl' && <small><span className="button-spinner"/>Uploading logo...</small>}</label>
       {form.logoUrl && <div className="upload-preview"><img src={imageSrc(form.logoUrl)} alt="Logo preview"/><span>Logo ready</span></div>}
+      <label>Default notification image (optional)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={uploadImage('notifyImageUrl')}/>{uploading === 'notifyImageUrl' && <small><span className="button-spinner"/>Uploading image...</small>}<small className="muted">Used in push notifications and WhatsApp order messages. If empty, your cover, then logo, is used.</small></label>
+      {form.notifyImageUrl && <div className="upload-preview"><img src={imageSrc(form.notifyImageUrl)} alt="Notification image preview"/><span>Notification image ready</span><button type="button" className="btn btn-outline btn-small" onClick={() => set('notifyImageUrl', '')}>Remove</button></div>}
       <label>Cover photo<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={uploadImage('coverUrl')}/>{uploading === 'coverUrl' && <small><span className="button-spinner"/>Uploading cover...</small>}</label>
       {form.coverUrl && <div className="upload-preview"><img src={imageSrc(form.coverUrl)} alt="Cover preview"/><span>Cover ready</span></div>}
     </div>
@@ -384,7 +386,7 @@ export default function Dashboard() {
   const [categoryEdit, setCategoryEdit] = useState(null), [categoryName, setCategoryName] = useState('');
   const [stores, setStores] = useState([]), [storeId, setStoreId] = useState(''), [deletedStores, setDeletedStores] = useState([]), [restoreSlug, setRestoreSlug] = useState({});
   const [newStore, setNewStore] = useState({ name: '', slug: '', whatsapp: '', storeType: 'retail', tableCount: 0 });
-  const [notify, setNotify] = useState({ title: '', body: '' }), [notifyResult, setNotifyResult] = useState('');
+  const [notify, setNotify] = useState({ title: '', body: '' }), [notifyImg, setNotifyImg] = useState(''), [notifyImgBusy, setNotifyImgBusy] = useState(false), [notifyResult, setNotifyResult] = useState('');
   const [broadcastText, setBroadcastText] = useState(''), [broadcastRecipients, setBroadcastRecipients] = useState('');
   const [broadcastImageUrl, setBroadcastImageUrl] = useState(''), [broadcastImageBusy, setBroadcastImageBusy] = useState(false);
   const selectedStoreRef = React.useRef(storeId); selectedStoreRef.current = storeId;
@@ -488,8 +490,8 @@ export default function Dashboard() {
   const sendBroadcast = e => {
     e.preventDefault();
     action(async () => {
-      const result = await api(`/owner/${storeId}/push-broadcast`, { method: 'POST', token, body: notify });
-      setNotify({ title: '', body: '' });
+      const result = await api(`/owner/${storeId}/push-broadcast`, { method: 'POST', token, body: { ...notify, ...(notifyImg ? { image: notifyImg } : {}) } });
+      setNotify({ title: '', body: '' }); setNotifyImg('');
       setNotifyResult(`Sent to ${result.sent} subscriber${result.sent === 1 ? '' : 's'}${result.gone ? `, removed ${result.gone} expired` : ''}.`);
     });
   };
@@ -561,6 +563,9 @@ export default function Dashboard() {
         <form onSubmit={sendBroadcast} className="notify-form">
           <label>Title<input value={notify.title} onChange={e => setNotify({ ...notify, title: e.target.value })} placeholder="Fresh stock arrived!" maxLength={80} required/></label>
           <label>Message<textarea rows="3" value={notify.body} onChange={e => setNotify({ ...notify, body: e.target.value })} placeholder="Basmati rice back in stock. Order now on WhatsApp!" maxLength={200} required/></label>
+          <label>Image (optional)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={notifyImgBusy} onChange={async e => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setError('Choose a JPEG, PNG or WebP image under 5 MB'); return; } setNotifyImgBusy(true); setError(''); try { const body = new FormData(); body.append('image', file); const r = await api(`/owner/${storeId}/upload`, { method: 'POST', token, body }); if (!/^https:\/\/ik\.imagekit\.io\//.test(r.imageUrl || '')) throw Error('Image hosting is unavailable. Try again later.'); setNotifyImg(r.imageUrl); } catch (err) { setError(err.message); } finally { setNotifyImgBusy(false); } }}/><small className="muted">If you skip it, your default notification image, cover or logo is used.</small></label>
+          {notifyImgBusy && <small><span className="button-spinner"/>Uploading image...</small>}
+          {notifyImg && <div className="upload-preview"><img src={imageSrc(notifyImg)} alt="Notification image preview"/><span>Image ready</span><button type="button" className="btn btn-outline btn-small" onClick={() => setNotifyImg('')}>Remove</button></div>}
           {notifyResult && <p className="notice success">{notifyResult}</p>}
           <button className="btn btn-green" disabled={busy || !(data?.subscribers > 0)}><Busy active={busy}><Bell size={16}/> {busy ? 'Sending...' : 'Send notification'}</Busy></button>
           {!(data?.subscribers > 0) && <p className="muted">Visitors can subscribe from the prompt on your storefront.</p>}
