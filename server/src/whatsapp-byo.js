@@ -112,7 +112,7 @@ export const adapters = {
       let res; try { res = await fetcher(`https://api.twilio.com/2010-04-01/Accounts/${c.accountSid}/Messages.json`, { method: 'POST', headers: { authorization: `Basic ${Buffer.from(`${c.accountSid}:${c.authToken}`).toString('base64')}`, 'content-type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(c.statusCallback ? { ...form, StatusCallback: c.statusCallback } : form).toString(), signal: AbortSignal.timeout(15000) }); } catch { throw fail('Twilio did not respond'); }
       const j = await res.json().catch(() => ({})); if (!res.ok || !j.sid) throw fail('Twilio did not accept the message', j.code); return j.sid;
     },
-    sendText(c, to, text, fetcher = fetch) { return this.post(c, { From: `whatsapp:+${digits(c.from)}`, To: `whatsapp:+${to}`, Body: text }, fetcher); },
+    sendText(c, to, text, fetcher = fetch, mediaUrl = '') { return this.post(c, { From: `whatsapp:+${digits(c.from)}`, To: `whatsapp:+${to}`, Body: text, ...(mediaUrl ? { MediaUrl: mediaUrl } : {}) }, fetcher); },
     sendTemplate(c, to, t, params, fetcher = fetch) { return this.post(c, { From: `whatsapp:+${digits(c.from)}`, To: `whatsapp:+${to}`, ContentSid: t.name, ContentVariables: JSON.stringify(Object.fromEntries((params || []).map((p, i) => [String(i + 1), String(p)]))) }, fetcher); },
     async check(c, fetcher = fetch) {
       const res = await fetcher(`https://api.twilio.com/2010-04-01/Accounts/${c.accountSid}.json`, { headers: { authorization: `Basic ${Buffer.from(`${c.accountSid}:${c.authToken}`).toString('base64')}` }, signal: AbortSignal.timeout(15000) });
@@ -159,13 +159,15 @@ async function recordSkip(conn, businessId, phone, text, key, reason) {
   } catch { /* diagnostics only */ }
   return false;
 }
-export const byoSendText = (conn, businessId, phone, text, key, fetcher = fetch) =>
-  recordSend(conn, businessId, phone, text, key, 'text', () => adapters[conn.provider].sendText(credsOf(conn), phone, text, fetcher));
+export const byoSendText = (conn, businessId, phone, text, key, fetcher = fetch, mediaUrl = '') =>
+  recordSend(conn, businessId, phone, text, key, 'text', () => adapters[conn.provider].sendText(credsOf(conn), phone, text, fetcher, mediaUrl));
+// The shop's own image (cover, else logo) as a hosted https URL; session messages only.
+export const storeImageUrl = store => [store?.coverUrl, store?.logoUrl].find(u => /^https:\/\/[^\s]+$/.test(String(u || ''))) || '';
 // Free text if the customer wrote in the last 24h, else the shop's approved template for this event, else nothing.
-export async function byoSendOrTemplate(conn, businessId, phone, text, key, templateKey, params, fetcher = fetch) {
+export async function byoSendOrTemplate(conn, businessId, phone, text, key, templateKey, params, fetcher = fetch, mediaUrl = '') {
   if (!PHONE.test(String(phone || ''))) return recordSkip(conn, businessId, phone, text, key, 'bad_phone');
   const latest = await WhatsAppMessage.findOne({ where: { businessId, phone, direction: 'inbound' }, order: [['eventAt', 'DESC']] });
-  if (latest && serviceWindowOpen(latest.eventAt)) return byoSendText(conn, businessId, phone, text, key, fetcher);
+  if (latest && serviceWindowOpen(latest.eventAt)) return byoSendText(conn, businessId, phone, text, key, fetcher, mediaUrl);
   const t = conn.templates?.[templateKey]; if (!t?.name) return recordSkip(conn, businessId, phone, text, key, 'no_window_no_template');
   return recordSend(conn, businessId, phone, text, key, 'template', () => adapters[conn.provider].sendTemplate(credsOf(conn), phone, { name: t.name, lang: t.lang || 'en' }, params, fetcher));
 }
@@ -177,7 +179,7 @@ export async function notifyNewOrder(store, lead, fetcher = fetch) {
     const ref = `DD-${lead.id}`, items = itemsText(lead), total = `Rs.${Number(lead.price || 0).toFixed(2)}`;
     const owner = e164(store.notifySettings?.ownerPhone), cust = e164(lead.customerPhone), jobs = [];
     if (owner) jobs.push(byoSendOrTemplate(conn, store.id, owner, `New order ${ref} at ${store.name}: ${items}, ${total}. Open your dashboard to review it.`, `byo:alert:${store.id}:${lead.id}`, 'orderAlert', [ref, items, total], fetcher));
-    if (cust) jobs.push(byoSendOrTemplate(conn, store.id, cust, confirmationText(store, lead), `byo:confirm:${store.id}:${lead.id}`, 'orderConfirm', [store.name, ref, total], fetcher));
+    if (cust) jobs.push(byoSendOrTemplate(conn, store.id, cust, confirmationText(store, lead), `byo:confirm:${store.id}:${lead.id}`, 'orderConfirm', [store.name, ref, total], fetcher, storeImageUrl(store)));
     await Promise.all(jobs); return true;
   } catch { return false; }
 }
@@ -187,7 +189,7 @@ export async function sendOrderStatus(store, lead, status, fetcher = fetch) {
   try {
     const msg = status && statusMessage(store, lead, status); const phone = e164(lead.customerPhone);
     if (!msg || !PHONE.test(phone)) return false;
-    return await byoSendOrTemplate(conn, store.id, phone, msg, `byo:status:${store.id}:${lead.id}:${status}`, 'orderStatus', [`DD-${lead.id}`, status], fetcher);
+    return await byoSendOrTemplate(conn, store.id, phone, msg, `byo:status:${store.id}:${lead.id}:${status}`, 'orderStatus', [`DD-${lead.id}`, status], fetcher, storeImageUrl(store));
   } catch { return false; }
 }
 // ---- inbound ----
