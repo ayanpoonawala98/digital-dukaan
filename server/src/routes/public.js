@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { haversineKm } from '../utils/geo.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { storeUrl } from '../utils/store-domain.js';
@@ -51,6 +52,19 @@ r.post('/shop-requests', wrap(async (req, res) => {
 
 
 // Only online, non-deleted shops belong in search discovery.
+// Nearby shops directory. POST so the visitor's coordinates never appear in a URL or access log, and they are never stored.
+r.post('/nearby', wrap(async (req, res) => {
+  const lat = Number(req.body?.lat), lng = Number(req.body?.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180 || req.body?.lat === '' || req.body?.lng === '') throw bad(400, 'Location is not valid');
+  const radius = Math.min(100, Math.max(1, Number(req.body?.radiusKm) || 25));
+  const type = ['retail', 'restaurant', 'services'].includes(req.body?.type) ? req.body.type : null;
+  const rows = await Business.findAll({ where: { active: true, deletedAt: null, listInDirectory: true, latitude: { [Op.ne]: null }, longitude: { [Op.ne]: null }, ...(type ? { storeType: type } : {}) }, attributes: ['name', 'slug', 'description', 'logoUrl', 'coverUrl', 'storeType', 'area', 'pincode', 'isOpen', 'latitude', 'longitude', 'serviceRadiusKm', 'createdAt'] });
+  const now = Date.now();
+  let shops = rows.map(b => { const d = haversineKm(lat, lng, b.latitude, b.longitude); return { name: b.name, slug: b.slug, description: (b.description || '').slice(0, 120), logoUrl: b.logoUrl || '', coverUrl: b.coverUrl || '', storeType: b.storeType, area: b.area || '', pincode: b.pincode || '', isOpen: b.isOpen !== false, latitude: b.latitude, longitude: b.longitude, distanceKm: Number(d.toFixed(1)), deliversToYou: b.serviceRadiusKm ? d <= b.serviceRadiusKm : null, serviceRadiusKm: b.serviceRadiusKm, isNew: now - new Date(b.createdAt).getTime() < 14 * 86400000, _d: d }; }).filter(s => s._d <= radius);
+  if (req.body?.openNow === true) shops = shops.filter(s => s.isOpen);
+  shops.sort((a, b) => a._d - b._d); res.set('Cache-Control', 'no-store');
+  res.json({ shops: shops.slice(0, 60).map(({ _d, ...s }) => s), radiusKm: radius });
+}));
 r.get('/sitemap-stores', wrap(async (req, res) => {
   const stores = await Business.findAll({ where: { active: true, deletedAt: null }, attributes: ['slug'], order: [['slug', 'ASC']], limit: 5000 });
   res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
