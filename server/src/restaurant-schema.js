@@ -16,6 +16,8 @@ export function ensureRestaurantSchema() {
     await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "offerPopupImageUrl" varchar(255) NOT NULL DEFAULT ''`);
     await RestaurantOrder.sync(); // New table only. Do not alter production tables.
     await OrderPushSubscription.sync(); // New table only, separate from store broadcast subscriptions.
+    // orderId holds restaurant order ids AND retail lead ids, so an FK to restaurant_orders rejects retail orders.
+    await sequelize.query('ALTER TABLE order_push_subscriptions DROP CONSTRAINT IF EXISTS "order_push_subscriptions_orderId_fkey"');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "subtotal" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "discount" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "couponCode" varchar(24)');
