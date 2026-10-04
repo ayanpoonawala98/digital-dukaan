@@ -6,6 +6,12 @@ export function ensureRestaurantSchema() {
   if (!ready) ready = (async () => {
     await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"storeType\" varchar(20) NOT NULL DEFAULT 'retail'");
     await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "notifyImageUrl" varchar(255) NOT NULL DEFAULT ''`);
+    await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "latitude" double precision');
+    await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "longitude" double precision');
+    await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "area" varchar(80) NOT NULL DEFAULT ''`);
+    await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "pincode" varchar(10) NOT NULL DEFAULT ''`);
+    await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "listInDirectory" boolean NOT NULL DEFAULT false');
+    await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "serviceRadiusKm" double precision');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "tableCount" integer NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "deletedAt" timestamp with time zone');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "wasActiveBeforeDelete" boolean');
