@@ -119,8 +119,11 @@ export const adapters = {
       if (!res.ok) throw fail('Twilio rejected this Account SID or Auth Token'); return c.from;
     },
     verify(req, c, conn, kind) { // X-Twilio-Signature: base64 HMAC-SHA1 of the exact URL + sorted POST params
-      const sig = req.header('x-twilio-signature'); const url = webhookUrl(conn, kind);
-      return Boolean(sig && url && safeEqual(twilioSignature(c.authToken, url, req.body || {}), sig));
+      const sig = req.header('x-twilio-signature'); const url = webhookUrl(conn, kind); if (!sig || !url) return false;
+      // Twilio signs the exact URL it was given: accept the shop's own URL on any host that reaches this service.
+      const path = new URL(url).pathname, hosts = new Set([new URL(url).origin, 'https://digital-dukaan-api.onrender.com', 'https://api.digitalshop.website']);
+      const fh = String(req.header('x-forwarded-host') || req.header('host') || '').split(',')[0].trim(); if (/^[a-z0-9.-]+(:\d+)?$/i.test(fh)) hosts.add(`https://${fh}`);
+      return [...hosts].some(h => safeEqual(twilioSignature(c.authToken, h + path, req.body || {}), sig));
     },
     parse(req) {
       const b = req.body || {}, out = { messages: [], statuses: [] };
