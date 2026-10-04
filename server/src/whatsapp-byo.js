@@ -162,7 +162,7 @@ async function recordSkip(conn, businessId, phone, text, key, reason) {
 export const byoSendText = (conn, businessId, phone, text, key, fetcher = fetch, mediaUrl = '') =>
   recordSend(conn, businessId, phone, text, key, 'text', () => adapters[conn.provider].sendText(credsOf(conn), phone, text, fetcher, mediaUrl));
 // The shop's own image (cover, else logo) as a hosted https URL; session messages only.
-export const storeImageUrl = store => [store?.coverUrl, store?.logoUrl].find(u => /^https:\/\/[^\s]+$/.test(String(u || ''))) || '';
+export const storeImageUrl = store => [store?.notifyImageUrl, store?.coverUrl, store?.logoUrl].find(u => /^https:\/\/[^\s]+$/.test(String(u || ''))) || '';
 // Free text if the customer wrote in the last 24h, else the shop's approved template for this event, else nothing.
 export async function byoSendOrTemplate(conn, businessId, phone, text, key, templateKey, params, fetcher = fetch, mediaUrl = '') {
   if (!PHONE.test(String(phone || ''))) return recordSkip(conn, businessId, phone, text, key, 'bad_phone');
