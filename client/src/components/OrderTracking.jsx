@@ -110,7 +110,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
       <OrderBody order={data.order}/>
       <PushControl slug={slug} orders={token ? [...saved, ...loadSavedOrders(slug).filter(o => !(o.kind === kind && o.id === Number(id)))] : []}/>
       <p><small>Last checked: {updated ? updated.toLocaleTimeString('en-IN') : '-'} · updates automatically while open</small></p>
-      <div className="row-actions"><button className="btn btn-outline btn-small" onClick={load}>Refresh</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? 'Copied' : 'Copy tracking link'}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>My orders</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Back to store</Link></div>
+      <div className="tracking-actions"><button className="btn btn-outline btn-small" onClick={load}>Refresh</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? 'Copied' : 'Copy tracking link'}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>My orders</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Back to store</Link></div>
     </section>}
   </main></>;
 }
