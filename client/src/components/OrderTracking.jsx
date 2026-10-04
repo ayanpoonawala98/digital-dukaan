@@ -19,6 +19,13 @@ function OrderBody({ order }) {
 }
 
 // Registers every saved order of this browser under its push subscription (the customer's identity).
+function pushErrorMessage(e) {
+  const m = String(e?.message || '');
+  if (e?.name === 'NotAllowedError') return 'Notifications are blocked. Allow them for this site in your browser settings.';
+  if (e?.name === 'AbortError' || e?.name === 'NotSupportedError' || e?.name === 'InvalidStateError') return 'This browser could not set up notifications. Try Chrome or Safari, or turn on notifications for the browser.';
+  if (/went wrong/i.test(m)) return 'Could not turn on order updates right now. Please try again in a moment.';
+  return m || 'Could not turn on order updates. Please try again.';
+}
 function PushControl({ slug, orders, onChange }) {
   const [state, setState] = useState('idle'), [err, setErr] = useFeedbackState('');
   const supported = pushSupported();
@@ -37,7 +44,7 @@ function PushControl({ slug, orders, onChange }) {
       await api(`/public/stores/${encodeURIComponent(slug)}/my-orders/push-subscription`, { method: 'POST', body: { endpoint: sub.endpoint, keys: sub.keys, orders: orders.map(o => ({ kind: o.kind, id: o.id, token: o.token })) } });
       try { localStorage.setItem(`dd-push-on-${slug}`, sub.endpoint); } catch {}
       setState('on'); onChange?.();
-    } catch (e) { setState(Notification.permission === 'denied' ? 'denied' : 'idle'); if (Notification.permission !== 'denied') setErr(e.message); }
+    } catch (e) { setState(Notification.permission === 'denied' ? 'denied' : 'idle'); if (Notification.permission !== 'denied') setErr(pushErrorMessage(e)); }
   };
   const off = async () => {
     setErr(''); setState('busy');
@@ -48,12 +55,12 @@ function PushControl({ slug, orders, onChange }) {
       setState('idle');
     } catch (e) { setState('on'); setErr(e.message); }
   };
-  return <div className="push-prompt anim-up" style={{ position: 'static', marginTop: 16 }}>{state === 'denied'
-    ? <p><strong>Notifications are blocked.</strong><span>Enable them for this site in your browser settings to get order updates.</span></p>
+  return <div className="push-prompt push-prompt-inline anim-up">{state === 'denied'
+    ? <div className="push-text"><strong>Notifications are blocked.</strong><span>Enable them for this site in your browser settings to get order updates.</span></div>
     : state === 'on'
-      ? <p><strong>Order notifications on</strong><span>You will get a browser notification when the store updates an order.</span><button className="btn-ghost" onClick={off}>Turn off</button></p>
-      : <p><strong>Get order updates</strong><span>One tap, no login. Notifications only cover your orders.</span><button className="btn btn-green btn-small" onClick={on} disabled={state === 'busy' || !orders.length}>{state === 'busy' ? 'Turning on...' : 'Notify me'}</button></p>}
-    {err && <span role="alert">{err}</span>}</div>;
+      ? <><div className="push-text"><strong>Order notifications on</strong><span>You will get a browser notification when the store updates an order.</span></div><button className="btn-ghost" onClick={off}>Turn off</button></>
+      : <><div className="push-text"><strong>Get order updates</strong><span>One tap, no login. Notifications only cover your orders.</span></div><button className="btn btn-green btn-small" onClick={on} disabled={state === 'busy' || !orders.length}>{state === 'busy' ? 'Turning on...' : 'Notify me'}</button></>}
+  </div>;
 }
 
 function usePoll(load, active, ms = 30000) {
