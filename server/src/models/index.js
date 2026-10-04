@@ -161,8 +161,8 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
 }, { tableName: 'restaurant_orders', indexes: [{ fields: ['businessId', 'createdAt'] }] });
 Business.hasMany(RestaurantOrder, { foreignKey: 'businessId' });
 RestaurantOrder.belongsTo(Business, { foreignKey: 'businessId' });
-RestaurantOrder.hasMany(OrderPushSubscription, { foreignKey: 'orderId' });
-OrderPushSubscription.belongsTo(RestaurantOrder, { foreignKey: 'orderId' });
+RestaurantOrder.hasMany(OrderPushSubscription, { foreignKey: 'orderId', constraints: false }); // orderId also holds retail lead ids, so no FK to restaurant_orders
+OrderPushSubscription.belongsTo(RestaurantOrder, { foreignKey: 'orderId', constraints: false });
 
 export const Coupon = sequelize.define('Coupon', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
