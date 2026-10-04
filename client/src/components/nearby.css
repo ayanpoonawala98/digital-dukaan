@@ -37,3 +37,5 @@
 .nb-ctrl .nb-within span{margin:0;display:inline}
 .nb-search .btn{padding:0 8px;font-size:14px;white-space:nowrap}
 .nb-ctrl{align-items:center}
+.nb-search{align-items:center}
+.nb-search .btn{display:inline-flex;align-items:center;justify-content:center;line-height:1;height:44px;min-height:0;box-sizing:border-box;margin:0;align-self:center}
