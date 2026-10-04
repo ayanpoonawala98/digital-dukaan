@@ -32,5 +32,7 @@ export async function geocode(query) {
 }
 export const currentPosition = () => new Promise((resolve, reject) => {
   if (!navigator.geolocation) return reject(Error('This device cannot share its location. Type your area or pincode instead.'));
-  navigator.geolocation.getCurrentPosition(p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude }), err => reject(Error(err.code === 1 ? 'Location permission was denied. Type your area or pincode instead.' : 'Could not get your location. Type your area or pincode instead.')), { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 });
+  const guard = setTimeout(() => reject(Error('Could not get your location. Type your area or pincode instead.')), 15000);
+  const done = fn => v => { clearTimeout(guard); fn(v); };
+  navigator.geolocation.getCurrentPosition(done(p => resolve({ lat: p.coords.latitude, lng: p.coords.longitude })), done(err => reject(Error(err.code === 1 ? 'Location permission was denied. Type your area or pincode instead.' : 'Could not get your location. Type your area or pincode instead.'))), { enableHighAccuracy: false, timeout: 12000, maximumAge: 60000 });
 });
