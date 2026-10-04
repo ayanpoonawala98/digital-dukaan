@@ -186,13 +186,15 @@ function PayActions({ kind, order, token, storeId, staffMode }) {
 }
 
 function PaymentSettings({ token, storeId }) {
+  const [open, setOpen] = useState(false);
   const [view, setView] = useState(null), [f, setF] = useState({ keyId: '', keySecret: '' }), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
   useEffect(() => { api(`/owner/${storeId}/payments`, { token, feedback: false }).then(d => { setView(d.razorpay); setF({ keyId: '', keySecret: '' }); }).catch(() => setView(false)); }, [storeId, token]);
   if (view === false) return null;
   if (!view) return <div className="dashboard-panel settings-panel"><h3>Online payments</h3><p className="muted">Loading...</p></div>;
   const save = async (body, ok) => { setBusy(true); setMsg(null); try { const d = await api(`/owner/${storeId}/payments`, { token, method: 'PUT', body, feedback: false }); setView(d.razorpay); setF({ keyId: '', keySecret: '' }); setMsg({ ok }); } catch (e) { setMsg({ error: e.message }); } finally { setBusy(false); } };
-  return <div className="dashboard-panel settings-panel notify-settings">
-    <h3>Online payments (Razorpay)</h3>
+  return <div className="dashboard-panel settings-panel notify-settings accordion-panel">
+    <button type="button" className="accordion-head" aria-expanded={open} onClick={() => setOpen(o => !o)}><h3>Online payments (Razorpay)</h3><span className="accordion-chev" aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span></button>
+    {open && <>
     <p className="muted">Let customers pay an order by UPI, card or netbanking through a payment link. The money goes to your own Razorpay account. Digital Shop never touches it.</p>
     <div className="notify-row"><strong>Razorpay</strong><span className={`status-pill ${view.configured ? 'on' : 'off'}`}>{view.configured ? `Connected (${view.mode || 'keys saved'}) ${view.keyId}` : 'Not connected'}</span></div>
     {view.mode === 'test' && view.configured && <p className="notice warn">These are TEST keys. Payments will not move real money. Use live keys when you are ready.</p>}
@@ -204,10 +206,12 @@ function PaymentSettings({ token, storeId }) {
         {view.configured && <button type="button" className="btn btn-outline" disabled={busy} onClick={() => save({ clear: true }, 'Razorpay disconnected')}>Disconnect</button>}</div>
     </form>
     <p className="muted">Get the keys in your Razorpay Dashboard under Account &amp; Settings, then API keys. Razorpay charges its own fee per payment. Keys are encrypted and never shown again. After a customer pays, press Check payment on the order to confirm it.</p>
+    </>}
   </div>;
 }
 
 function NotificationSettings({ token, storeId }) {
+  const [open, setOpen] = useState(false);
   const [state, setState] = useState(null), [form, setForm] = useState(null), [busy, setBusy] = useState(false), [testing, setTesting] = useState(''), [msg, setMsg] = useState(null), [keys, setKeys] = useState(null), [kf, setKf] = useState({}), [kBusy, setKBusy] = useState(false);
   const applyKeys = k => { setKeys(k); setKf({ emailMode: k.emailMode, smsMode: k.smsMode, resend: { from: k.resend.from }, smtp: { host: k.smtp.host, port: k.smtp.port || 587, secure: k.smtp.secure, user: k.smtp.user, from: k.smtp.from }, emailHttp: { url: k.emailHttp.url, method: k.emailHttp.method || 'POST', contentType: k.emailHttp.contentType || 'json', headers: k.emailHttp.headers, body: k.emailHttp.body }, fast2sms: { route: k.fast2sms.route || 'quick', senderId: k.fast2sms.senderId, templateId: k.fast2sms.templateId }, smsHttp: { url: k.smsHttp.url, method: k.smsHttp.method || 'POST', contentType: k.smsHttp.contentType || 'json', headers: k.smsHttp.headers, body: k.smsHttp.body } }); };
   useEffect(() => { api(`/owner/${storeId}/notifications`, { token, feedback: false }).then(d => { setState(d.providers); setForm(d.settings); applyKeys(d.keys); }).catch(() => setState(false)); }, [storeId, token]);
@@ -247,8 +251,9 @@ function NotificationSettings({ token, storeId }) {
     <p className="muted">Placeholders: {isSms ? '{{to}} (10-digit), {{to_intl}} (with country code), ' : '{{to}}, {{subject}}, '}{'{{message}}, {{store}}, {{key}}, {{key_b64}} (key as base64, handy for Basic auth)'}. Put secrets only in the key field and use {'{{key}}'}.</p>
   </>;
   const badge = p => <span className={`status-pill ${p.configured ? 'on' : 'off'}`}>{p.configured ? (p.source === 'own' ? `Ready: your ${p.label}` : 'Ready: platform default') : 'Not connected'}</span>;
-  return <form onSubmit={save} className="dashboard-panel settings-panel notify-settings">
-    <h3>SMS & email alerts</h3>
+  return <form onSubmit={save} className="dashboard-panel settings-panel notify-settings accordion-panel">
+    <button type="button" className="accordion-head" aria-expanded={open} onClick={() => setOpen(o => !o)}><h3>SMS & email alerts</h3><span className="accordion-chev" aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span></button>
+    {open && <>
     <p className="muted">Get told the moment a customer enquires or orders, and optionally text customers as their order moves. Nothing is sent until you connect a provider below and switch an option on.</p>
     <div className="notify-row"><strong>Email</strong>{badge(state.email)}</div>
     <details className="notify-provider"><summary>{state.email.configured && state.email.source === 'own' ? 'Change my email provider' : 'Connect my own email provider'}</summary>
@@ -284,6 +289,7 @@ function NotificationSettings({ token, storeId }) {
       <button type="button" className="btn btn-outline" disabled={!!testing || (!state.email.configured && !state.sms.configured)} onClick={sampleReport}><Busy active={testing === 'report'}>Send sample weekly report</Busy></button>
     </div>
     <p className="muted">Save your settings before sending a test. SMS is charged by the SMS provider per message.</p>
+    </>}
   </form>;
 }
 
