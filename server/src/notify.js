@@ -105,7 +105,7 @@ export async function resolveDeps(store, deps = {}) {
 }
 
 const rs = n => `Rs.${Number(n || 0).toFixed(0)}`;
-const summary = (kind, order) => kind === 'restaurant' ? `${(order.items || []).reduce((s, i) => s + Number(i.qty || 0), 0)} items` : (order.productName || 'an item');
+const summary = (kind, order) => kind === 'restaurant' ? (n => `${n} item${n === 1 ? '' : 's'}`)((order.items || []).reduce((s, i) => s + Number(i.qty || 0), 0)) : (order.productName || 'an item');
 async function ownerEmailFor(store, settings) {
   if (settings.ownerEmail) return settings.ownerEmail;
   const { User } = await import('./models/index.js');
