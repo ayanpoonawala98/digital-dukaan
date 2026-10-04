@@ -1169,3 +1169,7 @@ footer { background:#101d15; }
   .enquiry-table td.row-actions::before { flex:0 0 100%; }
   .enquiry-table td.row-actions > small, .enquiry-table td.row-actions .error-text { flex:0 0 100%; text-align:left; }
 }
+@media (max-width:900px) {
+  .enquiry-table td.row-actions { gap:6px; }
+  .enquiry-table td.row-actions button, .enquiry-table td.row-actions .table-button { padding:7px 9px; font-size:12.5px; gap:4px; }
+}
