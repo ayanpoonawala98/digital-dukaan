@@ -178,13 +178,14 @@ function PayActions({ kind, order, token, storeId, staffMode }) {
   const paid = o.paymentStatus === 'paid', cancelled = o.status === 'cancelled';
   return <div className="pay-actions">
     {paid ? <span className="pay-badge paid">Paid online</span> : o.paymentStatus === 'created' ? <span className="pay-badge pending">Payment link sent</span> : o.paymentStatus === 'expired' ? <span className="pay-badge expired">Link expired</span> : null}
-    {!paid && !cancelled && <button type="button" className="table-button" disabled={!!busy} onClick={payLink} title="Create a Razorpay payment link (UPI, cards, netbanking) and send it on WhatsApp"><Busy active={busy === 'pay'}>{o.paymentStatus === 'created' ? 'Resend pay link' : 'Pay link'}</Busy></button>}
-    {o.paymentLinkId && !paid && <button type="button" className="table-button" disabled={!!busy} onClick={check}><Busy active={busy === 'check'}>Check payment</Busy></button>}
+    {!PAYMENTS_LOCKED && !paid && !cancelled && <button type="button" className="table-button" disabled={!!busy} onClick={payLink} title="Create a Razorpay payment link (UPI, cards, netbanking) and send it on WhatsApp"><Busy active={busy === 'pay'}>{o.paymentStatus === 'created' ? 'Resend pay link' : 'Pay link'}</Busy></button>}
+    {!PAYMENTS_LOCKED && o.paymentLinkId && !paid && <button type="button" className="table-button" disabled={!!busy} onClick={check}><Busy active={busy === 'check'}>Check payment</Busy></button>}
     {!cancelled && <button type="button" className="table-button" disabled={!!busy} onClick={bill} title="Send the customer a bill link on WhatsApp"><Busy active={busy === 'bill'}>Send bill</Busy></button>}
     {msg && <small className="error-text">{msg}</small>}
   </div>;
 }
 
+const PAYMENTS_LOCKED = true; // Razorpay payment links are locked (coming soon)
 function PaymentSettings({ token, storeId }) {
   const [open, setOpen] = useState(false);
   const [view, setView] = useState(null), [f, setF] = useState({ keyId: '', keySecret: '' }), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
@@ -196,14 +197,14 @@ function PaymentSettings({ token, storeId }) {
     <button type="button" className="accordion-head" aria-expanded={open} onClick={() => setOpen(o => !o)}><h3>Online payments (Razorpay)</h3><span className="accordion-chev" aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span></button>
     {open && <>
     <p className="muted">Let customers pay an order by UPI, card or netbanking through a payment link. The money goes to your own Razorpay account. Digital Shop never touches it.</p>
-    <div className="notify-row"><strong>Razorpay</strong><span className={`status-pill ${view.configured ? 'on' : 'off'}`}>{view.configured ? `Connected (${view.mode || 'keys saved'}) ${view.keyId}` : 'Not connected'}</span></div>
+    <div className="notify-row"><strong>Razorpay</strong><span className={`status-pill ${view.configured && !PAYMENTS_LOCKED ? 'on' : 'off'}`}>{PAYMENTS_LOCKED ? '\uD83D\uDD12 Coming soon' : view.configured ? `Connected (${view.mode || 'keys saved'}) ${view.keyId}` : 'Not connected'}</span></div>
     {view.mode === 'test' && view.configured && <p className="notice warn">These are TEST keys. Payments will not move real money. Use live keys when you are ready.</p>}
-    <form onSubmit={e => { e.preventDefault(); save({ keyId: f.keyId || undefined, keySecret: f.keySecret || undefined }, 'Razorpay connected'); }}>
-      <div className="notify-two"><label>Key ID<input value={f.keyId} onChange={e => setF({ ...f, keyId: e.target.value })} placeholder={view.configured ? `${view.keyId} saved` : 'rzp_live_xxxxxxxxxx'} autoComplete="off"/></label>
-        <label>Key Secret<input type="password" autoComplete="new-password" value={f.keySecret} onChange={e => setF({ ...f, keySecret: e.target.value })} placeholder={view.keySecretSaved ? '•••••••• saved. Type to replace' : 'Key Secret'}/></label></div>
+    <form onSubmit={e => { e.preventDefault(); if (PAYMENTS_LOCKED) return; save({ keyId: f.keyId || undefined, keySecret: f.keySecret || undefined }, 'Razorpay connected'); }}>
+      <div className="notify-two"><label>Key ID<input disabled={PAYMENTS_LOCKED} value={f.keyId} onChange={e => setF({ ...f, keyId: e.target.value })} placeholder={view.configured ? `${view.keyId} saved` : 'rzp_live_xxxxxxxxxx'} autoComplete="off"/></label>
+        <label>Key Secret<input disabled={PAYMENTS_LOCKED} type="password" autoComplete="new-password" value={f.keySecret} onChange={e => setF({ ...f, keySecret: e.target.value })} placeholder={view.keySecretSaved ? '•••••••• saved. Type to replace' : 'Key Secret'}/></label></div>
       {msg?.ok && <p className="notice success">{msg.ok}</p>}{msg?.error && <p className="notice error">{msg.error}</p>}
-      <div className="notify-actions"><button className="btn btn-green" disabled={busy || (!f.keyId && !f.keySecret)}><Busy active={busy}>Save and verify</Busy></button>
-        {view.configured && <button type="button" className="btn btn-outline" disabled={busy} onClick={() => save({ clear: true }, 'Razorpay disconnected')}>Disconnect</button>}</div>
+      <div className="notify-actions"><button className="btn btn-green" disabled={PAYMENTS_LOCKED || busy || (!f.keyId && !f.keySecret)}><Busy active={busy}>Save and verify</Busy></button>
+        {view.configured && <button type="button" className="btn btn-outline" disabled={PAYMENTS_LOCKED || busy} onClick={() => save({ clear: true }, 'Razorpay disconnected')}>Disconnect</button>}</div>
     </form>
     <p className="muted">Get the keys in your Razorpay Dashboard under Account &amp; Settings, then API keys. Razorpay charges its own fee per payment. Keys are encrypted and never shown again. After a customer pays, press Check payment on the order to confirm it.</p>
     </>}
