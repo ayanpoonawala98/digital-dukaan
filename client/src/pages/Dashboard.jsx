@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
 import { useAuth } from '../App.jsx';
+import LocationPicker from '../components/LocationPicker.jsx';
 import { api, download, imageSrc, inr } from '../lib/api.js';
 import { storeLink } from '../lib/store-domain.js';
 import { downloadStatusCreative } from '../lib/status-creative.js';
@@ -305,7 +306,8 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       bannerText: business.bannerText || '', bannerActive: Boolean(business.bannerActive), offerPopupActive: Boolean(business.offerPopupActive), offerPopupText: business.offerPopupText || '', offerPopupTitle: business.offerPopupTitle || '', offerPopupCtaText: business.offerPopupCtaText || '', offerPopupCtaUrl: business.offerPopupCtaUrl || '', offerPopupImageUrl: business.offerPopupImageUrl || '',
       isOpen: business.isOpen !== false, openingHours: business.openingHours || '', storeType: business.storeType || 'retail', tableCount: business.tableCount || 0,
       deliveryCharge: business.deliveryCharge ?? 0, freeDeliveryAbove: business.freeDeliveryAbove ?? '', minOrder: business.minOrder ?? 0,
-      accentColor: business.accentColor || '#0e9f6e', logoUrl: business.logoUrl || '', coverUrl: business.coverUrl || '', notifyImageUrl: business.notifyImageUrl || ''
+      accentColor: business.accentColor || '#0e9f6e', logoUrl: business.logoUrl || '', coverUrl: business.coverUrl || '', notifyImageUrl: business.notifyImageUrl || '',
+      latitude: business.latitude ?? '', longitude: business.longitude ?? '', area: business.area || '', pincode: business.pincode || '', listInDirectory: Boolean(business.listInDirectory), serviceRadiusKm: business.serviceRadiusKm ?? ''
     } : null);
   }, [business?.id]);
   if (!form) return <div className="dashboard-panel">Loading...</div>;
@@ -348,6 +350,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       {form.logoUrl && <div className="upload-preview"><img src={imageSrc(form.logoUrl)} alt="Logo preview"/><span>Logo ready</span></div>}
       <label>Default notification image (optional)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={uploadImage('notifyImageUrl')}/>{uploading === 'notifyImageUrl' && <small><span className="button-spinner"/>Uploading image...</small>}<small className="muted">Used in push notifications and WhatsApp order messages. If empty, your cover, then logo, is used.</small></label>
       {form.notifyImageUrl && <div className="upload-preview"><img src={imageSrc(form.notifyImageUrl)} alt="Notification image preview"/><span>Notification image ready</span><button type="button" className="btn btn-outline btn-small" onClick={() => set('notifyImageUrl', '')}>Remove</button></div>}
+      <LocationPicker form={form} set={set}/>
       <label>Cover photo<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!uploading} onChange={uploadImage('coverUrl')}/>{uploading === 'coverUrl' && <small><span className="button-spinner"/>Uploading cover...</small>}</label>
       {form.coverUrl && <div className="upload-preview"><img src={imageSrc(form.coverUrl)} alt="Cover preview"/><span>Cover ready</span></div>}
     </div>
