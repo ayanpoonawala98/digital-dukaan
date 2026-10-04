@@ -5,6 +5,7 @@ let ready;
 export function ensureRestaurantSchema() {
   if (!ready) ready = (async () => {
     await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"storeType\" varchar(20) NOT NULL DEFAULT 'retail'");
+    await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "notifyImageUrl" varchar(255) NOT NULL DEFAULT ''`);
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "tableCount" integer NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "deletedAt" timestamp with time zone');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "wasActiveBeforeDelete" boolean');
