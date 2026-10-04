@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard.jsx';
 import SuperAdmin from './pages/SuperAdmin.jsx';
 import { hostedStoreSlug } from './lib/store-domain.js';
 import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from './components/OrderTracking.jsx';
+import Nearby from './pages/Nearby.jsx';
 import Motion from './components/Motion.jsx';
 import Toasts from './components/Toasts.jsx';
 
@@ -32,6 +33,7 @@ export default function App() {
   return <ThemeProvider><AuthProvider><Toasts/><Motion/><Routes>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
+    <Route path="/near" element={<Nearby/>}/>
     <Route path="/signup" element={<ShopRequest/>}/>
     <Route path="/login" element={<Access mode="login"/>}/>
     <Route path="/store/:slug" element={<ShopPage/>}/>
