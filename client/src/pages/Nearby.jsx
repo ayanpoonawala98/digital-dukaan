@@ -34,7 +34,7 @@ function NearbyMap({ me, shops }) {
 }
 
 export default function Nearby() {
-  const [me, setMe] = useState(null), [q, setQ] = useState(''), [type, setType] = useState(''), [openNow, setOpenNow] = useState(false), [radius, setRadius] = useState(10), [view, setView] = useState('list');
+  const [me, setMe] = useState(null), [q, setQ] = useState(''), [type, setType] = useState(''), [openNow, setOpenNow] = useState(false), [radius, setRadius] = useState(25), [view, setView] = useState('list');
   const [shops, setShops] = useState(null), [busy, setBusy] = useState(false), [err, setErr] = useState('');
 
   useEffect(() => {
