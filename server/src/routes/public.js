@@ -299,7 +299,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const referral = await checkReferral(business.id, req.body?.referralCode);
   const delivery = business.freeDeliveryAbove !== null && subtotal >= business.freeDeliveryAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = Number((subtotal - discount + delivery).toFixed(2));
-  const lead = await Lead.create({ businessId: business.id, productId: null, productName: `${lines.reduce((s, l) => s + l.qty, 0)} items`, price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
+  const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   const url = whatsappCartUrl(business, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
