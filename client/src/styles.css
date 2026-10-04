@@ -1146,3 +1146,9 @@ footer { background:#101d15; }
 .push-prompt-inline .push-text { flex: 1 1 220px; min-width: 0; }
 .push-prompt-inline .push-text span { display: block; margin-top: 3px; font-size: 13px; color: var(--muted); line-height: 1.45; }
 .push-prompt-inline > button { flex: 0 0 auto; }
+
+.tracking-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; white-space: normal; text-align: left; }
+.tracking-actions .btn { flex: 0 1 auto; max-width: 100%; text-align: center; }
+.dashboard-panel small { overflow-wrap: anywhere; }
+.push-prompt-inline .btn-ghost { padding: 8px 14px; border: 1px solid var(--line); border-radius: 10px; font-weight: 700; font-size: 13px; }
+@media (max-width: 480px) { .push-prompt-inline > button { width: 100%; } .tracking-actions .btn { flex: 1 1 calc(50% - 8px); } }
