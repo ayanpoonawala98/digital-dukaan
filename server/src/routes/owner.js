@@ -347,10 +347,13 @@ r.get('/:storeId/leads/report.csv', wrap(async (req,res) => {
 
 // ---- Online payments (Razorpay payment links, owner's own keys) ----
 const apiBase = req => `${req.hostname === 'localhost' ? 'http' : 'https'}://${req.get('host')}`;
+const razorpayLocked = () => process.env.RAZORPAY_ENABLED !== 'true'; // online payments are locked until the owner enables them
+const assertPaymentsOpen = () => { if (razorpayLocked()) throw bad(403, 'Online payments are coming soon'); };
 const loadPayCreds = async store => decryptJson((await PaymentSecret.findByPk(store.id))?.payload);
 const orderModel = kind => (kind === 'leads' ? Lead : kind === 'restaurant-orders' ? RestaurantOrder : null);
-r.get('/:storeId/payments', ownerOnly, wrap(async (req, res) => res.json({ razorpay: paymentView(await loadPayCreds(req.store)) })));
+r.get('/:storeId/payments', ownerOnly, wrap(async (req, res) => res.json({ razorpay: { ...paymentView(await loadPayCreds(req.store)), locked: razorpayLocked() } })));
 r.put('/:storeId/payments', ownerOnly, wrap(async (req, res) => {
+  assertPaymentsOpen();
   let next; try { next = mergePaymentKeys(await loadPayCreds(req.store), req.body || {}); } catch (err) { throw bad(err.status || 500, err.message); }
   let payload; try { payload = encryptJson(next); } catch { throw bad(500, 'Saving keys is not available on this server yet'); }
   if (req.body?.verify !== false && next.keyId && next.keySecret) { try { await verifyKeys(next); } catch (err) { throw bad(err.status || 502, err.message); } }
@@ -358,6 +361,7 @@ r.put('/:storeId/payments', ownerOnly, wrap(async (req, res) => {
   res.json({ razorpay: paymentView(next) });
 }));
 r.post('/:storeId/:kind(leads|restaurant-orders)/:id/payment-link', ownerOnly, wrap(async (req, res) => {
+  assertPaymentsOpen();
   const Model = orderModel(req.params.kind), order = await Model.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
   if (!order) throw bad(404, 'Order not found');
   if (order.status === 'cancelled') throw bad(400, 'This order is cancelled');
@@ -370,6 +374,7 @@ r.post('/:storeId/:kind(leads|restaurant-orders)/:id/payment-link', ownerOnly, w
   res.status(201).json({ order, url: link.url, whatsappUrl: payWhatsapp(req.store, order) });
 }));
 r.post('/:storeId/:kind(leads|restaurant-orders)/:id/payment-link/refresh', ownerOnly, wrap(async (req, res) => {
+  assertPaymentsOpen();
   const Model = orderModel(req.params.kind), order = await Model.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
   if (!order || !order.paymentLinkId) throw bad(404, 'No payment link on this order');
   const st = await fetchPaymentLink(await loadPayCreds(req.store), order.paymentLinkId).catch(err => { throw bad(err.status || 502, err.message); });
