@@ -1141,3 +1141,8 @@ footer { background:#101d15; }
 .notify-two label input { height: 46px; box-sizing: border-box; }
 .notify-settings .notify-row { align-items: center; min-height: 36px; }
 .accordion-panel + *:not(.accordion-panel) { margin-top: 18px; }
+
+.push-prompt-inline { position: static; margin-top: 16px; max-width: none; flex-wrap: wrap; justify-content: space-between; }
+.push-prompt-inline .push-text { flex: 1 1 220px; min-width: 0; }
+.push-prompt-inline .push-text span { display: block; margin-top: 3px; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.push-prompt-inline > button { flex: 0 0 auto; }
