@@ -232,7 +232,8 @@ async function handleWebhook(req, res, kind) {
   if (!c) return res.sendStatus(404);
   let creds; try { creds = credsOf(c); } catch { return res.sendStatus(503); }
   const a = adapters[c.provider];
-  if (!a.verify(req, creds, c, kind)) return res.sendStatus(403);
+  if (!a.verify(req, creds, c, kind)) { console.warn(`[byo-webhook] ${c.provider} ${kind || 'inbound'} rejected: bad signature (shop ${c.businessId}, has-signature=${Boolean(req.header('x-twilio-signature'))})`); return res.sendStatus(403); }
+  console.log(`[byo-webhook] ${c.provider} ${kind || 'inbound'} accepted (shop ${c.businessId})`);
   const parsed = a.parse(req);
   if (kind === 'status') await processInbound(c, { messages: [], statuses: parsed.statuses }); // delivery updates only, kept even when the shop is OFF
   else await processInbound(c, c.enabled ? parsed : { messages: [], statuses: parsed.statuses });
