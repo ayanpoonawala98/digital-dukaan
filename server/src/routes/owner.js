@@ -574,7 +574,7 @@ r.post('/:storeId/import/vyapar', wrap(async (req, res) => {
       const source = `vyapar:${req.store.id}:${invNo}`;
       if (await Lead.findOne({ where: { businessId: bid(req), source } })) { result.skipped += 1; continue; }
       const total = invoice.items.reduce((sum, i) => sum + i.qty * i.price, 0);
-      const lead = await Lead.create({ businessId: bid(req), productId: null, productName: `${invoice.items.reduce((s, i) => s + i.qty, 0)} items`, price: total, items: invoice.items, status: 'delivered', source });
+      const lead = await Lead.create({ businessId: bid(req), productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(invoice.items.reduce((s, i) => s + i.qty, 0)), price: total, items: invoice.items, status: 'delivered', source });
       if (invoice.date) await lead.update({ createdAt: invoice.date });
       result.created += 1;
     }
