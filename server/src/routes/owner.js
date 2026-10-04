@@ -173,7 +173,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -196,6 +196,7 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   const ctaText = changes.offerPopupCtaText ?? req.store.offerPopupCtaText;
   const ctaUrl = changes.offerPopupCtaUrl ?? req.store.offerPopupCtaUrl;
   if (!!ctaText?.trim() !== !!ctaUrl?.trim()) throw bad(400, 'Provide both a button label and its link, or leave both blank');
+  if (changes.notifyImageUrl !== undefined && changes.notifyImageUrl && (typeof changes.notifyImageUrl !== 'string' || !/^https:\/\/ik\.imagekit\.io\//.test(changes.notifyImageUrl) || changes.notifyImageUrl.length > 255)) throw bad(400, 'Use an uploaded image');
   if (changes.offerPopupImageUrl !== undefined && changes.offerPopupImageUrl && (!/^https:\/\/ik\.imagekit\.io\//.test(changes.offerPopupImageUrl) || changes.offerPopupImageUrl.length > 255)) throw bad(400, 'Use an ImageKit image');
   for (const key of ['bannerActive', 'offerPopupActive', 'isOpen']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
   if (changes.accentColor !== undefined && !/^$|^#[0-9a-fA-F]{6}$/.test(changes.accentColor)) throw bad(400, 'Accent color must be a hex color like #0e9f6e');
@@ -453,7 +454,7 @@ r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
 
 
 // Customers opt in from their private tracking page or My Orders; the store-wide broadcast flow is untouched.
-const pushImage = store => [store?.coverUrl, store?.logoUrl].find(u => /^https:\/\/[^\s]+$/.test(String(u || ''))) || '';
+const pushImage = (store, own = '') => [/^https:\/\/ik\.imagekit\.io\/[^\s]{1,200}$/.test(String(own || '')) ? own : '', store?.notifyImageUrl, store?.coverUrl, store?.logoUrl].find(u => /^https:\/\/[^\s]+$/.test(String(u || ''))) || '';
 async function notifyOrderSubscribers(store, kind, order) {
   const label = flowFor(kind === 'restaurant' ? 'restaurant' : store.storeType).push[order.status];
   if (!label || !process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) return;
@@ -617,7 +618,7 @@ r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
   const bodyText = String(req.body.body || '').trim().slice(0, 200);
   if (!title || !bodyText) throw bad(400, 'Title and message required');
   const subs = await PushSubscription.findAll({ where: { businessId: bid(req) } });
-  const payload = JSON.stringify({ title, body: bodyText, url: `/store/${req.store.slug}`, ...(pushImage(req.store) ? { image: pushImage(req.store) } : {}) });
+  const payload = JSON.stringify({ title, body: bodyText, url: `/store/${req.store.slug}`, ...(pushImage(req.store, req.body.image) ? { image: pushImage(req.store, req.body.image) } : {}) });
   let sent = 0, gone = 0;
   await Promise.all(subs.map(async sub => {
     try {
