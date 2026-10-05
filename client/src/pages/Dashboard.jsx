@@ -389,7 +389,7 @@ export default function Dashboard() {
   const [categoryEdit, setCategoryEdit] = useState(null), [categoryName, setCategoryName] = useState('');
   const [stores, setStores] = useState([]), [storeId, setStoreId] = useState(''), [deletedStores, setDeletedStores] = useState([]), [restoreSlug, setRestoreSlug] = useState({});
   const [newStore, setNewStore] = useState({ name: '', slug: '', whatsapp: '', storeType: 'retail', tableCount: 0 });
-  const [notify, setNotify] = useState({ title: '', body: '' }), [notifyImg, setNotifyImg] = useState(''), [notifyImgBusy, setNotifyImgBusy] = useState(false), [notifyResult, setNotifyResult] = useState('');
+  const [notify, setNotify] = useState({ title: '', body: '', link: '', productId: '' }), [notifyImg, setNotifyImg] = useState(''), [notifyImgBusy, setNotifyImgBusy] = useState(false), [notifyResult, setNotifyResult] = useState('');
   const [broadcastText, setBroadcastText] = useState(''), [broadcastRecipients, setBroadcastRecipients] = useState('');
   const [broadcastImageUrl, setBroadcastImageUrl] = useState(''), [broadcastImageBusy, setBroadcastImageBusy] = useState(false);
   const selectedStoreRef = React.useRef(storeId); selectedStoreRef.current = storeId;
@@ -493,8 +493,8 @@ export default function Dashboard() {
   const sendBroadcast = e => {
     e.preventDefault();
     action(async () => {
-      const result = await api(`/owner/${storeId}/push-broadcast`, { method: 'POST', token, body: { ...notify, ...(notifyImg ? { image: notifyImg } : {}) } });
-      setNotify({ title: '', body: '' }); setNotifyImg('');
+      const result = await api(`/owner/${storeId}/push-broadcast`, { method: 'POST', token, body: { title: notify.title, body: notify.body, ...(notify.link.trim() ? { link: notify.link.trim() } : notify.productId ? { productId: notify.productId } : {}), ...(notifyImg ? { image: notifyImg } : {}) } });
+      setNotify({ title: '', body: '', link: '', productId: '' }); setNotifyImg('');
       setNotifyResult(`Sent to ${result.sent} subscriber${result.sent === 1 ? '' : 's'}${result.gone ? `, removed ${result.gone} expired` : ''}.`);
     });
   };
@@ -566,6 +566,8 @@ export default function Dashboard() {
         <form onSubmit={sendBroadcast} className="notify-form">
           <label>Title<input value={notify.title} onChange={e => setNotify({ ...notify, title: e.target.value })} placeholder="Fresh stock arrived!" maxLength={80} required/></label>
           <label>Message<textarea rows="3" value={notify.body} onChange={e => setNotify({ ...notify, body: e.target.value })} placeholder="Basmati rice back in stock. Order now on WhatsApp!" maxLength={200} required/></label>
+          <label>Open this product (optional)<select value={notify.productId} disabled={Boolean(notify.link.trim())} onChange={e => setNotify({ ...notify, productId: e.target.value })}><option value="">Shop home page</option>{products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></label>
+          <label>Or paste a link (optional)<input type="url" inputMode="url" value={notify.link} onChange={e => setNotify({ ...notify, link: e.target.value })} placeholder={`https://digitalshop.website/store/${data?.business?.slug || 'your-shop'}/product/12`} maxLength={300}/><small className="muted">Tapping the notification opens this page. Links must be pages of this shop.</small></label>
           <label>Image (optional)<input type="file" accept="image/jpeg,image/png,image/webp" disabled={notifyImgBusy} onChange={async e => { const file = e.target.files?.[0]; e.target.value = ''; if (!file) return; if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 5 * 1024 * 1024) { setError('Choose a JPEG, PNG or WebP image under 5 MB'); return; } setNotifyImgBusy(true); setError(''); try { const body = new FormData(); body.append('image', file); const r = await api(`/owner/${storeId}/upload`, { method: 'POST', token, body }); if (!/^https:\/\/ik\.imagekit\.io\//.test(r.imageUrl || '')) throw Error('Image hosting is unavailable. Try again later.'); setNotifyImg(r.imageUrl); } catch (err) { setError(err.message); } finally { setNotifyImgBusy(false); } }}/><small className="muted">If you skip it, your default notification image, cover or logo is used.</small></label>
           {notifyImgBusy && <small><span className="button-spinner"/>Uploading image...</small>}
           {notifyImg && <div className="upload-preview"><img src={imageSrc(notifyImg)} alt="Notification image preview"/><span>Image ready</span><button type="button" className="btn btn-outline btn-small" onClick={() => setNotifyImg('')}>Remove</button></div>}
