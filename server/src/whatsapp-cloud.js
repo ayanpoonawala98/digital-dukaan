@@ -99,7 +99,7 @@ export async function sendCloudTemplate(to, name, lang, params, fetcher = fetch,
   const components = params?.length ? [{ type: 'body', parameters: params.map(text => ({ type: 'text', text: String(text).slice(0, 1024) })) }] : [];
   const result = await fetcher(`https://graph.facebook.com/${process.env.WHATSAPP_GRAPH_VERSION}/${connection.phoneNumberId}/messages`, { method: 'POST', headers: { authorization: `Bearer ${connectionToken(connection)}`, 'content-type': 'application/json' }, body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to, type: 'template', template: { name, language: { code: lang || 'en' }, components } }), signal: AbortSignal.timeout(15000) });
   const body = await result.json().catch(() => ({}));
-  if (!result.ok || !body.messages?.[0]?.id) { const err = bad(502, 'Meta did not accept the template'); err.metaCode = body.error?.code; throw err; }
+  if (!result.ok || !body.messages?.[0]?.id) { const err = bad(502, 'Meta did not accept the template'); err.metaCode = body.error?.code; console.error('[wa-template]', name, lang || 'en', body.error?.code, body.error?.error_data?.details || body.error?.message || ''); throw err; }
   return body.messages[0].id;
 }
 const canSend = connection => Boolean(connection) && enabled() && process.env.WHATSAPP_OUTBOUND_ENABLED === 'true' && /^v\d+\.0$/.test(process.env.WHATSAPP_GRAPH_VERSION || '');
@@ -149,7 +149,8 @@ export async function notifyNewOrderWhatsApp(store, lead, fetcher = fetch) {
   try {
     if (!orderBotEnabledFor(store.id)) return false;
     const ref = `DD-${lead.id}`, items = itemsText(lead), total = `Rs.${Number(lead.price || 0).toFixed(2)}`;
-    const owner = String(store.notifySettings?.ownerPhone || '').replace(/\D/g, '');
+    let owner = String(store.notifySettings?.ownerPhone || '').replace(/\D/g, '');
+    if (owner.length === 10) owner = `91${owner}`; else if (owner.length === 11 && owner.startsWith('0')) owner = `91${owner.slice(1)}`;
     const jobs = [];
     if (owner) jobs.push(botSend(store, owner, `New order ${ref} at ${store.name}: ${items}, ${total}. Open your dashboard to review it.`, `bot:alert:${store.id}:${lead.id}`, 'WHATSAPP_TEMPLATE_ORDER_ALERT', [ref, items, total], fetcher));
     const cust = String(lead.customerPhone || '').replace(/\D/g, '');
