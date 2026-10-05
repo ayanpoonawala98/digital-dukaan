@@ -631,13 +631,31 @@ r.get('/:storeId/export/vyapar.csv', wrap(async (req, res) => {
 r.get('/:storeId/push-subscribers', wrap(async (req, res) => {
   res.json({ subscribers: await PushSubscription.count({ where: { businessId: bid(req) } }) });
 }));
+const pushLink = (store, raw) => {
+  const text = String(raw || '').trim();
+  if (!text) return '';
+  const base = (process.env.CLIENT_URL || '').split(',').map(u => u.trim()).filter(Boolean);
+  const hosts = new Set([...base.map(u => { try { return new URL(u).host; } catch { return ''; } }), 'digitalshop.website', 'www.digitalshop.website']);
+  let url;
+  try { url = new URL(text, 'https://digitalshop.website'); } catch { throw bad(400, 'Link is not valid'); }
+  const own = `/store/${store.slug}`;
+  const ok = ['https:', 'http:'].includes(url.protocol) && (/^\//.test(text) || hosts.has(url.host) || url.host.endsWith('.digitaldukaan.space')) && (url.pathname === own || url.pathname.startsWith(`${own}/`));
+  if (!ok) throw bad(400, 'Link must open a page of this shop');
+  return `${url.pathname}${url.search}`.slice(0, 300);
+};
 r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
   if (!process.env.VAPID_PUBLIC_KEY || !process.env.VAPID_PRIVATE_KEY) throw bad(500, 'Push notifications are not configured');
   const title = String(req.body.title || '').trim().slice(0, 80);
   const bodyText = String(req.body.body || '').trim().slice(0, 200);
   if (!title || !bodyText) throw bad(400, 'Title and message required');
+  let target = pushLink(req.store, req.body.link);
+  if (!target && req.body.productId) {
+    const product = await Product.findOne({ where: { id: numId(req.body.productId), businessId: bid(req) } });
+    if (!product) throw bad(400, 'Product not found in this shop');
+    target = `/store/${req.store.slug}/product/${product.id}`;
+  }
   const subs = await PushSubscription.findAll({ where: { businessId: bid(req) } });
-  const payload = JSON.stringify({ title, body: bodyText, url: `/store/${req.store.slug}`, ...(pushImage(req.store, req.body.image) ? { image: pushImage(req.store, req.body.image) } : {}) });
+  const payload = JSON.stringify({ title, body: bodyText, url: target || `/store/${req.store.slug}`, ...(pushImage(req.store, req.body.image) ? { image: pushImage(req.store, req.body.image) } : {}) });
   let sent = 0, gone = 0;
   await Promise.all(subs.map(async sub => {
     try {
