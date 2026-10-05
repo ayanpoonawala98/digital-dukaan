@@ -33,7 +33,7 @@ function urlB64ToUint8Array(base64String) {
 function PushPrompt({ slug, business }) {
   const [state, setState] = useState('hidden');
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || Notification.permission !== 'default') return;
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || Notification.permission !== 'default') return;
     if (localStorage.getItem(`dd-push-dismissed-${slug}`)) return;
     const t = setTimeout(async () => {
       try {
