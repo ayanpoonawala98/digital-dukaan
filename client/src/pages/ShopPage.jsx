@@ -1,3 +1,4 @@
+import ClosedBanner, { hoursLabel } from '../components/ClosedBanner.jsx';
 import { notify } from '../lib/notifications.js';
 import { useFeedbackState } from '../components/Toasts.jsx';
 import { storeThemeStyle } from '../lib/store-theme.js';
@@ -134,7 +135,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   return <div className="drawer-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <aside className="drawer anim-slide">
       <div className="drawer-head"><h3><ShoppingBag size={20}/> {t('cartTitle')} {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}</h3><button className="icon-btn" onClick={onClose} aria-label="Close cart"><X size={20}/></button></div>
-      {!business.isOpen && <p className="notice warn"><Clock size={15}/> The shop is closed right now. You can still send your order - it will be confirmed when the shop opens.</p>}
+      {!business.isOpen && <p className="notice warn"><Clock size={15}/> {business.blocksOrders ? 'The shop is closed right now and is not taking orders.' : 'The shop is closed right now. You can still send your order - it will be confirmed when the shop opens.'}</p>}
       {!cart.items.length ? <div className="empty-state"><ShoppingBag size={36}/><h3>{t('cartEmpty')}</h3><p>{t('cartEmptyHint')}</p><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>{t('myOrders')}</Link></div> : <>
         <div className="drawer-items">
           {cart.items.map(item => <div className="cart-row" key={item.id}>
@@ -159,7 +160,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
         {couponCode && <p className="drawer-hint">The shop verifies the code before opening WhatsApp. Total above does not include a possible discount.</p>}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}
         {error && <p className="notice error">{error}</p>}
-        <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered)} onClick={checkout}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
+        <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered) || business.blocksOrders} onClick={checkout}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
         <p className="drawer-hint">{t('noCharge')}</p>
       </>}
     </aside>
@@ -256,13 +257,14 @@ export default function ShopPage({ hostedSlug }) {
   const { business, categories } = shop;
   return <div className="shop-root page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
     <Header shop={slug}/>
+    <ClosedBanner business={business}/>
     {business.bannerActive && business.bannerText && <div className="offer-banner"><div className="offer-track"><span>{business.bannerText}</span><span aria-hidden="true">{business.bannerText}</span></div></div>}
     <main>
       <div className="store-banner" style={business.coverUrl ? { backgroundImage: `linear-gradient(rgba(20,18,14,.55), rgba(20,18,14,.72)), url(${imageSrc(business.coverUrl)})` } : undefined}>
         <div className="container">
           <div className="store-identity">
             {business.logoUrl && <img className="store-logo" src={imageSrc(business.logoUrl)} alt={`${business.name} logo`}/>}
-            <span className={`open-pill ${business.isOpen ? 'open' : 'closed'}`}><Clock size={14}/> {business.isOpen ? 'Open now' : 'Closed'}{business.openingHours ? ` · ${business.openingHours}` : ''}</span>
+            <span className={`open-pill ${business.isOpen ? 'open' : 'closed'}`}><Clock size={14}/> {business.isOpen ? 'Open now' : 'Closed'}{hoursLabel(business) ? ` · ${hoursLabel(business)}` : ''}</span>
           </div>
           <h1>{business.name}<span>.</span></h1>
           <p>{business.description || t('tagline')}</p>
