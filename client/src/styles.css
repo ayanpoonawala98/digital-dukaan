@@ -1191,3 +1191,9 @@ footer { background:#101d15; }
 .closed-banner span { font-size: 14px; opacity: .95; }
 .closed-banner svg { flex: none; }
 @media (max-width: 560px) { .closed-banner { padding: 14px 16px; gap: 10px; } .closed-banner strong { font-size: 18px; } }
+
+@media (max-width: 560px) {
+  .admin-top > span { flex: 1 1 0; min-width: 0; }
+  .admin-top .store-switcher { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
+  .admin-profile { flex: none; }
+}
