@@ -36,6 +36,7 @@ export const Business = sequelize.define('Business', {
   offerPopupCtaUrl: { type: DataTypes.STRING(500), defaultValue: '' },
   offerPopupImageUrl: { type: DataTypes.STRING, defaultValue: '' },
   isOpen: { type: DataTypes.BOOLEAN, defaultValue: true },
+  blockWhenClosed: { type: DataTypes.BOOLEAN, allowNull: true },
   autoHours: { type: DataTypes.BOOLEAN, defaultValue: false },
   openTime: { type: DataTypes.STRING(5), defaultValue: '' },
   closeTime: { type: DataTypes.STRING(5), defaultValue: '' },
