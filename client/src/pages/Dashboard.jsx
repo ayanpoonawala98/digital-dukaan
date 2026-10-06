@@ -334,7 +334,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
   const BASE = import.meta.env.VITE_API_URL || '';
   return <div><form onSubmit={submit} className="settings-grid">
     <div className="dashboard-panel settings-panel">
-      <h3>Business details</h3><label>Store type<select value={form.storeType} onChange={e => setForm(f => ({ ...f, storeType: e.target.value, tableCount: e.target.value === 'restaurant' && !f.tableCount ? 1 : f.tableCount }))}><option value="retail">Retail / kirana</option><option value="restaurant">Restaurant</option><option value="services">Services</option></select></label>{form.storeType === 'restaurant' && <label>Number of tables<input type="number" min="1" max="100" value={form.tableCount} onChange={e => set('tableCount', Number(e.target.value))} required/></label>}
+      <h3>Business details</h3><label>Store type<select value={form.storeType} onChange={e => setForm(f => ({ ...f, storeType: e.target.value, blockWhenClosed: e.target.value === 'restaurant' && f.storeType !== 'restaurant' ? true : f.blockWhenClosed, tableCount: e.target.value === 'restaurant' && !f.tableCount ? 1 : f.tableCount }))}><option value="retail">Retail / kirana</option><option value="restaurant">Restaurant</option><option value="services">Services</option></select></label>{form.storeType === 'restaurant' && <label>Number of tables<input type="number" min="1" max="100" value={form.tableCount} onChange={e => set('tableCount', Number(e.target.value))} required/></label>}
 
       <label>Shop name<input value={form.name} onChange={e => set('name', e.target.value)} required/></label>
       <label>Short description<textarea rows="3" value={form.description} onChange={e => set('description', e.target.value)}/></label>
