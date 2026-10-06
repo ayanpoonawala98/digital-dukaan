@@ -1184,3 +1184,10 @@ footer { background:#101d15; }
   .orders-table td.row-actions button, .orders-table td.row-actions .table-button { padding:7px 10px; font-size:12.5px; gap:4px; }
   .orders-table td.row-actions .error-text { flex:0 0 100%; text-align:left; }
 }
+
+.closed-banner { display: flex; align-items: center; justify-content: center; gap: 14px; padding: 16px 20px; background: #b3261e; color: #fff; text-align: left; }
+.closed-banner div { display: flex; flex-direction: column; gap: 3px; max-width: 720px; }
+.closed-banner strong { font-size: 20px; line-height: 1.2; }
+.closed-banner span { font-size: 14px; opacity: .95; }
+.closed-banner svg { flex: none; }
+@media (max-width: 560px) { .closed-banner { padding: 14px 16px; gap: 10px; } .closed-banner strong { font-size: 18px; } }
