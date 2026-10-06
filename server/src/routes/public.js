@@ -1,4 +1,4 @@
-import { publicBusiness, effectiveOpen } from '../hours.js';
+import { publicBusiness, effectiveOpen, blocksOrders } from '../hours.js';
 import { Router } from 'express';
 import { haversineKm } from '../utils/geo.js';
 import jwt from 'jsonwebtoken';
@@ -84,6 +84,7 @@ r.get('/stores/:slug', storefrontCache, wrap(async (req, res) => {
 
 r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
+  if (blocksOrders(business)) throw bad(409, 'The shop is closed right now and is not taking orders. Please try again when it opens.');
   if (business.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
   const { orderType, tableNumber, customerName, customerPhone, deliveryAddress } = req.body || {};
   if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
@@ -265,6 +266,7 @@ const optionalContact = body => {
 };
 r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
+  if (blocksOrders(business)) throw bad(409, 'The shop is closed right now and is not taking orders. Please try again when it opens.');
   if (business.storeType === 'restaurant') throw bad(400, 'Order from the menu instead');
   const id = numId(req.params.id);
   const product = id && await Product.findOne({ where: { id, businessId: business.id, active: true } });
@@ -281,6 +283,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
 
 r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
+  if (blocksOrders(business)) throw bad(409, 'The shop is closed right now and is not taking orders. Please try again when it opens.');
   if (business.storeType === 'restaurant') throw bad(400, 'Order from the menu instead');
   const raw = Array.isArray(req.body.items) ? req.body.items.slice(0, 50) : [];
   if (!raw.length) throw bad(400, 'Your cart is empty');
