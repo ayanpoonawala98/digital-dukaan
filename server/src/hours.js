@@ -16,7 +16,9 @@ export function effectiveOpen(b, date = new Date()) {
   if (!b.autoHours) return true;
   return withinHours(b.openTime, b.closeTime, nowMinutesIST(date));
 }
+// Hard close: no orders while closed. Defaults to on for restaurants, off for other shops.
+export const blocksOrders = (b, date = new Date()) => !effectiveOpen(b, date) && (b.blockWhenClosed ?? b.storeType === 'restaurant');
 export function publicBusiness(b, date = new Date()) {
   const json = typeof b.toJSON === 'function' ? b.toJSON() : { ...b };
-  return { ...json, isOpen: effectiveOpen(b, date) };
+  return { ...json, isOpen: effectiveOpen(b, date), blocksOrders: blocksOrders(b, date) };
 }
