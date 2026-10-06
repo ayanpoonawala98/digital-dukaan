@@ -15,3 +15,13 @@ test('manual close wins, auto off ignores times', () => {
   assert.equal(effectiveOpen({ isOpen: true, autoHours: true, openTime: '09:00', closeTime: '21:00' }, noon), true);
   assert.equal(effectiveOpen({ isOpen: true, autoHours: false, openTime: '13:00', closeTime: '21:00' }, noon), true);
 });
+import { blocksOrders } from './hours.js';
+test('hard close defaults by store type and can be overridden', () => {
+  const noon = new Date('2026-10-06T06:30:00Z');
+  const closed = { isOpen: false };
+  assert.equal(blocksOrders({ ...closed, storeType: 'restaurant' }, noon), true);
+  assert.equal(blocksOrders({ ...closed, storeType: 'retail' }, noon), false);
+  assert.equal(blocksOrders({ ...closed, storeType: 'restaurant', blockWhenClosed: false }, noon), false);
+  assert.equal(blocksOrders({ ...closed, storeType: 'retail', blockWhenClosed: true }, noon), true);
+  assert.equal(blocksOrders({ isOpen: true, storeType: 'restaurant', blockWhenClosed: true }, noon), false);
+});
