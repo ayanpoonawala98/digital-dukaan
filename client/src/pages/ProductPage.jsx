@@ -1,3 +1,4 @@
+import ClosedBanner from '../components/ClosedBanner.jsx';
 import { notify } from '../lib/notifications.js';
 import { useFeedbackState } from '../components/Toasts.jsx';
 import { storeThemeStyle } from '../lib/store-theme.js';
@@ -14,7 +15,7 @@ import { Footer, Header } from '../components/chrome.jsx';
 import { CustomFieldInputs, missingRequired } from '../components/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 
-function BuyButton({ slug, id, qty, fields, answers, children }) {
+function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [contact, setContact] = useContact();
   const buy = async () => {
     const missing = missingRequired(fields, answers);
@@ -27,7 +28,7 @@ function BuyButton({ slug, id, qty, fields, answers, children }) {
       if (tab) tab.location.href = url; else window.location.href = url;
     } catch (e) { if (tab) tab.close(); setError(e.message); } finally { setBusy(false); }
   };
-  return <><ContactFields contact={contact} onChange={setContact}/><button onClick={buy} disabled={busy} className="btn btn-green">{busy ? 'Opening...' : children || 'Buy on WhatsApp'} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{error}</small>}</>;
+  return <><ContactFields contact={contact} onChange={setContact}/><button onClick={buy} disabled={busy || blocked} className="btn btn-green">{busy ? 'Opening...' : children || 'Buy on WhatsApp'} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{error}</small>}</>;
 }
 
 export default function ProductPage({ hostedSlug }) {
@@ -46,6 +47,7 @@ export default function ProductPage({ hostedSlug }) {
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
   return <div className="page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
     <Header shop={slug}/>
+    <ClosedBanner business={business}/>
     <main className="detail-wrap"><div className="container">
       <div className="breadcrumbs"><Link to={storePath(slug)}>{business.name}</Link><span>/</span><span>{product.category?.name || 'Products'}</span><span>/</span><span>{product.name}</span></div>
       <div className="detail-grid">
@@ -56,11 +58,11 @@ export default function ProductPage({ hostedSlug }) {
           <p className="detail-price">{inr(product.price)}</p>
           <div className="detail-line"/>
           <p className="detail-description">{product.description || (restaurant ? 'Freshly prepared for you.' : 'A lovely find from our collection. Message us to know more.')}</p>
-          {!business.isOpen && <p className="notice warn"><Clock size={15}/> {business.name} is closed right now. Your order will be confirmed when the shop opens{business.openingHours ? ` (${business.openingHours})` : ''}.</p>}
+          {!business.isOpen && !business.blocksOrders && <p className="notice warn"><Clock size={15}/> {business.name} is closed right now. Your order will be confirmed when the shop opens{business.openingHours ? ` (${business.openingHours})` : ''}.</p>}
           {!out && <div className="qty-row"><span>Quantity</span><div className="qty-stepper"><button onClick={() => setQtyState(Math.max(1, qty - 1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{qty}</span><button onClick={() => setQtyState(product.stock !== null ? Math.min(product.stock, qty + 1) : qty + 1)} aria-label="Increase quantity"><Plus size={14}/></button></div></div>}
           {!out && !restaurant && <CustomFieldInputs fields={product.customFields} answers={answers} onChange={setAnswers}/>}
           <div className="detail-actions">
-            {!out && !restaurant && <BuyButton slug={slug} id={id} qty={qty} fields={product.customFields} answers={answers}>{isService ? 'Book on WhatsApp' : undefined}</BuyButton>}
+            {!out && !restaurant && <BuyButton slug={slug} id={id} qty={qty} fields={product.customFields} answers={answers} blocked={business.blocksOrders}>{isService ? 'Book on WhatsApp' : undefined}</BuyButton>}
             {!out && <button className="btn btn-outline" onClick={() => { const m = missingRequired(product.customFields, answers); if (!restaurant && m.length) { notify('error', `Please answer: ${m.map(f => f.label).join(', ')}`); return; } cart.add(product, qty, answers); }}><ShoppingBag size={17}/> {restaurant ? 'Add to order' : isService ? 'Add to booking' : 'Add to cart'}</button>}
             <button className={`icon-btn heart-lg ${wishlist.has(product.id) ? 'active' : ''}`} onClick={() => wishlist.toggle(product.id)} aria-label="Save to favorites"><Heart size={19}/></button>
           </div>
