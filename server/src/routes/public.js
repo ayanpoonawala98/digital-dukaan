@@ -10,7 +10,7 @@ import { isLocked } from '../feature-locks.js';
 import { notifyNewOrder } from '../notify.js';
 import { validateAnswers } from '../custom-fields.js';
 import { invoiceSigValid, streamBill } from '../invoice.js';
-import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike } from '../utils/core.js';
+import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike, clientBase } from '../utils/core.js';
 import { orderBotEnabledFor, withOrderRef } from '../whatsapp-orders.js';
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../whatsapp-byo.js';
 import { notifyShopRequest } from '../platform-alerts.js';
@@ -19,7 +19,7 @@ const r = Router();
 const storefrontCache = (req, res, next) => { res.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=10'); next(); };
 const shop = async slug => { const b = await Business.findOne({ where: { slug, active: true, deletedAt: null } }); if (!b) throw bad(404, 'Shop not found'); return b; };
 const numId = value => { const n = Number(value); return Number.isInteger(n) && n > 0 ? n : null; };
-const shopUrl = slug => process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(slug) : `${(process.env.CLIENT_URL || '').split(',')[0].replace(/\/$/, '')}/store/${slug}`;
+const shopUrl = slug => process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(slug) : `${clientBase()}/store/${slug}`;
 const categoryInclude = { model: Category, as: 'category', attributes: ['name', 'slug'] };
 const applyCoupon = async (business, subtotal, code) => {
   if (!code) return { discount: 0, code: null };
