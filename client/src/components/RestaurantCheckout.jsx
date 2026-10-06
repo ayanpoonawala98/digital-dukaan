@@ -23,6 +23,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   useEffect(() => { if (open) { setError(''); setPlaced(null); } }, [open]);
   const submit = async e => {
     e.preventDefault(); if (busy || !cart.items.length) return;
+    if (business.blocksOrders) { setError('The shop is closed right now and is not taking orders.'); return; }
     setBusy(true); setError('');
     try {
       const result = await api(`/public/stores/${slug}/restaurant-orders`, { method: 'POST', body: {
@@ -54,7 +55,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             <div className="drawer-totals"><div className="grand"><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div></div>
             {orderType === 'delivery' && <p className="drawer-hint">Delivery fee and payment are arranged with the restaurant. Nothing is charged here.</p>}
             {error && <p className="notice error" role="alert">{error}</p>}
-            <button className="btn btn-green full" disabled={busy}><Busy active={busy}>{busy ? 'Placing...' : t('submit')}</Busy><ArrowRight size={17}/></button>
+            <button className="btn btn-green full" disabled={busy || business.blocksOrders}><Busy active={busy}>{busy ? 'Placing...' : t('submit')}</Busy><ArrowRight size={17}/></button>
             <p className="drawer-hint">Your order goes to the restaurant's dashboard. No payment is taken online.</p>
           </form>
         </>}
