@@ -29,3 +29,8 @@ export function publicImageUrl(url, apiBase) {
 }
 export const bad = (status, message) => Object.assign(new Error(message), { status });
 export const wrap = fn => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
+// Public base URL for customer-facing links. Skips *.netlify.app preview hosts so shared links show the real domain.
+export const clientBase = () => {
+  const list = (process.env.CLIENT_URL || '').split(',').map(u => u.trim().replace(/\/$/, '')).filter(Boolean);
+  return list.find(u => /^https?:\/\//.test(u) && !/\.netlify\.app$/i.test(u.replace(/^https?:\/\//, '').split('/')[0])) || 'https://digitalshop.website';
+};
