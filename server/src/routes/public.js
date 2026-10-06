@@ -90,7 +90,9 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
   const table = Number(tableNumber);
   if (orderType === 'dine-in' && (!Number.isInteger(table) || table < 1 || table > business.tableCount)) throw bad(400, 'Select a valid table number');
-  if (orderType !== 'dine-in' && (typeof customerName !== 'string' || !customerName.trim() || customerName.trim().length > 100 || typeof customerPhone !== 'string' || !/^[+\d()\s-]{8,25}$/.test(customerPhone.trim()))) throw bad(400, 'Name and phone number required');
+  if (orderType !== 'dine-in' && (typeof customerName !== 'string' || !customerName.trim() || customerName.trim().length > 100)) throw bad(400, 'Please enter your name');
+  if (orderType !== 'dine-in' && (typeof customerPhone !== 'string' || !customerPhone.trim())) throw bad(400, 'Please enter your phone number');
+  if (orderType !== 'dine-in' && !/^[+\d()\s-]{8,25}$/.test(customerPhone.trim())) throw bad(400, 'Phone number looks wrong. Use digits only, 8 to 15 digits, with country code');
   if (orderType === 'delivery' && (typeof deliveryAddress !== 'string' || !deliveryAddress.trim() || deliveryAddress.trim().length > 500)) throw bad(400, 'Delivery address required');
   const raw = req.body?.items;
   if (!Array.isArray(raw) || raw.length < 1 || raw.length > 50) throw bad(400, 'Select items');
