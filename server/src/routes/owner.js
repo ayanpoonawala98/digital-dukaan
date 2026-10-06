@@ -174,7 +174,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -224,7 +224,7 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
     const ot = changes.openTime !== undefined ? changes.openTime : req.store.openTime, ct = changes.closeTime !== undefined ? changes.closeTime : req.store.closeTime;
     if (!TIME_RE.test(String(ot || '')) || !TIME_RE.test(String(ct || ''))) throw bad(400, 'Set both opening and closing time for automatic hours');
   }
-  for (const key of ['bannerActive', 'offerPopupActive', 'isOpen', 'autoHours']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
+  for (const key of ['bannerActive', 'offerPopupActive', 'isOpen', 'autoHours', 'blockWhenClosed']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
   if (changes.accentColor !== undefined && !/^$|^#[0-9a-fA-F]{6}$/.test(changes.accentColor)) throw bad(400, 'Accent color must be a hex color like #0e9f6e');
   if (changes.upiId !== undefined) changes.upiId = String(changes.upiId || '').slice(0, 60);
   if (changes.gstin !== undefined) {
