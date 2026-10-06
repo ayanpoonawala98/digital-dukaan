@@ -22,7 +22,7 @@ import { validateProductRows } from '../product-import.js';
 import { insights } from '../sales-insights.js';
 import { dateWhere, dateWindow, summarize, ordersCsv, csvCell as reportCell } from '../reporting.js';
 import { auth, roles } from '../middleware/auth.js';
-import { bad, slugify, validEmail, validPhone, validPrice, wrap } from '../utils/core.js';
+import { bad, slugify, validEmail, validPhone, validPrice, wrap, clientBase } from '../utils/core.js';
 
 const r = Router();
 import { restoreDeadline } from '../retention.js';
@@ -355,7 +355,7 @@ const orderPage = async (req, Model, kind) => {
 };
 r.get('/:storeId/shop-qr.pdf', wrap(async(req,res)=>{
   // Same canonical URL helper as public storefront QR; no guessed hostname.
-  const url = process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(req.store.slug) : `${(process.env.CLIENT_URL || '').split(',')[0].replace(/\/$/, '')}/store/${req.store.slug}`;
+  const url = process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(req.store.slug) : `${clientBase()}/store/${req.store.slug}`;
   if(!/^https?:\/\//.test(url)) throw bad(503,'Shop link is not configured. Kindly contact admin.');
   const png=await QRCode.toBuffer(url,{type:'png',width:1024,margin:4,errorCorrectionLevel:'H'});
   const doc=new PDFDocument({size:'A4',margin:50});
@@ -681,7 +681,7 @@ r.post('/:storeId/referrals', ownerOnly, wrap(async (req, res) => {
   if (!validPhone(phone)) throw bad(400, 'Referrer phone needs a country code');
   const code = `FR${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`;
   const referral = await Referral.create({ businessId: bid(req), code, referrerPhone:phone, status:'pending' });
-  res.status(201).json({ referral, shareUrl:`${process.env.STORE_SUBDOMAINS_READY === 'true' ? 'https://' + storeDomain(req.store.slug) : (process.env.CLIENT_URL || '').split(',')[0].replace(/\/$/, '') + '/store/' + req.store.slug}?ref=${code}` });
+  res.status(201).json({ referral, shareUrl:`${process.env.STORE_SUBDOMAINS_READY === 'true' ? 'https://' + storeDomain(req.store.slug) : clientBase() + '/store/' + req.store.slug}?ref=${code}` });
 }));
 r.post('/:storeId/referrals/:id/confirm', ownerOnly, wrap(async (req, res) => {
   const referral = await Referral.findOne({ where:{ id:numId(req.params.id), businessId:bid(req), status:'pending' } });
