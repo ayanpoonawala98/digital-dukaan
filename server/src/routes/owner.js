@@ -1,3 +1,4 @@
+import { TIME_RE } from '../hours.js';
 import { Router } from 'express';
 import multer from 'multer';
 import path from 'node:path';
@@ -173,7 +174,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -217,7 +218,13 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   if (changes.latitude !== undefined || changes.longitude !== undefined) { const laN = (changes.latitude !== undefined ? changes.latitude : req.store.latitude) == null, loN = (changes.longitude !== undefined ? changes.longitude : req.store.longitude) == null; if (laN !== loN) throw bad(400, 'Set both latitude and longitude, or clear both'); }
   if (changes.notifyImageUrl !== undefined && changes.notifyImageUrl && (typeof changes.notifyImageUrl !== 'string' || !/^https:\/\/ik\.imagekit\.io\//.test(changes.notifyImageUrl) || changes.notifyImageUrl.length > 255)) throw bad(400, 'Use an uploaded image');
   if (changes.offerPopupImageUrl !== undefined && changes.offerPopupImageUrl && (!/^https:\/\/ik\.imagekit\.io\//.test(changes.offerPopupImageUrl) || changes.offerPopupImageUrl.length > 255)) throw bad(400, 'Use an ImageKit image');
-  for (const key of ['bannerActive', 'offerPopupActive', 'isOpen']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
+  if (changes.openTime !== undefined && changes.openTime !== '' && !TIME_RE.test(String(changes.openTime))) throw bad(400, 'Opening time must look like 09:00');
+  if (changes.closeTime !== undefined && changes.closeTime !== '' && !TIME_RE.test(String(changes.closeTime))) throw bad(400, 'Closing time must look like 21:00');
+  if (changes.autoHours) {
+    const ot = changes.openTime !== undefined ? changes.openTime : req.store.openTime, ct = changes.closeTime !== undefined ? changes.closeTime : req.store.closeTime;
+    if (!TIME_RE.test(String(ot || '')) || !TIME_RE.test(String(ct || ''))) throw bad(400, 'Set both opening and closing time for automatic hours');
+  }
+  for (const key of ['bannerActive', 'offerPopupActive', 'isOpen', 'autoHours']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
   if (changes.accentColor !== undefined && !/^$|^#[0-9a-fA-F]{6}$/.test(changes.accentColor)) throw bad(400, 'Accent color must be a hex color like #0e9f6e');
   if (changes.upiId !== undefined) changes.upiId = String(changes.upiId || '').slice(0, 60);
   if (changes.gstin !== undefined) {
