@@ -1,3 +1,4 @@
+import { publicBusiness, effectiveOpen } from '../hours.js';
 import { Router } from 'express';
 import { haversineKm } from '../utils/geo.js';
 import jwt from 'jsonwebtoken';
@@ -58,9 +59,9 @@ r.post('/nearby', wrap(async (req, res) => {
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180 || req.body?.lat === '' || req.body?.lng === '') throw bad(400, 'Location is not valid');
   const radius = Math.min(100, Math.max(1, Number(req.body?.radiusKm) || 25));
   const type = ['retail', 'restaurant', 'services'].includes(req.body?.type) ? req.body.type : null;
-  const rows = await Business.findAll({ where: { active: true, deletedAt: null, listInDirectory: true, latitude: { [Op.ne]: null }, longitude: { [Op.ne]: null }, ...(type ? { storeType: type } : {}) }, attributes: ['name', 'slug', 'description', 'logoUrl', 'coverUrl', 'storeType', 'area', 'pincode', 'isOpen', 'latitude', 'longitude', 'serviceRadiusKm', 'createdAt'] });
+  const rows = await Business.findAll({ where: { active: true, deletedAt: null, listInDirectory: true, latitude: { [Op.ne]: null }, longitude: { [Op.ne]: null }, ...(type ? { storeType: type } : {}) }, attributes: ['name', 'slug', 'description', 'logoUrl', 'coverUrl', 'storeType', 'area', 'pincode', 'isOpen', 'autoHours', 'openTime', 'closeTime', 'latitude', 'longitude', 'serviceRadiusKm', 'createdAt'] });
   const now = Date.now();
-  let shops = rows.map(b => { const d = haversineKm(lat, lng, b.latitude, b.longitude); return { name: b.name, slug: b.slug, description: (b.description || '').slice(0, 120), logoUrl: b.logoUrl || '', coverUrl: b.coverUrl || '', storeType: b.storeType, area: b.area || '', pincode: b.pincode || '', isOpen: b.isOpen !== false, latitude: b.latitude, longitude: b.longitude, distanceKm: Number(d.toFixed(1)), deliversToYou: b.serviceRadiusKm ? d <= b.serviceRadiusKm : null, serviceRadiusKm: b.serviceRadiusKm, isNew: now - new Date(b.createdAt).getTime() < 14 * 86400000, _d: d }; }).filter(s => s._d <= radius);
+  let shops = rows.map(b => { const d = haversineKm(lat, lng, b.latitude, b.longitude); return { name: b.name, slug: b.slug, description: (b.description || '').slice(0, 120), logoUrl: b.logoUrl || '', coverUrl: b.coverUrl || '', storeType: b.storeType, area: b.area || '', pincode: b.pincode || '', isOpen: effectiveOpen(b), latitude: b.latitude, longitude: b.longitude, distanceKm: Number(d.toFixed(1)), deliversToYou: b.serviceRadiusKm ? d <= b.serviceRadiusKm : null, serviceRadiusKm: b.serviceRadiusKm, isNew: now - new Date(b.createdAt).getTime() < 14 * 86400000, _d: d }; }).filter(s => s._d <= radius);
   if (req.body?.openNow === true) shops = shops.filter(s => s.isOpen);
   shops.sort((a, b) => a._d - b._d); res.set('Cache-Control', 'no-store');
   res.json({ shops: shops.slice(0, 60).map(({ _d, ...s }) => s), radiusKm: radius });
@@ -78,7 +79,7 @@ r.get('/stores/:slug', storefrontCache, wrap(async (req, res) => {
   // subscription and enquiry endpoints continue to reject it through shop().
   if (!business.active) return res.json({ paused: true, business: { name: business.name, slug: business.slug }, categories: [] });
   const categories = await Category.findAll({ where: { businessId: business.id }, order: [['name', 'ASC']] });
-  res.json({ business, categories });
+  res.json({ business: publicBusiness(business), categories });
 }));
 
 r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
@@ -253,7 +254,7 @@ r.get('/stores/:slug/products/:id', wrap(async (req, res) => {
   const id = numId(req.params.id);
   const product = id && await Product.findOne({ where: { id, businessId: business.id, active: true }, include: [categoryInclude] });
   if (!product) throw bad(404, 'Product not found');
-  res.json({ business, product });
+  res.json({ business: publicBusiness(business), product });
 }));
 
 const optionalContact = body => {
