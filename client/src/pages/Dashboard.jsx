@@ -304,7 +304,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       name: business.name, description: business.description || '', location: business.location || '', whatsapp: business.whatsapp,
       gstin: business.gstin || '', upiId: business.upiId || '',
       bannerText: business.bannerText || '', bannerActive: Boolean(business.bannerActive), offerPopupActive: Boolean(business.offerPopupActive), offerPopupText: business.offerPopupText || '', offerPopupTitle: business.offerPopupTitle || '', offerPopupCtaText: business.offerPopupCtaText || '', offerPopupCtaUrl: business.offerPopupCtaUrl || '', offerPopupImageUrl: business.offerPopupImageUrl || '',
-      isOpen: business.isOpen !== false, openingHours: business.openingHours || '', storeType: business.storeType || 'retail', tableCount: business.tableCount || 0,
+      isOpen: business.isOpen !== false, autoHours: Boolean(business.autoHours), blockWhenClosed: business.blockWhenClosed ?? business.storeType === 'restaurant', openTime: business.openTime || '09:00', closeTime: business.closeTime || '21:00', openingHours: business.openingHours || '', storeType: business.storeType || 'retail', tableCount: business.tableCount || 0,
       deliveryCharge: business.deliveryCharge ?? 0, freeDeliveryAbove: business.freeDeliveryAbove ?? '', minOrder: business.minOrder ?? 0,
       accentColor: business.accentColor || '#0e9f6e', logoUrl: business.logoUrl || '', coverUrl: business.coverUrl || '', notifyImageUrl: business.notifyImageUrl || '',
       latitude: business.latitude ?? '', longitude: business.longitude ?? '', area: business.area || '', pincode: business.pincode || '', listInDirectory: Boolean(business.listInDirectory), serviceRadiusKm: business.serviceRadiusKm ?? ''
@@ -365,8 +365,12 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
     </div>
     <div className="dashboard-panel settings-panel">
       <h3>Business hours</h3>
-      <label className="check-label"><input type="checkbox" checked={form.isOpen} onChange={e => set('isOpen', e.target.checked)}/> Shop is open now</label>
-      <label>Opening hours <small>(shown next to the open/closed badge)</small><input value={form.openingHours} onChange={e => set('openingHours', e.target.value)} placeholder="8:00 AM - 10:00 PM"/></label>
+      <label className="check-label"><input type="checkbox" checked={form.isOpen} onChange={e => set('isOpen', e.target.checked)}/> Shop is open <small>(untick to close the shop right now, whatever the hours)</small></label>
+      <label className="check-label"><input type="checkbox" checked={form.autoHours} onChange={e => set('autoHours', e.target.checked)}/> Open and close automatically by time <small>(Indian time)</small></label>
+      {form.autoHours && <div className="form-row"><label>Opens at<input type="time" value={form.openTime} onChange={e => set('openTime', e.target.value)} required/></label><label>Closes at<input type="time" value={form.closeTime} onChange={e => set('closeTime', e.target.value)} required/></label></div>}
+      {form.autoHours && <p className="muted">Customers see Open between these times and a big Closed banner outside them. A closing time earlier than the opening time means the shop stays open past midnight.</p>}
+      <label className="check-label"><input type="checkbox" checked={form.blockWhenClosed} onChange={e => set('blockWhenClosed', e.target.checked)}/> No orders while the shop is closed <small>(on: customers cannot order when closed, good for restaurants. off: they can still send an order that you confirm when you open)</small></label>
+      <label>Opening hours note <small>(optional text, shown if automatic hours are off)</small><input value={form.openingHours} onChange={e => set('openingHours', e.target.value)} placeholder="8:00 AM - 10:00 PM"/></label>
       <h3>Shop QR code</h3>
       <div className="qr-inline"><img src={`${BASE}/api/public/stores/${business.slug}/qr`} alt="Shop QR code"/><div><p className="muted">Print this and stick it on your counter - customers scan it to open your shop.</p><a className="btn btn-outline btn-small" href={`${BASE}/api/public/stores/${business.slug}/qr`} download={`${business.slug}-qr.svg`}><Download size={15}/> Download QR</a></div></div>
     </div>
