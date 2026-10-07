@@ -1229,3 +1229,8 @@ footer { background:#101d15; }
 @keyframes notifyBreathe { 50% { transform:translateY(-4px); box-shadow:0 8px 24px #0004; } }
 @media(max-width:480px) { .storefront-notify-popup { left:16px; right:16px; max-width:none; bottom:20px; } .notify-fab { left:16px; bottom:20px; } }
 @media(prefers-reduced-motion:reduce) { .notify-fab,.storefront-notify-popup { animation:none; } }
+
+.store-header-brand { min-width:0; max-width:65%; gap:10px; }
+.header-store-logo { width:40px; height:40px; border-radius:10px; object-fit:contain; background:var(--card); flex-shrink:0; }
+.header-store-name { font-size:18px; font-weight:800; line-height:1.2; overflow-wrap:anywhere; }
+@media(max-width:600px) { .store-header-brand { max-width:calc(100% - 110px); } .header-store-name { font-size:14px; } .header-store-logo { width:34px; height:34px; } }
