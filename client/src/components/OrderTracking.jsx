@@ -11,7 +11,9 @@ function StatusSteps({ kind, storeType, status }) {
   const flow = flowFor(kind, storeType);
   if (status === 'cancelled') return <p className="notice error" role="status">Cancelled</p>;
   const at = flow.steps.findIndex(([k]) => k === status);
-  return <ol className="order-steps" aria-label="Order progress" style={{ listStyle: 'none', display: 'flex', gap: 8, flexWrap: 'wrap', padding: 0, margin: '8px 0' }}>{flow.steps.map(([s, label], i) => <li key={s} aria-current={i === at ? 'step' : undefined} style={{ padding: '4px 10px', borderRadius: 999, border: '1px solid currentColor', opacity: i <= at ? 1 : .45, fontWeight: i === at ? 700 : 400 }}>{i < at ? '✓ ' : ''}{label}</li>)}</ol>;
+  return <div className="order-progress"><div className="order-current"><span className="order-live-dot"/><span>Current status</span><strong>{statusLabel(flow, status)}</strong><small>{at >= 0 ? `Step ${at + 1} of ${flow.steps.length}` : 'Status updated'}</small></div>
+    <ol className="order-stepper" aria-label="Order progress">{flow.steps.map(([s, label], i) => <li key={s} className={i < at ? 'complete' : i === at ? 'active' : 'upcoming'} aria-current={i === at ? 'step' : undefined}><span className="step-mark" aria-hidden="true">{i < at ? '✓' : i + 1}</span><span className="step-label">{label}<small>{i < at ? 'Done' : i === at ? 'Now' : 'Next'}</small></span></li>)}</ol>
+  </div>;
 }
 
 function OrderBody({ order }) {
