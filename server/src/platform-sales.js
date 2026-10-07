@@ -35,7 +35,8 @@ export async function platformSales(query={}) {
   dateWindow(query);const numeric=v=>{if(!v)return null;const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw bad(400,'Choose a valid store or owner');return n;};
   const storeId=numeric(query.storeId),ownerId=numeric(query.ownerId);
   const storeWhere={...(storeId?{id:storeId}:{}),...(ownerId?{ownerId}:{})};
-  const stores=await Business.findAll({where:storeWhere,attributes:['id','name','slug','ownerId','storeType','deletedAt'],raw:true});
+  const allStores=await Business.findAll({attributes:['id','name','slug','ownerId','storeType','deletedAt'],raw:true});
+  const stores=allStores.filter(s=>(!storeId||s.id===storeId)&&(!ownerId||s.ownerId===ownerId));
   const owners=await User.findAll({where:{role:'owner'},attributes:['id','name','email'],raw:true});
   const ids=stores.map(s=>s.id),where={businessId:{[Op.in]:ids},...dateWhere(query,Op)};
   const counts=await Promise.all([Lead.count({where}),RestaurantOrder.count({where})]);
@@ -43,7 +44,7 @@ export async function platformSales(query={}) {
   await ensureCommissionSchema();
   const attrs=['id','businessId','createdAt','status','items','paymentStatus'];
   const [leads,orders,rules]=await Promise.all([Lead.findAll({where,attributes:[...attrs,'price','productName'],raw:true}),RestaurantOrder.findAll({where,attributes:[...attrs,'total'],raw:true}),CommissionRule.findAll({where:{businessId:{[Op.in]:ids}},raw:true})]);
-  return {...aggregateSales(stores,owners,leads,orders,rules),owners,from:query.from||null,to:query.to||null,timezone:'Asia/Kolkata',caveat:'Recorded sales = delivered/completed retail or service orders and served restaurant orders. Dates use order creation in IST, not payment date. Pending WhatsApp requests are not sales. Product values are before discounts/delivery. Commission is an estimate on recorded order totals (including delivery, after discounts), not an invoice, verified payment, or automatic charge.'};
+  return {...aggregateSales(stores,owners,leads,orders,rules),owners,allStores,from:query.from||null,to:query.to||null,timezone:'Asia/Kolkata',caveat:'Recorded sales = delivered/completed retail or service orders and served restaurant orders. Dates use order creation in IST, not payment date. Pending WhatsApp requests are not sales. Product values are before discounts/delivery. Commission is an estimate on recorded order totals (including delivery, after discounts), not an invoice, verified payment, or automatic charge.'};
 }
 export function salesCsv(r) {
  const rows=[['Platform recorded sales / commission estimate'],['From IST',r.from||'All time'],['Through IST',r.to||'All time'],['Basis',r.caveat],[],['Store','Owner','Completed orders','Recorded sales INR','Paid flag INR','Pending requests','Pending value INR','Cancelled','Commission estimate INR'],...r.stores.map(s=>[s.name,s.ownerName,s.completed,s.sales,s.paidSales,s.requests,s.pendingValue,s.cancelled,s.commission]),[],['Store','Product','Units completed','Item value before discounts/delivery INR'],...r.products.map(p=>[p.storeName,p.name,p.units,p.itemValue]),[],['IST date','Recorded sales INR','Orders','Commission estimate INR'],...r.daily.map(d=>[d.date,d.sales,d.orders,d.commission])];
