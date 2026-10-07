@@ -138,7 +138,7 @@ function LeadRow({ lead, token, storeId, storeType, onChanged }) {
   };
   const items = Array.isArray(lead.items) && lead.items.length ? lead.items : null;
   return <tr>
-    <td data-label="Order"><strong>{String(lead.productName || '').replace(/^1 items$/, '1 item')}</strong>{items && <small className="lead-items">{items.map(i => `${i.qty} × ${i.name}${i.answers?.length ? ` (${i.answers.map(a => `${a.label}: ${a.value}`).join(', ')})` : ''}`).join(', ')}</small>}</td>
+    <td data-label="Order"><small>Order #{lead.orderNumber ?? lead.id}</small><strong>{String(lead.productName || '').replace(/^1 items$/, '1 item')}</strong>{items && <small className="lead-items">{items.map(i => `${i.qty} × ${i.name}${i.answers?.length ? ` (${i.answers.map(a => `${a.label}: ${a.value}`).join(', ')})` : ''}`).join(', ')}</small>}</td>
     <td data-label="Total">{inr(lead.price)}</td>
     <td data-label="When">{new Date(lead.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
     <td data-label="Customer no."><input className="phone-input" value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => phone !== (lead.customerPhone || '') && save(status, false)} placeholder="Customer no." aria-label="Customer WhatsApp number"/></td>
@@ -609,4 +609,4 @@ export default function Dashboard() {
   </div>
   {editing && <ProductModal categories={categories} product={editing} busy={busy} onClose={() => setEditing(null)} onSave={saveProduct}/>}
   </AdminShell>;
-}
+                                                                                                                                                                                                                                                     }
