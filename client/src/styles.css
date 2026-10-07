@@ -1196,4 +1196,23 @@ footer { background:#101d15; }
   .admin-top > span { flex: 1 1 0; min-width: 0; }
   .admin-top .store-switcher { width: 100%; max-width: 100%; min-width: 0; text-overflow: ellipsis; }
   .admin-profile { flex: none; }
-  }
+}
+
+.storefront-notify { max-width: 1180px; margin: 16px auto 28px; padding: 18px 22px; }
+.order-progress { margin: 20px 0 28px; }
+.order-current { display:flex; align-items:center; gap:10px; flex-wrap:wrap; background:var(--accent); color:#fff; padding:16px 18px; border-radius:14px; }
+.order-current strong { font-size:20px; }
+.order-current small { margin-left:auto; opacity:.9; }
+.order-live-dot { width:9px; height:9px; border-radius:50%; background:#fff; box-shadow:0 0 0 5px #ffffff25; animation:orderPulse 2s ease-in-out infinite; }
+.order-stepper { list-style:none; margin:18px 0 0; padding:0; display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+.order-stepper li { display:flex; gap:10px; padding:13px 12px; border-radius:12px; border:1px solid var(--line); background:var(--card); align-items:center; }
+.order-stepper .step-mark { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:var(--line); flex-shrink:0; font-weight:700; }
+.order-stepper .step-label { font-weight:600; font-size:13px; }
+.order-stepper small { display:block; font-size:11px; color:var(--muted); margin-top:3px; }
+.order-stepper li.active { border:2px solid var(--accent); background:color-mix(in srgb,var(--accent) 10%,var(--card)); }
+.order-stepper li.active .step-mark,.order-stepper li.complete .step-mark { background:var(--accent); color:#fff; }
+.order-stepper li.active small { color:var(--accent-ink); font-weight:800; }
+.order-stepper li.upcoming { color:var(--muted); }
+@keyframes orderPulse { 50% { box-shadow:0 0 0 8px #ffffff10; } }
+@media(max-width:600px) { .order-stepper { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; } .order-stepper li { padding:12px 9px; } .order-current small { width:100%; margin-left:19px; } .storefront-notify { margin:14px 16px 24px; } }
+@media(prefers-reduced-motion:reduce) { .order-live-dot { animation:none; } }
