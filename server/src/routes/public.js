@@ -114,7 +114,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   void notifyNewOrder(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
-  res.status(201).json({ orderId: order.id, status: order.status, subtotal, discount, total, trackingToken });
+  res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, total, trackingToken });
 }));
 
 const TRACKING_KINDS = { 'restaurant-orders': { kind: 'restaurant', model: () => RestaurantOrder, allowed: b => b.storeType === 'restaurant' }, 'lead-orders': { kind: 'lead', model: () => Lead, allowed: b => b.storeType !== 'restaurant' } };
@@ -130,8 +130,8 @@ const bearer = req => req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
 const trackingPath = (slug, kind, id, token) => `/store/${slug}/order/${kind === 'lead' ? 'lead/' : ''}${id}#token=${token}`;
 // No customer PII is returned from any tracking read.
 const serializeOrder = (kind, o) => kind === 'restaurant'
-  ? { id: o.id, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, items: o.items, subtotal: o.subtotal, discount: o.discount, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
-  : { id: o.id, kind, status: o.status, items: Array.isArray(o.items) && o.items.length ? o.items.map(i => ({ name: i.name, qty: i.qty, price: i.price })) : [{ name: o.productName, qty: 1, price: o.price }], discount: o.discount, total: o.price, createdAt: o.createdAt };
+  ? { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, items: o.items, subtotal: o.subtotal, discount: o.discount, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
+  : { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, items: Array.isArray(o.items) && o.items.length ? o.items.map(i => ({ name: i.name, qty: i.qty, price: i.price })) : [{ name: o.productName, qty: 1, price: o.price }], discount: o.discount, total: o.price, createdAt: o.createdAt };
 const trackedBusiness = async (slug, cfg, access) => {
   // A paused store may still have outstanding orders; deleted stores remain private.
   const business = await Business.findOne({ where: { slug, deletedAt: null } });
@@ -280,7 +280,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
   const waUrl = whatsappUrl(business, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
-  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total: product.price } });
+  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: product.price } });
 }));
 
 r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
@@ -311,7 +311,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const url = whatsappCartUrl(business, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
   const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
   res.set('Cache-Control', 'no-store');
-  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(finalUrl.toString(), lead.id) : finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, token: signTracking('lead', lead.id, business.id), total } });
+  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(finalUrl.toString(), lead.id) : finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total } });
 }));
 
 r.get('/bill/:kind(lead|restaurant)/:id/:sig', wrap(async (req, res) => {
