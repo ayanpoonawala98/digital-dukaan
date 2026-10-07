@@ -1,3 +1,4 @@
+import {campaignPublicRoutes} from '../campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../hours.js';
 import { Router } from 'express';
 import { haversineKm } from '../utils/geo.js';
@@ -15,6 +16,7 @@ import { orderBotEnabledFor, withOrderRef } from '../whatsapp-orders.js';
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../whatsapp-byo.js';
 import { notifyShopRequest } from '../platform-alerts.js';
 const r = Router();
+r.use(campaignPublicRoutes);
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
 const storefrontCache = (req, res, next) => { res.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=10'); next(); };
 const shop = async slug => { const b = await Business.findOne({ where: { slug, active: true, deletedAt: null } }); if (!b) throw bad(404, 'Shop not found'); return b; };
@@ -110,7 +112,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
   const referral = await checkReferral(business.id, req.body?.referralCode);
   const total = Number((subtotal - discount).toFixed(2));
-  const order = await RestaurantOrder.create({ businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: orderType === 'dine-in' ? null : customerName.trim(), customerPhone: orderType === 'dine-in' ? null : customerPhone.trim(), deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
+  const order = await RestaurantOrder.create({ businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
   void notifyNewOrder(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
@@ -264,7 +266,10 @@ const optionalContact = body => {
   const name = typeof body?.customerName === 'string' ? body.customerName.trim().slice(0, 100) : '';
   const phone = typeof body?.customerPhone === 'string' ? body.customerPhone.trim() : '';
   if (phone && !/^[+\d()\s-]{8,25}$/.test(phone)) throw bad(400, 'Enter a valid phone number or leave it blank');
-  return { customerName: name, customerPhone: phone };
+  const email=typeof body?.customerEmail==='string'?body.customerEmail.trim().toLowerCase():'';
+  if(email&&(email.length>160||!validEmail(email)))throw bad(400,'Enter a valid email or leave it blank');
+  if(body?.customerEmailConsent===true&&!email)throw bad(400,'Add an email for order updates');
+  return { customerName: name, customerPhone: phone, customerEmail:email, customerEmailConsent:body?.customerEmailConsent===true };
 };
 r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
