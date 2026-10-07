@@ -119,7 +119,7 @@ export async function notifyNewOrder(store, kind, order, deps0) {
     if (!s.ownerEmailAlerts && !s.ownerSmsAlerts && !s.customerSms) return [];
     const deps = await resolveDeps(store, deps0);
     if (!deps.providers.email && !deps.providers.sms) return [];
-    const label = kind === 'restaurant' ? `order #${order.id}` : `enquiry #${order.id}`;
+    const label = kind === 'restaurant' ? `order #${order.orderNumber ?? order.id}` : `enquiry #${order.orderNumber ?? order.id}`;
     const who = order.customerName || order.customerPhone ? ` from ${[order.customerName, order.customerPhone].filter(Boolean).join(' ')}` : '';
     const line = `New ${label} at ${store.name}${who}: ${summary(kind, order)}, ${rs(order.price ?? order.total)}.`;
     const jobs = [];
@@ -135,7 +135,7 @@ export async function notifyStatusChange(store, kind, order, statusText, deps0, 
     if (!s.customerSms || !order.customerPhone || !statusText) return [];
     const deps = await resolveDeps(store, deps0);
     if (!deps.providers.sms) return [];
-    return [await sendSms({ to: order.customerPhone, text: `${store.name}: your order #${order.id} is ${statusText}.${billLink ? ` Bill: ${billLink}` : ''}`, store: store.name }, deps)];
+    return [await sendSms({ to: order.customerPhone, text: `${store.name}: your order #${order.orderNumber ?? order.id} is ${statusText}.${billLink ? ` Bill: ${billLink}` : ''}`, store: store.name }, deps)];
   } catch (err) { console.error('Status notification failed', err.message); return []; }
 }
 export async function saveSettings(store, input) {
