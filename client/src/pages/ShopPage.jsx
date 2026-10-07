@@ -12,7 +12,7 @@ import { translate } from '../lib/i18n.js';
 import { CustomFieldInputs, missingRequired } from '../components/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 import RestaurantCheckout from '../components/RestaurantCheckout.jsx';
-import { saveOrder } from '../lib/my-orders.js';
+import { saveOrder, pushSupported, currentBrowserSubscription, subscribeBrowser } from '../lib/my-orders.js';
 import { useCart, useOrders, useWishlist } from '../lib/shop.js';
 import { Footer, Header } from '../components/chrome.jsx';
 import LoadSkeleton from '../components/LoadSkeleton.jsx';
@@ -32,39 +32,38 @@ function urlB64ToUint8Array(base64String) {
 }
 
 function PushPrompt({ slug, business }) {
-  const [state, setState] = useState('hidden');
+  const [state, setState] = useState('loading'), [error, setError] = useState('');
+  const supported = pushSupported();
   useEffect(() => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window) || Notification.permission !== 'default') return;
-    if (localStorage.getItem(`dd-push-dismissed-${slug}`)) return;
-    const t = setTimeout(async () => {
-      try {
-        const { vapidPublicKey } = await api(`/public/stores/${slug}/push-key`);
-        if (vapidPublicKey) setState('ask');
-      } catch {}
-    }, 6000);
-    return () => clearTimeout(t);
-  }, [slug]);
+    let active = true;
+    setError(''); setState('loading');
+    if (!supported) { setState('unsupported'); return; }
+    if (Notification.permission === 'denied') { setState('denied'); return; }
+    currentBrowserSubscription().then(sub => {
+      if (!active) return;
+      let saved = ''; try { saved = localStorage.getItem(`dd-store-push-${slug}`); } catch {}
+      setState(sub && saved === sub.endpoint ? 'on' : 'ask');
+    });
+    return () => { active = false; };
+  }, [slug, supported]);
   const subscribe = async () => {
+    setError(''); setState('busy');
     try {
-      const { vapidPublicKey } = await api(`/public/stores/${slug}/push-key`);
-      const reg = await navigator.serviceWorker.register('/sw.js');
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') return setState('hidden');
-      const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8Array(vapidPublicKey) });
-      const json = sub.toJSON();
-      await api(`/public/stores/${slug}/push-subscription`, { method: 'POST', body: { endpoint: json.endpoint, keys: json.keys } });
-      setState('done');
-      setTimeout(() => setState('hidden'), 3000);
-    } catch { setState('hidden'); }
+      const sub = await subscribeBrowser(slug);
+      await api(`/public/stores/${encodeURIComponent(slug)}/push-subscription`, { method: 'POST', body: { endpoint: sub.endpoint, keys: sub.keys } });
+      try { localStorage.setItem(`dd-store-push-${slug}`, sub.endpoint); } catch {}
+      setState('on');
+    } catch (err) {
+      setState(Notification.permission === 'denied' ? 'denied' : 'ask');
+      setError(err.message || 'Could not enable notifications. Try again.');
+    }
   };
-  const dismiss = () => { localStorage.setItem(`dd-push-dismissed-${slug}`, '1'); setState('hidden'); };
-  if (state === 'hidden') return null;
-  return <div className="push-prompt anim-up">
-    {state === 'done'
-      ? <><Bell size={20}/><div><strong>You're subscribed!</strong><p>We'll ping you about new stock and offers from {business.name}.</p></div></>
-      : <><Bell size={20}/><div><strong>Never miss fresh stock</strong><p>Get offers and new arrivals from {business.name} as notifications.</p></div>
-        <div className="push-actions"><button className="btn btn-green btn-small" onClick={subscribe}>Notify me</button><button className="btn-ghost" onClick={dismiss}>Not now</button></div></>}
-  </div>;
+  return <section className="push-prompt push-prompt-inline storefront-notify" aria-label="Shop notifications">
+    <Bell size={20}/><div className="push-text"><strong>{state === 'on' ? 'Shop notifications on' : 'Stay updated with this shop'}</strong>
+    <span>{state === 'unsupported' ? 'Open in Chrome on Android, or add this shop to your iPhone home screen and open the app, to enable notifications.' : state === 'denied' ? 'Notifications are blocked. Allow them for this site in your browser settings, then reload.' : state === 'on' ? `Offers and new arrivals from ${business.name} will appear as browser notifications.` : `Get offers and new arrivals from ${business.name}.`}</span>
+    {error && <span role="alert">{error}</span>}</div>
+    <button type="button" className="btn btn-green btn-small" onClick={subscribe} disabled={['loading','busy','unsupported','denied','on'].includes(state)}>{state === 'on' ? 'Notifications on' : state === 'busy' ? 'Turning on...' : state === 'loading' ? 'Checking...' : state === 'denied' ? 'Blocked in browser' : state === 'unsupported' ? 'Browser not supported' : 'Notify me'}</button>
+  </section>;
 }
 
 function InstallApp({ name, t = k => k }) {
@@ -278,6 +277,7 @@ export default function ShopPage({ hostedSlug }) {
           </div>
         </div>
       </div>
+      <PushPrompt slug={slug} business={business}/>
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
         <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{products.length} {t('productsCount')}</span></div>
         <div className="catalog-tools">
@@ -305,6 +305,5 @@ export default function ShopPage({ hostedSlug }) {
     {business.storeType === 'restaurant' ? <RestaurantCheckout slug={slug} business={business} cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/> : <CartDrawer slug={slug} business={business} cart={cart} orders={orders} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/>}
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
     {qrOpen && <QrModal slug={slug} business={business} onClose={() => setQrOpen(false)}/>}
-    <PushPrompt slug={slug} business={business}/>
   </div>;
 }
