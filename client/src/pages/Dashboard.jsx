@@ -31,10 +31,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
   const nav = useNavigate();
   const current = stores.find(s => String(s.id) === String(storeId));
   const staffMode = session.user.role === 'staff';
-  const location = useLocation();
-  const orderLinkApplied = React.useRef(false);
-  const pendingOrderTab = React.useRef(false);
-  const linkedStore = new URLSearchParams(location.search).get('store');
+
   const { theme } = useTheme();
   const items = superMode
     ? [['overview', 'Overview', LayoutDashboard], ['businesses', 'Businesses', StoreIcon], ['users', 'Users', UsersIcon], ['requests', 'Shop requests', MessageCircle]]
@@ -612,4 +609,4 @@ export default function Dashboard() {
   </div>
   {editing && <ProductModal categories={categories} product={editing} busy={busy} onClose={() => setEditing(null)} onSave={saveProduct}/>}
   </AdminShell>;
-                                                                                                                               }
+    }
