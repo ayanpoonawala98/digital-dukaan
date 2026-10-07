@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import net from 'node:net';
-import { resolveProviders, providerStatus, indianMobile, cleanSettings, sendEmail, sendSms, notifyNewOrder, notifyStatusChange, buildHttpRequest } from './notify.js';
+import { resolveProviders, resolveStoreProviders, providerStatus, indianMobile, cleanSettings, sendEmail, sendSms, notifyNewOrder, notifyStatusChange, buildHttpRequest } from './notify.js';
 import { encryptJson, decryptJson, mergeSecrets, publicView } from './notify-secrets.js';
 import { isPrivateAddress, looksInternal, publicAddress } from './net-guard.js';
 import { sendSmtp } from './smtp.js';
@@ -24,9 +24,9 @@ test('indian mobile normalising + settings default off', () => {
   assert.equal(indianMobile('+91 98765-43210'), '9876543210'); assert.equal(indianMobile('12345'), null); assert.equal(indianMobile('+1 415 555 0123'), null);
   assert.deepEqual(cleanSettings(undefined), { ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false, lowStockAlerts: false, lowStockThreshold: 5, weeklyReport: false, lastLowStockDate: '', lastLowStockSig: '', lastWeeklyDate: '' });
 });
-test('platform presets still work and alert owner + customer', async () => {
+test('store own providers alert owner and customer without platform fallback', async () => {
   calls.length = 0;
-  const res = await notifyNewOrder(store, 'lead', { id: 5, productName: 'Kurta', price: 999, customerName: 'Asha', customerPhone: '9123456789' }, { env: KEYS, fetchImpl: okFetch });
+  const res = await notifyNewOrder(store, 'lead', { id: 5, productName: 'Kurta', price: 999, customerName: 'Asha', customerPhone: '9123456789' }, { creds: { emailMode:'resend', resend:{apiKey:'own_resend',from:'a@b.co'},smsMode:'fast2sms',fast2sms:{apiKey:'own_sms',route:'quick'} }, fetchImpl: okFetch });
   assert.equal(res.length, 3); assert.ok(res.every(r => r.ok));
   assert.deepEqual(calls.filter(c => c.url.includes('fast2sms')).map(c => JSON.parse(c.opts.body).numbers).sort(), ['9123456789', '9876543210']);
 });
@@ -61,7 +61,7 @@ test('custom HTTP SMS/email send through fetch, refuse private hosts and non-2xx
 test('provider failures never throw; customer SMS honours opt-in', async () => {
   const off = { ...store, notifySettings: { ownerEmailAlerts: false } };
   assert.deepEqual(await notifyStatusChange(off, 'lead', { id: 1, customerPhone: '9123456789' }, 'shipped', { env: KEYS, fetchImpl: okFetch }), []);
-  const r = await notifyStatusChange(store, 'lead', { id: 1, customerPhone: '9123456789' }, 'shipped', { env: KEYS, fetchImpl: async () => { throw new Error('network'); } });
+  const r = await notifyStatusChange(store, 'lead', { id: 1, customerPhone: '9123456789' }, 'shipped', { creds:{smsMode:'fast2sms',fast2sms:{apiKey:'own_sms',route:'quick'}}, fetchImpl: async () => { throw new Error('network'); } });
   assert.equal(r[0].ok, false);
 });
 test('keys encrypt at rest; wrong secret or tampering yields no keys', () => {
@@ -113,4 +113,14 @@ test('secret split: legacy JWT_SECRET blobs still decrypt, new writes use NOTIFY
   const fresh = encryptJson({ a: 1 }, split);
   assert.equal(needsReencrypt(fresh, split), false);
   assert.deepEqual(decryptJson(fresh, old), {});
+});
+
+test('store sends never fall back to platform balances, including incomplete credentials',async()=>{
+ calls.length=0;
+ assert.deepEqual(resolveStoreProviders({}),{email:null,sms:null});
+ assert.deepEqual(resolveStoreProviders({emailMode:'resend',resend:{apiKey:'incomplete'}}),{email:null,sms:null});
+ assert.deepEqual(await notifyNewOrder(store,'lead',{id:1,price:10,customerPhone:'9123456789'},{env:KEYS,fetchImpl:okFetch}),[]);
+ assert.deepEqual(await notifyStatusChange(store,'lead',{id:1,customerPhone:'9123456789'},'shipped',{env:KEYS,fetchImpl:okFetch}),[]);
+ assert.equal(calls.length,0);
+ const own=resolveStoreProviders({smsMode:'fast2sms',fast2sms:{apiKey:'store-only',route:'quick'}});assert.equal(own.sms.apiKey,'store-only');assert.equal(own.email,null);
 });
