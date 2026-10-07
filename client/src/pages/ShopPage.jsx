@@ -256,7 +256,7 @@ export default function ShopPage({ hostedSlug }) {
   if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} is temporarily closed</h1><p>This shop is paused right now. Please check back later.</p><Link className="btn btn-green" to="/">Back home</Link></main><Footer/></>;
   const { business, categories } = shop;
   return <div className="shop-root page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
-    <Header shop={slug}/>
+    <Header shop={slug} business={business}/>
     <ClosedBanner business={business}/>
     {business.bannerActive && business.bannerText && <div className="offer-banner"><div className="offer-track"><span>{business.bannerText}</span><span aria-hidden="true">{business.bannerText}</span></div></div>}
     <main>
@@ -307,4 +307,4 @@ export default function ShopPage({ hostedSlug }) {
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
     {qrOpen && <QrModal slug={slug} business={business} onClose={() => setQrOpen(false)}/>}
   </div>;
-                                            }
+}
