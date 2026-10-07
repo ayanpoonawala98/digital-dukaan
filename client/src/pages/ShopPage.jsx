@@ -32,7 +32,7 @@ function urlB64ToUint8Array(base64String) {
 }
 
 function PushPrompt({ slug, business }) {
-  const [state, setState] = useState('loading'), [error, setError] = useState('');
+  const [state, setState] = useState('loading'), [error, setError] = useState(''), [open, setOpen] = useState(false);
   const supported = pushSupported();
   useEffect(() => {
     let active = true;
@@ -52,18 +52,19 @@ function PushPrompt({ slug, business }) {
       const sub = await subscribeBrowser(slug);
       await api(`/public/stores/${encodeURIComponent(slug)}/push-subscription`, { method: 'POST', body: { endpoint: sub.endpoint, keys: sub.keys } });
       try { localStorage.setItem(`dd-store-push-${slug}`, sub.endpoint); } catch {}
-      setState('on');
+      setState('on'); setOpen(false);
     } catch (err) {
       setState(Notification.permission === 'denied' ? 'denied' : 'ask');
       setError(err.message || 'Could not enable notifications. Try again.');
     }
   };
-  return <section className="push-prompt push-prompt-inline storefront-notify" aria-label="Shop notifications">
+  return <div className="store-notify-widget">{!open ? <button type="button" className={`notify-fab ${state === 'on' ? 'enabled' : ''}`} onClick={() => setOpen(true)} aria-label={state === 'on' ? 'Shop notifications enabled' : 'Open shop notifications'}><Bell size={22}/>{state === 'on' && <span className="notify-fab-check">✓</span>}</button> : <section className="push-prompt storefront-notify-popup" aria-label="Shop notifications">
+    <button type="button" className="notify-close" onClick={() => setOpen(false)} aria-label="Close notification popup"><X size={18}/></button>
     <Bell size={20}/><div className="push-text"><strong>{state === 'on' ? 'Shop notifications on' : 'Stay updated with this shop'}</strong>
     <span>{state === 'unsupported' ? 'Open in Chrome on Android, or add this shop to your iPhone home screen and open the app, to enable notifications.' : state === 'denied' ? 'Notifications are blocked. Allow them for this site in your browser settings, then reload.' : state === 'on' ? `Offers and new arrivals from ${business.name} will appear as browser notifications.` : `Get offers and new arrivals from ${business.name}.`}</span>
     {error && <span role="alert">{error}</span>}</div>
     <button type="button" className="btn btn-green btn-small" onClick={subscribe} disabled={['loading','busy','unsupported','denied','on'].includes(state)}>{state === 'on' ? 'Notifications on' : state === 'busy' ? 'Turning on...' : state === 'loading' ? 'Checking...' : state === 'denied' ? 'Blocked in browser' : state === 'unsupported' ? 'Browser not supported' : 'Notify me'}</button>
-  </section>;
+  </section>}</div>;
 }
 
 function InstallApp({ name, t = k => k }) {
@@ -306,4 +307,4 @@ export default function ShopPage({ hostedSlug }) {
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
     {qrOpen && <QrModal slug={slug} business={business} onClose={() => setQrOpen(false)}/>}
   </div>;
-}
+                                            }
