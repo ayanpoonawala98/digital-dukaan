@@ -1,3 +1,5 @@
+import { platformSales, salesCsv, CommissionRule, ensureCommissionSchema } from '../platform-sales.js';
+import { dateWindow } from '../reporting.js';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { registerStoreDomain, storeDomain } from '../utils/store-domain.js';
@@ -121,5 +123,17 @@ r.patch('/businesses/:id/feature-locks', wrap(async (req, res) => {
 r.get('/stats', wrap(async (_, res) => {
   const [businesses, users, products, categories, leads] = await Promise.all([Business.count({ where: { deletedAt: null } }), User.count(), Product.count(), Category.count(), Lead.count()]);
   res.json({ businesses, users, products, categories, leads });
+}));
+r.get('/sales', wrap(async (req,res)=>res.json(await platformSales(req.query))));
+r.get('/sales/report.csv', wrap(async (req,res)=>res.type('text/csv').attachment('platform-sales.csv').send(salesCsv(await platformSales(req.query)))));
+r.post('/commission-rules', wrap(async(req,res)=>{
+ const businessId=numId(req.body?.businessId),percent=Number(req.body?.percent),effectiveFrom=req.body?.effectiveFrom;
+ if(req.body?.percent === '' || !Number.isFinite(percent)||percent<0||percent>100||Math.round(percent*100)!==percent*100) throw bad(400,'Commission must be 0 to 100%, with at most two decimal places');
+ if(!effectiveFrom)throw bad(400,'Choose an effective date'); dateWindow({from:effectiveFrom});
+ if(!await Business.findByPk(businessId))throw bad(404,'Store not found');
+ await ensureCommissionSchema();
+ const [rule,created]=await CommissionRule.findOrCreate({where:{businessId,effectiveFrom},defaults:{percent,createdBy:req.user.id}});
+ if(!created)throw bad(409,'A rate already exists for this store on that date. Choose a later effective date; saved history is not overwritten.');
+ res.status(201).json({rule});
 }));
 export default r;
