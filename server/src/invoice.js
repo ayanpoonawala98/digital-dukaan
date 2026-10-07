@@ -26,7 +26,7 @@ export function streamBill(res, shop, order, kind = 'lead') {
   if (shop.gstin) doc.fontSize(10).fillColor('#666').text(`GSTIN: ${shop.gstin}`);
   doc.moveDown(0.5);
   doc.fontSize(13).fillColor('#000').text('ORDER BILL', { align: 'right' });
-  doc.fontSize(10).fillColor('#666').text(`Order #${order.id}`, { align: 'right' }).text(new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), { align: 'right' });
+  doc.fontSize(10).fillColor('#666').text(`Order #${order.orderNumber ?? order.id}`, { align: 'right' }).text(new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), { align: 'right' });
   if (order.paymentStatus === 'paid') doc.fontSize(11).fillColor('#0e9f6e').text('PAID ONLINE', { align: 'right' });
   doc.moveDown(1);
   let y = doc.y; const row = (n, q, p, a, h) => { doc.fontSize(10).fillColor(h ? '#666' : '#000'); doc.text(String(n), 50, y, { width: 265 }); doc.text(String(q), 325, y, { width: 50, align: 'right' }); doc.text(String(p), 390, y, { width: 70, align: 'right' }); doc.text(String(a), 470, y, { width: 75, align: 'right' }); y += 26; };
