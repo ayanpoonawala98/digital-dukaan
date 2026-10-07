@@ -1,3 +1,4 @@
+import {campaignOwnerRoutes} from '../campaigns.js';
 import { TIME_RE } from '../hours.js';
 import { Router } from 'express';
 import multer from 'multer';
@@ -106,8 +107,8 @@ r.put('/:storeId/notifications/keys', ownerOnly, wrap(async (req, res) => {
 }));
 r.put('/:storeId/notifications', ownerOnly, wrap(async (req, res) => {
   const b = req.body || {};
-  for (const k of ['ownerEmailAlerts', 'ownerSmsAlerts', 'customerSms', 'lowStockAlerts', 'weeklyReport']) if (b[k] !== undefined && typeof b[k] !== 'boolean') throw bad(400, 'Invalid notification setting');
-  const input = {}; for (const k of ['ownerEmailAlerts', 'ownerEmail', 'ownerSmsAlerts', 'ownerPhone', 'customerSms', 'lowStockAlerts', 'lowStockThreshold', 'weeklyReport']) if (Object.hasOwn(b, k)) input[k] = b[k];
+  for (const k of ['ownerEmailAlerts', 'ownerSmsAlerts', 'customerSms', 'customerEmail', 'lowStockAlerts', 'weeklyReport']) if (b[k] !== undefined && typeof b[k] !== 'boolean') throw bad(400, 'Invalid notification setting');
+  const input = {}; for (const k of ['ownerEmailAlerts', 'ownerEmail', 'ownerSmsAlerts', 'ownerPhone', 'customerSms', 'customerEmail', 'lowStockAlerts', 'lowStockThreshold', 'weeklyReport']) if (Object.hasOwn(b, k)) input[k] = b[k];
   try { await saveSettings(req.store, input); res.json(await notifyState(req.store)); } catch (err) { throw bad(err.status || 500, err.message); }
 }));
 r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
@@ -124,6 +125,7 @@ r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
 }));
 r.use('/:storeId/whatsapp-byo', byoOwnerRoutes);
 r.use('/:storeId/whatsapp-cloud', whatsappCloudOwnerRoutes); // owner owns connect/manage; staff may read the inbox and send reviewed replies (allow-list above)
+r.use('/:storeId/campaigns',campaignOwnerRoutes);
 r.use('/:storeId/customers', (req,res,next)=>req.user.role === 'staff' && !/^\/import\/(preview|commit)$/.test(req.path) ? res.status(403).json({error:'Staff can preview and import customers only.'}) : next(), crmRoutes);
 
 r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
@@ -507,7 +509,7 @@ r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {
   if (statusChanged) await notifyOrderSubscribers(req.store, 'lead', lead);
   if (statusChanged) void sendOrderStatusWhatsApp(req.store, lead, status);
   let url = '';
-  if (status && status !== 'new' && lead.customerPhone) {
+  if (status && status !== 'new' && (lead.customerPhone||lead.customerEmail)) {
     const labels = { confirmed: 'confirmed', packed: 'packed and getting ready', shipped: 'shipped', 'out-for-delivery': 'out for delivery', delivered: 'delivered. Thank you for shopping with us!', 'in-progress': 'in progress', completed: 'completed. Thank you!', cancelled: 'cancelled. Sorry for the inconvenience.' };
     const billable = !['new', 'cancelled'].includes(status), billLink = billable ? invoiceUrl(apiBase(req), 'lead', lead.id) : '';
     if (statusChanged && labels[status]) void notifyStatusChange(req.store, 'lead', lead, labels[status], undefined, billLink);
@@ -760,7 +762,7 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   const changed = order.status !== req.body.status;
   await order.update({ status: req.body.status });
   if (changed) await notifyOrderSubscribers(req.store, 'restaurant', order);
-  if (changed && order.customerPhone) void notifyStatusChange(req.store, 'restaurant', order, { preparing: 'being prepared', served: 'ready and served. Enjoy your meal!', cancelled: 'cancelled' }[order.status]);
+  if (changed) void notifyStatusChange(req.store, 'restaurant', order, { preparing: 'being prepared', served: 'ready and served. Enjoy your meal!', cancelled: 'cancelled' }[order.status]);
   res.json({ order });
 }));
 export default r;
