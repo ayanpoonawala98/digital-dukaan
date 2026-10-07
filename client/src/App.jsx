@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './theme.jsx';
 import Landing from './pages/Landing.jsx';
 import Access from './pages/Access.jsx';
@@ -25,7 +25,8 @@ function AuthProvider({ children }) {
 
 function Guard({ role, children }) {
   const { session } = useAuth();
-  return !session ? <Navigate to="/login" replace/> : session.user.role !== role && !(role === 'owner' && session.user.role === 'staff') ? <Navigate to={session.user.role === 'superadmin' ? '/superadmin' : '/dashboard'} replace/> : children;
+  const location = useLocation();
+  return !session ? <Navigate to={`/login?next=${encodeURIComponent(location.pathname + location.search)}`} replace/> : session.user.role !== role && !(role === 'owner' && session.user.role === 'staff') ? <Navigate to={session.user.role === 'superadmin' ? '/superadmin' : '/dashboard'} replace/> : children;
 }
 
 export default function App() {
