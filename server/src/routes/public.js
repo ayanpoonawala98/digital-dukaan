@@ -279,7 +279,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   void notifyNewOrder(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
-  const waUrl = whatsappUrl({ ...business.get({ plain: true }), orderNumber: lead.orderNumber }, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
+  const waUrl = whatsappUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
   res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: product.price } });
 }));
 
@@ -308,7 +308,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
-  const url = whatsappCartUrl({ ...business.get({ plain: true }), orderNumber: lead.orderNumber }, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
+  const url = whatsappCartUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
   const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(finalUrl.toString(), lead.id) : finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total } });
