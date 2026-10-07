@@ -1,3 +1,4 @@
+import { shouldInvite, hasSeenPushInvite, rememberPushInvite } from '../lib/push-prompt.js';
 import ClosedBanner, { hoursLabel } from '../components/ClosedBanner.jsx';
 import { notify } from '../lib/notifications.js';
 import { useFeedbackState } from '../components/Toasts.jsx';
@@ -31,9 +32,10 @@ function urlB64ToUint8Array(base64String) {
   return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
 }
 
-function PushPrompt({ slug, business }) {
+function PushPrompt({ slug, business, blocked = false }) {
   const [state, setState] = useState('loading'), [error, setError] = useState(''), [open, setOpen] = useState(false);
   const supported = pushSupported();
+  useEffect(() => { setOpen(false); }, [slug]);
   useEffect(() => {
     let active = true;
     setError(''); setState('loading');
@@ -42,28 +44,48 @@ function PushPrompt({ slug, business }) {
     currentBrowserSubscription().then(sub => {
       if (!active) return;
       let saved = ''; try { saved = localStorage.getItem(`dd-store-push-${slug}`); } catch {}
-      setState(sub && saved === sub.endpoint ? 'on' : 'ask');
+      const enabled = sub && saved === sub.endpoint;
+      if (enabled) rememberPushInvite('subscribed');
+      setState(enabled ? 'on' : 'ask');
     });
     return () => { active = false; };
   }, [slug, supported]);
+  useEffect(() => {
+    if (!shouldInvite({ state, blocked, seen: hasSeenPushInvite() })) return;
+    const timer = setTimeout(() => {
+      if (hasSeenPushInvite()) return;
+      rememberPushInvite('shown');
+      setOpen(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [state, blocked, slug]);
+  const dismiss = () => { rememberPushInvite('dismissed'); setOpen(false); };
+  useEffect(() => {
+    if (!open) return;
+    const close = event => { if (event.key === 'Escape' && state !== 'busy') dismiss(); };
+    document.addEventListener('keydown', close);
+    return () => document.removeEventListener('keydown', close);
+  }, [open, state]);
   const subscribe = async () => {
     setError(''); setState('busy');
     try {
       const sub = await subscribeBrowser(slug);
       await api(`/public/stores/${encodeURIComponent(slug)}/push-subscription`, { method: 'POST', body: { endpoint: sub.endpoint, keys: sub.keys } });
       try { localStorage.setItem(`dd-store-push-${slug}`, sub.endpoint); } catch {}
-      setState('on'); setOpen(false);
+      rememberPushInvite('subscribed'); setState('on'); setOpen(false);
     } catch (err) {
       setState(Notification.permission === 'denied' ? 'denied' : 'ask');
       setError(err.message || 'Could not enable notifications. Try again.');
     }
   };
-  return <div className="store-notify-widget">{!open ? <button type="button" className={`notify-fab ${state === 'on' ? 'enabled' : ''}`} onClick={() => setOpen(true)} aria-label={state === 'on' ? 'Shop notifications enabled' : 'Open shop notifications'}><Bell size={22}/>{state === 'on' && <span className="notify-fab-check">✓</span>}</button> : <section className="push-prompt storefront-notify-popup" aria-label="Shop notifications">
-    <button type="button" className="notify-close" onClick={() => setOpen(false)} aria-label="Close notification popup"><X size={18}/></button>
+  return <div className="store-notify-widget">{!open ? <button type="button" className={`notify-fab ${state === 'on' ? 'enabled' : ''}`} onClick={() => { rememberPushInvite('manual'); setOpen(true); }} aria-label={state === 'on' ? 'Shop notifications enabled' : 'Open shop notifications'}><Bell size={22}/>{state === 'on' && <span className="notify-fab-check">✓</span>}</button> : <section className="push-prompt storefront-notify-popup" role="dialog" aria-label="Shop notifications">
+    <button type="button" className="notify-close" onClick={dismiss} aria-label="Close notification popup" disabled={state === 'busy'}><X size={18}/></button>
     <Bell size={20}/><div className="push-text"><strong>{state === 'on' ? 'Shop notifications on' : 'Stay updated with this shop'}</strong>
     <span>{state === 'unsupported' ? 'Open in Chrome on Android, or add this shop to your iPhone home screen and open the app, to enable notifications.' : state === 'denied' ? 'Notifications are blocked. Allow them for this site in your browser settings, then reload.' : state === 'on' ? `Offers and new arrivals from ${business.name} will appear as browser notifications.` : `Get offers and new arrivals from ${business.name}.`}</span>
     {error && <span role="alert">{error}</span>}</div>
     <button type="button" className="btn btn-green btn-small" onClick={subscribe} disabled={['loading','busy','unsupported','denied','on'].includes(state)}>{state === 'on' ? 'Notifications on' : state === 'busy' ? 'Turning on...' : state === 'loading' ? 'Checking...' : state === 'denied' ? 'Blocked in browser' : state === 'unsupported' ? 'Browser not supported' : 'Notify me'}</button>
+    <button type="button" className="notify-later" onClick={dismiss} disabled={state === 'busy'}>Not now</button>
+    <small className="notify-privacy">Optional. You can use the bell anytime. We will not ask again on every visit.</small>
   </section>}</div>;
 }
 
@@ -278,7 +300,7 @@ export default function ShopPage({ hostedSlug }) {
           </div>
         </div>
       </div>
-      <PushPrompt slug={slug} business={business}/>
+      <PushPrompt key={slug} slug={slug} business={business} blocked={offerOpen || cartOpen || wishOpen || qrOpen}/>
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
         <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{products.length} {t('productsCount')}</span></div>
         <div className="catalog-tools">
@@ -307,4 +329,4 @@ export default function ShopPage({ hostedSlug }) {
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
     {qrOpen && <QrModal slug={slug} business={business} onClose={() => setQrOpen(false)}/>}
   </div>;
-}
+      }
