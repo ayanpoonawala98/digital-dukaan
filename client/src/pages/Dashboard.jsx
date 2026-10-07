@@ -1,3 +1,4 @@
+import { requestedOrderStore } from '../lib/order-panel.js';
 import ShopQr from '../components/ShopQr.jsx';
 import MappedImport from '../components/MappedImport.jsx';
 import { FilterBar, Pages, matches, matchesStatus } from '../components/DataTools.jsx';
@@ -7,7 +8,7 @@ import { useFeedbackState } from '../components/Toasts.jsx';
 import { productDraft } from '../product-draft.js';
 import { CustomFieldsEditor } from '../components/CustomFields.jsx';
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 import LocationPicker from '../components/LocationPicker.jsx';
@@ -30,6 +31,10 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
   const nav = useNavigate();
   const current = stores.find(s => String(s.id) === String(storeId));
   const staffMode = session.user.role === 'staff';
+  const location = useLocation();
+  const orderLinkApplied = React.useRef(false);
+  const pendingOrderTab = React.useRef(false);
+  const linkedStore = new URLSearchParams(location.search).get('store');
   const { theme } = useTheme();
   const items = superMode
     ? [['overview', 'Overview', LayoutDashboard], ['businesses', 'Businesses', StoreIcon], ['users', 'Users', UsersIcon], ['requests', 'Shop requests', MessageCircle]]
@@ -381,6 +386,10 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
 export default function Dashboard() {
   const { session } = useAuth(), token = session.token;
   const staffMode = session.user.role === 'staff';
+  const location = useLocation();
+  const orderLinkApplied = React.useRef(false);
+  const pendingOrderTab = React.useRef(false);
+  const linkedStore = new URLSearchParams(location.search).get('store');
   const [tab, setTab] = useState('overview');
   const [filters,setFilters] = useState({q:'',status:'all',from:'',to:'',page:1});
   const [customerRefresh,setCustomerRefresh]=useState(0);
@@ -406,7 +415,18 @@ export default function Dashboard() {
   const [couponForm, setCouponForm] = useState({ code: '', percentOff: 10 });
   const [importResult, setImportResult] = useState(''), [actionKey, setActionKey] = useState(''), [exportBusy, setExportBusy] = useState(false);
 
-  const reloadStoreLists = async () => { const [live, removed] = await Promise.all([api('/owner/stores', { token }), ...(!staffMode ? [api('/owner/deleted-stores', { token })] : [])]); setStores(live.stores); setDeletedStores(removed?.stores || []); setStoreId(current => live.stores.some(s => String(s.id) === String(current)) ? current : live.stores[0]?.id || ''); };
+  const reloadStoreLists = async () => { const [live, removed] = await Promise.all([api('/owner/stores', { token }), ...(!staffMode ? [api('/owner/deleted-stores', { token })] : [])]); setStores(live.stores); setDeletedStores(removed?.stores || []); setStoreId(current => {
+    if (!orderLinkApplied.current) {
+      const requested = requestedOrderStore(live.stores, location.search);
+      if (requested !== null) {
+        orderLinkApplied.current = true;
+        if (!requested) { setError('This store is not available in your account. Sign in with the store owner account.'); return ''; }
+        pendingOrderTab.current = true;
+        return requested.id;
+      }
+    }
+    return live.stores.some(s => String(s.id) === String(current)) ? current : live.stores[0]?.id || '';
+  }); };
   useEffect(() => { reloadStoreLists().catch(e => setError(e.message)).finally(() => setStoreListLoading(false)); }, []);
   const load = async () => {
     if (!storeId) return;
@@ -454,7 +474,7 @@ export default function Dashboard() {
     } catch (e) { if (!stale()) setError(e.message); } finally { if (!stale()) setLoading(false); }
   };
   useEffect(() => { setBroadcastImageUrl(''); setBroadcastText(''); setBroadcastRecipients(''); }, [storeId]);
-  useEffect(() => { setTab('overview'); setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setReferrals([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
+  useEffect(() => { setTab(pendingOrderTab.current ? 'leads' : 'overview'); pendingOrderTab.current = false; setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setReferrals([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
 
   useEffect(()=>{ setFilters(f=>({...f,q:'',status:'all',page:1})); },[tab,storeId]);
   useEffect(() => { const timer=setTimeout(()=>{ if(storeId && ['leads','sales','restaurant'].includes(tab)) load(); },300); return ()=>clearTimeout(timer); }, [filters,tab]);
@@ -510,7 +530,7 @@ export default function Dashboard() {
   const updateRestaurantOrder = (order, status) => action(async () => { await api(`/owner/${storeId}/restaurant-orders/${order.id}`, { method: 'PATCH', token, body: { status } }); }, `order-${order.id}`);
 
   return <AdminShell tab={tab} setTab={setTab} stores={stores} storeId={storeId} setStoreId={setStoreId}><div className="admin-content" key={`${storeId}:${tab}`}>
-    {!storeId ? (storeListLoading ? <LoadSkeleton label="Loading your stores" cards={2}/> : <div className="dashboard-panel empty-state">Create a store to manage your catalog.</div>) : <>
+    {!storeId ? (storeListLoading ? <LoadSkeleton label="Loading your stores" cards={2}/> : <div className="dashboard-panel empty-state">{linkedStore ? 'This store is not available in your account. Sign in with the store owner account.' : 'Create a store to manage your catalog.'}</div>) : <>
       <div className="page-title"><div><span className="kicker">YOUR WORKSPACE</span><h1>{headings[tab][0]}</h1><p>{headings[tab][1]}</p></div>{tab === 'products' && !staffMode && !tabLocked && <div className="page-title-actions"><button className="btn btn-green" onClick={() => setEditing({ __storeId: storeId })}><Plus size={18}/> Add product</button></div>}</div>
       <Notice error={error} success={success}/>{!tabLocked && tab === 'leads' && <FilterBar value={filters} onChange={setFilters} dates statuses={['new','confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed','cancelled']} onReport={()=>reportDownload('leads')} reportBusy={exportBusy}/>}{!tabLocked && tab === 'restaurant' && <FilterBar value={filters} onChange={setFilters} dates statuses={['new','preparing','served','cancelled']} onReport={()=>reportDownload('restaurant-orders')} reportBusy={exportBusy}/>}{!tabLocked && tab === 'sales' && <FilterBar value={filters} onChange={setFilters} search={false} dates onReport={()=>reportDownload('sales-summary')} reportBusy={exportBusy}/>}{tab === 'products' && !tabLocked && <MappedImport kind="products" token={token} storeId={storeId} onImported={load}/>}{['products','categories','coupons','referrals','staff'].includes(tab) && <FilterBar value={filters} onChange={setFilters} searchPlaceholder={{products:'Product name or category...',coupons:'Coupon code...',staff:'Staff name or phone...',referrals:'Referral name or code...'}[tab]} statuses={['products','coupons','staff'].includes(tab)?['active','inactive']:tab==='referrals'?['pending','confirmed']:[]}/>}
       {loading ? <LoadSkeleton label={`Loading ${headings[tab][0]}`} cards={tab === 'overview' || tab === 'sales' ? 4 : 2} rows={3}/> : tabLocked ? <div className="dashboard-panel locked-panel" role="status"><Lock size={28}/><h3>Kindly contact admin</h3><p className="muted">Please contact your platform admin to enable this feature. Your data is safe.</p></div> : <>
@@ -592,4 +612,4 @@ export default function Dashboard() {
   </div>
   {editing && <ProductModal categories={categories} product={editing} busy={busy} onClose={() => setEditing(null)} onSave={saveProduct}/>}
   </AdminShell>;
-                                             }
+                                                                                                                               }
