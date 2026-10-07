@@ -1,3 +1,4 @@
+import PlatformSales from '../components/PlatformSales.jsx';
 import { FilterBar, matches, matchesStatus } from '../components/DataTools.jsx';
 import { useFeedbackState } from '../components/Toasts.jsx';
 import React, { useEffect, useState } from 'react';
@@ -64,9 +65,10 @@ export default function SuperAdmin() {
   };
   const toggle = async (kind, item) => { if (pending) return; setPending(`${kind}-${item.id}`); setError(''); try { await api(`/admin/${kind}/${item.id}`, { method: 'PATCH', token, body: { active: !item.active } }); await load(); } catch (e) { setError(e.message); } finally { setPending(''); } };
   return <AdminShell tab={tab} setTab={setTab} superMode><div className="admin-content">
-    <div className="page-title"><div><span className="kicker">PLATFORM ADMIN</span><h1>{tab === 'overview' ? 'The big picture.' : tab === 'businesses' ? 'Businesses.' : tab === 'requests' ? 'Shop requests.' : 'People.'}</h1><p>Keep track of the community growing on Digital Shop.</p></div></div>
-    <Notice error={error}/>{tab !== 'overview' && <FilterBar value={filters} onChange={setFilters} statuses={['businesses','users'].includes(tab)?['active','inactive']:[]}/>}
+    <div className="page-title"><div><span className="kicker">PLATFORM ADMIN</span><h1>{tab === 'sales' ? 'Sales & commission.' : tab === 'overview' ? 'The big picture.' : tab === 'businesses' ? 'Businesses.' : tab === 'requests' ? 'Shop requests.' : 'People.'}</h1><p>Keep track of the community growing on Digital Shop.</p></div></div>
+    <Notice error={error}/>{!['overview','sales'].includes(tab) && <FilterBar value={filters} onChange={setFilters} statuses={['businesses','users'].includes(tab)?['active','inactive']:[]}/>}
     {loading ? <LoadSkeleton label={`Loading ${tab === 'overview' ? 'platform overview' : tab}`} cards={tab === 'overview' ? 4 : 2} rows={3}/> : <>
+    {tab === 'sales' && <PlatformSales token={token}/>}
     {tab === 'users' && <div className="dashboard-panel"><h3>Create an owner and store</h3><p className="muted">Only your superadmin account can create new owner logins. Agree on a password and share it with the owner through a secure channel.</p><form className="owner-create-form" onSubmit={createOwner}>
       <label>Owner name<input required maxLength="100" value={owner.name} onChange={e => setOwner({ ...owner, name: e.target.value })}/></label>
       <label>Owner email<input type="email" required value={owner.email} onChange={e => setOwner({ ...owner, email: e.target.value })}/></label>
