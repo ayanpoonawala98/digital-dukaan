@@ -343,7 +343,7 @@ const listWhere = (req, kind) => {
   const statuses = kind === 'restaurant' ? ['new','preparing','served','cancelled'] : ['new','confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed','cancelled'];
   if (req.query.status && req.query.status !== 'all') { if (!statuses.includes(req.query.status)) throw bad(400, 'Invalid order status'); where.status = req.query.status; }
   const q = String(req.query.q || '').trim().slice(0,100);
-  if (q) { const escaped = q.replace(/[\\%_]/g, '\\$&'); where[Op.or] = [{ customerPhone: { [Op.iLike]: `%${escaped}%` } }, { customerName: { [Op.iLike]: `%${escaped}%` } }, ...(kind === 'restaurant' ? [] : [{ productName: { [Op.iLike]: `%${escaped}%` } }])]; if (/^#?\d+$/.test(q)) where[Op.or].push({ id: Number(q.replace('#','')) }); }
+  if (q) { const escaped = q.replace(/[\\%_]/g, '\\$&'); where[Op.or] = [{ customerPhone: { [Op.iLike]: `%${escaped}%` } }, { customerName: { [Op.iLike]: `%${escaped}%` } }, ...(kind === 'restaurant' ? [] : [{ productName: { [Op.iLike]: `%${escaped}%` } }])]; if (/^#?\d+$/.test(q)) where[Op.or].push({ orderNumber: Number(q.replace('#','')) }); }
   return where;
 };
 const orderPage = async (req, Model, kind) => {
