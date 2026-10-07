@@ -3,17 +3,18 @@ import { Link } from 'react-router-dom';
 import { ArrowUpRight, Menu, X, Store } from 'lucide-react';
 import { useAuth } from '../App.jsx';
 import { ThemeToggle } from '../theme.jsx';
+import { imageSrc } from '../lib/api.js';
 import { storePath } from '../lib/store-domain.js';
 
 export function Logo({ light = false }) {
   return <Link className={`brand ${light ? 'brand-light' : ''}`} to="/"><span className="brand-mark"><Store size={22} strokeWidth={2.5}/></span><span>digital<span className="brand-accent">shop.</span></span></Link>;
 }
 
-export function Header({ shop }) {
+export function Header({ shop, business }) {
   const { session } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
   return <header className="header"><div className="container header-inner">
-    <Logo/>
+    {business ? <Link className="brand store-header-brand" to={storePath(shop || business.slug)}>{business.logoUrl ? <img className="header-store-logo" src={imageSrc(business.logoUrl)} alt=""/> : <span className="brand-mark"><Store size={22}/></span>}<span className="header-store-name">{business.name}</span></Link> : <Logo/>}
     <div className="header-controls"><ThemeToggle/><button type="button" className="header-menu-toggle" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(v => !v)}>{menuOpen ? <X size={22}/> : <Menu size={22}/>}</button></div>
     <nav id="site-menu" className={menuOpen ? 'menu-open' : ''} aria-label="Main navigation" onClick={() => setMenuOpen(false)}>
       <Link to={shop ? storePath(shop) : '/#how-it-works'}>{shop ? 'Storefront' : 'How it works'}</Link>
