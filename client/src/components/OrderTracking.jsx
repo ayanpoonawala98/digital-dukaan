@@ -103,7 +103,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
   const saved = [{ kind, id: Number(id), token }];
   const flow = flowFor(kind, data?.store?.storeType);
   return <><Header shop={slug}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
-    <span className="kicker">YOUR ORDER</span><h1>Order #{id}</h1>
+    <span className="kicker">YOUR ORDER</span><h1>Order #{data?.order?.orderNumber ?? id}</h1>
     {error && <p className="notice error" role="alert">{error}</p>}{!data && !error && <p role="status">Loading your order...</p>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
       <div role="status" aria-live="polite"><h3>{statusLabel(flow, data.order.status)}</h3><p>{flow.note[data.order.status] || ''}</p></div>
@@ -138,7 +138,7 @@ export function MyOrdersPage() {
     {!data && !error && <p role="status">Loading your orders...</p>}
     {data && !orders.length && <div className="empty-state"><h3>No orders yet</h3><p>Orders you place on this store from this browser will show up here.</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Browse the store</Link></div>}
     {orders.map(o => { const flow = flowFor(o.kind, data.store?.storeType); return <section className="dashboard-panel" key={`${o.kind}-${o.id}`} style={{ marginBottom: 16 }}>
-      <h3>Order #{o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>
+      <h3>Order #{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>
       <div role="status" aria-live="polite"><strong>{statusLabel(flow, o.status)}</strong></div>
       <StatusSteps kind={o.kind} storeType={data.store?.storeType} status={o.status}/>
       <OrderBody order={o}/>
