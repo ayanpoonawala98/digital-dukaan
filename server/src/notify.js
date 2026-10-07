@@ -3,7 +3,7 @@
 import { publicAddress } from './net-guard.js';
 import { sendSmtp } from './smtp.js';
 
-export const DEFAULT_SETTINGS = Object.freeze({ ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false, lowStockAlerts: false, lowStockThreshold: 5, weeklyReport: false, lastLowStockDate: '', lastLowStockSig: '', lastWeeklyDate: '' });
+export const DEFAULT_SETTINGS = Object.freeze({ ownerEmailAlerts: false, ownerEmail: '', ownerSmsAlerts: false, ownerPhone: '', customerSms: false, customerEmail:false, lowStockAlerts: false, lowStockThreshold: 5, weeklyReport: false, lastLowStockDate: '', lastLowStockSig: '', lastWeeklyDate: '' });
 
 // Indian mobile numbers: 10 digits, optionally prefixed with 91 / +91 / 0.
 export function indianMobile(value) {
@@ -16,10 +16,10 @@ const anyNumber = v => { const d = String(v || '').replace(/\D/g, ''); const i =
 
 export function cleanSettings(raw) {
   const s = { ...DEFAULT_SETTINGS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  return { ownerEmailAlerts: s.ownerEmailAlerts === true, ownerEmail: typeof s.ownerEmail === 'string' ? s.ownerEmail.trim().slice(0, 160) : '', ownerSmsAlerts: s.ownerSmsAlerts === true, ownerPhone: typeof s.ownerPhone === 'string' ? s.ownerPhone.trim().slice(0, 20) : '', customerSms: s.customerSms === true, lowStockAlerts: s.lowStockAlerts === true, lowStockThreshold: Math.min(100, Math.max(1, Math.round(Number(s.lowStockThreshold)) || 5)), weeklyReport: s.weeklyReport === true, lastLowStockDate: String(s.lastLowStockDate || '').slice(0, 10), lastLowStockSig: String(s.lastLowStockSig || '').slice(0, 400), lastWeeklyDate: String(s.lastWeeklyDate || '').slice(0, 10) };
+  return { ownerEmailAlerts: s.ownerEmailAlerts === true, ownerEmail: typeof s.ownerEmail === 'string' ? s.ownerEmail.trim().slice(0, 160) : '', ownerSmsAlerts: s.ownerSmsAlerts === true, ownerPhone: typeof s.ownerPhone === 'string' ? s.ownerPhone.trim().slice(0, 20) : '', customerSms: s.customerSms === true, customerEmail:s.customerEmail===true, lowStockAlerts: s.lowStockAlerts === true, lowStockThreshold: Math.min(100, Math.max(1, Math.round(Number(s.lowStockThreshold)) || 5)), weeklyReport: s.weeklyReport === true, lastLowStockDate: String(s.lastLowStockDate || '').slice(0, 10), lastLowStockSig: String(s.lastLowStockSig || '').slice(0, 400), lastWeeklyDate: String(s.lastWeeklyDate || '').slice(0, 10) };
 }
 
-// Pick the provider per channel: the store's own complete setup first, then the platform env presets.
+// Pick the provider per channel: the store's own complete setup first, never the platform env presets.
 export function resolveProviders(creds = {}, env = process.env) {
   const c = creds || {}; let email = null, sms = null;
   const r = c.resend || {}, sm = c.smtp || {}, eh = c.emailHttp || {}, f = c.fast2sms || {}, sh = c.smsHttp || {};
@@ -118,13 +118,14 @@ async function ownerEmailFor(store, settings) {
 export async function notifyNewOrder(store, kind, order, deps0) {
   try {
     const s = cleanSettings(store.notifySettings);
-    if (!s.ownerEmailAlerts && !s.ownerSmsAlerts && !s.customerSms) return [];
+    if (!s.ownerEmailAlerts && !s.ownerSmsAlerts && !s.customerSms && !s.customerEmail) return [];
     const deps = await resolveDeps(store, deps0);
     if (!deps.providers.email && !deps.providers.sms) return [];
     const label = kind === 'restaurant' ? `order #${order.orderNumber ?? order.id}` : `enquiry #${order.orderNumber ?? order.id}`;
     const who = order.customerName || order.customerPhone ? ` from ${[order.customerName, order.customerPhone].filter(Boolean).join(' ')}` : '';
     const line = `New ${label} at ${store.name}${who}: ${summary(kind, order)}, ${rs(order.price ?? order.total)}.`;
     const jobs = [];
+    if(s.customerEmail && order.customerEmailConsent && order.customerEmail)jobs.push(sendEmail({to:order.customerEmail,subject:`Order received - ${store.name}`,text:`${store.name} received your ${label}. Total ${rs(order.price??order.total)}. This acknowledges receipt, not payment or fulfilment. We will email status updates for this order.`,store:store.name},deps));
     if (s.ownerEmailAlerts) jobs.push(ownerEmailFor(store, s).then(to => sendEmail({ to, subject: `New ${label} - ${store.name}`, text: `${line}\n\nOpen your dashboard to review it.`, store: store.name }, deps)));
     if (s.ownerSmsAlerts && s.ownerPhone) jobs.push(sendSms({ to: s.ownerPhone, text: line, store: store.name }, deps));
     if (s.customerSms && order.customerPhone) jobs.push(sendSms({ to: order.customerPhone, text: `Thanks! ${store.name} got your ${label} (${rs(order.price ?? order.total)}). We will update you soon.`, store: store.name }, deps));
@@ -134,16 +135,18 @@ export async function notifyNewOrder(store, kind, order, deps0) {
 export async function notifyStatusChange(store, kind, order, statusText, deps0, billLink = '') {
   try {
     const s = cleanSettings(store.notifySettings);
-    if (!s.customerSms || !order.customerPhone || !statusText) return [];
-    const deps = await resolveDeps(store, deps0);
-    if (!deps.providers.sms) return [];
-    return [await sendSms({ to: order.customerPhone, text: `${store.name}: your order #${order.orderNumber ?? order.id} is ${statusText}.${billLink ? ` Bill: ${billLink}` : ''}`, store: store.name }, deps)];
+    if(!statusText)return [];
+    const deps=await resolveDeps(store,deps0),jobs=[];
+    const text=`${store.name}: your order #${order.orderNumber??order.id} is ${statusText}.${billLink?` Bill: ${billLink}`:''}`;
+    if(s.customerSms&&order.customerPhone&&deps.providers.sms)jobs.push(sendSms({to:order.customerPhone,text,store:store.name},deps));
+    if(s.customerEmail&&order.customerEmailConsent&&order.customerEmail&&deps.providers.email)jobs.push(sendEmail({to:order.customerEmail,subject:`Order update - ${store.name}`,text,store:store.name},deps));
+    return await Promise.all(jobs);
   } catch (err) { console.error('Status notification failed', err.message); return []; }
 }
 export async function saveSettings(store, input) {
   const s = cleanSettings({ ...cleanSettings(store.notifySettings), ...input });
   const deps = await resolveDeps(store);
-  if (s.ownerEmailAlerts && !deps.providers.email) { const e = new Error("Connect this store's own email provider before turning on email alerts"); e.status=400; throw e; }
+  if ((s.ownerEmailAlerts||s.customerEmail) && !deps.providers.email) { const e = new Error("Connect this store's own email provider before turning on email alerts"); e.status=400; throw e; }
   if ((s.ownerSmsAlerts || s.customerSms) && !deps.providers.sms) { const e = new Error("Connect this store's own SMS provider before turning on SMS alerts"); e.status=400; throw e; }
   if (s.ownerSmsAlerts && !s.ownerPhone) { const e = new Error('Add your alert mobile number before turning on owner SMS alerts'); e.status=400; throw e; }
   if ((s.lowStockAlerts || s.weeklyReport) && !s.ownerEmailAlerts && !s.ownerSmsAlerts) { const e = new Error('Turn on owner email or SMS alerts first so reports have a destination'); e.status=400; throw e; }
