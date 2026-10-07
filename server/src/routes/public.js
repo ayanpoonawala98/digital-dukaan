@@ -160,7 +160,7 @@ for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
     const business = await trackedBusiness(req.params.slug, cfg, access);
     const order = await cfg.model().findOne({ where: { id, businessId: business.id } });
     if (!order) throw bad(404, 'Order not found');
-    res.json({ order: serializeOrder(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType } });
+    res.json({ order: serializeOrder(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
   }));
   // Same tracking capability as the status read: only the holder of the private link can register or remove.
   r.post(`/stores/:slug/${segment}/:id/push-subscription`, wrap(async (req, res) => {
@@ -217,7 +217,7 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
     }
   }
   out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-  res.json({ orders: out.slice(0, 50), store: { name: business.name, slug: business.slug, storeType: business.storeType } });
+  res.json({ orders: out.slice(0, 50), store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
 }));
 r.post('/stores/:slug/my-orders/push-subscription', wrap(async (req, res) => {
   res.set('Cache-Control', 'no-store');
