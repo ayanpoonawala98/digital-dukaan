@@ -46,7 +46,7 @@ export default function ProductPage({ hostedSlug }) {
   const restaurant = business.storeType === 'restaurant';
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
   return <div className="page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
-    <Header shop={slug}/>
+    <Header shop={slug} business={business}/>
     <ClosedBanner business={business}/>
     <main className="detail-wrap"><div className="container">
       <div className="breadcrumbs"><Link to={storePath(slug)}>{business.name}</Link><span>/</span><span>{product.category?.name || 'Products'}</span><span>/</span><span>{product.name}</span></div>
