@@ -128,7 +128,7 @@ r.get('/sales', wrap(async (req,res)=>res.json(await platformSales(req.query))))
 r.get('/sales/report.csv', wrap(async (req,res)=>res.type('text/csv').attachment('platform-sales.csv').send(salesCsv(await platformSales(req.query)))));
 r.post('/commission-rules', wrap(async(req,res)=>{
  const businessId=numId(req.body?.businessId),percent=Number(req.body?.percent),effectiveFrom=req.body?.effectiveFrom;
- if(req.body?.percent === '' || !Number.isFinite(percent)||percent<0||percent>100||Math.round(percent*100)!==percent*100) throw bad(400,'Commission must be 0 to 100%, with at most two decimal places');
+ if(req.body?.percent === '' || !Number.isFinite(percent)||percent<0||percent>100||Math.abs(Math.round(percent*100)-percent*100)>0.000001) throw bad(400,'Commission must be 0 to 100%, with at most two decimal places');
  if(!effectiveFrom)throw bad(400,'Choose an effective date'); dateWindow({from:effectiveFrom});
  if(!await Business.findByPk(businessId))throw bad(404,'Store not found');
  await ensureCommissionSchema();
