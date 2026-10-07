@@ -1243,3 +1243,5 @@ footer { background:#101d15; }
 .platform-sales td small { display:block; color:var(--muted); font-size:12px; margin-top:5px; }
 @media(max-width:900px){.platform-sales-filters,.platform-sales .sd-kpis { grid-template-columns:repeat(2,minmax(0,1fr)); }.platform-sales-grid { grid-template-columns:1fr; }}
 @media(max-width:480px){.platform-sales-filters { grid-template-columns:1fr; }.platform-sales .sd-kpis { gap:10px; }.platform-sales .sd-kpi strong { font-size:24px; }}
+
+.platform-sales .sd-kpi { --c:#0e9f6e; }
