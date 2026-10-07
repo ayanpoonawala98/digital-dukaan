@@ -1,13 +1,15 @@
 import { useFeedbackState } from '../components/Toasts.jsx';
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { useAuth } from '../App.jsx';
+import { safeDashboardReturn } from '../lib/order-panel.js';
 import { api } from '../lib/api.js';
 import { Logo, Notice } from '../components/chrome.jsx';
 
 export default function Access({ mode }) {
   const nav = useNavigate(), { save } = useAuth();
+  const location = useLocation();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
   const [error, setError] = useFeedbackState(''), [busy, setBusy] = useState(false);
   const change = e => setForm({ ...form, [e.target.name]: e.target.value });
@@ -17,7 +19,7 @@ export default function Access({ mode }) {
     try {
       const result = await api(`/auth/${mode}`, { method: 'POST', body: form });
       save(result);
-      nav(result.user.role === 'superadmin' ? '/superadmin' : '/dashboard');
+      nav(result.user.role === 'superadmin' ? '/superadmin' : safeDashboardReturn(new URLSearchParams(location.search).get('next')));
     } catch (err) { setError(err.message); } finally { setBusy(false); }
   };
   return <div className="auth-layout">
