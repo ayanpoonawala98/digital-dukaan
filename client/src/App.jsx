@@ -1,3 +1,4 @@
+import {OfferOptOut} from './components/OfferCampaigns.jsx';
 import React, { createContext, useContext, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './theme.jsx';
@@ -32,6 +33,7 @@ function Guard({ role, children }) {
 export default function App() {
   const hostedSlug = hostedStoreSlug();
   return <ThemeProvider><AuthProvider><Toasts/><Motion/><Routes>
+      <Route path="/offers/opt-out/:token" element={<OfferOptOut/>}/>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
     <Route path="/near" element={<Nearby/>}/>
