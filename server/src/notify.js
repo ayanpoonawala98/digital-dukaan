@@ -35,6 +35,8 @@ export function resolveProviders(creds = {}, env = process.env) {
   else if (env.FAST2SMS_API_KEY && (env.FAST2SMS_ROUTE !== 'dlt' || (env.FAST2SMS_SENDER_ID && env.FAST2SMS_TEMPLATE_ID))) sms = { kind: 'fast2sms', label: 'Fast2SMS', apiKey: env.FAST2SMS_API_KEY, route: env.FAST2SMS_ROUTE === 'dlt' ? 'dlt' : 'quick', senderId: env.FAST2SMS_SENDER_ID, templateId: env.FAST2SMS_TEMPLATE_ID, source: 'platform' };
   return { email, sms };
 }
+// Store sends must never spend the platform's provider balance.
+export const resolveStoreProviders = creds => resolveProviders(creds || {}, {});
 export const providerStatus = providers => ({ email: { configured: Boolean(providers?.email), label: providers?.email?.label || '', source: providers?.email?.source || '' }, sms: { configured: Boolean(providers?.sms), label: providers?.sms?.label || '', source: providers?.sms?.source || '' } });
 
 // Fill {{placeholders}} for a custom HTTP provider. Values are escaped for the place they land in.
@@ -101,7 +103,7 @@ export async function resolveDeps(store, deps = {}) {
       creds = decryptJson((await NotifySecret.findByPk(store.id))?.payload);
     } catch { creds = {}; }
   }
-  return { ...deps, providers: deps.providers || resolveProviders(creds || {}, deps.env || process.env) };
+  return { ...deps, providers: deps.providers || resolveStoreProviders(creds || {}) };
 }
 
 const rs = n => `Rs.${Number(n || 0).toFixed(0)}`;
@@ -140,6 +142,12 @@ export async function notifyStatusChange(store, kind, order, statusText, deps0, 
 }
 export async function saveSettings(store, input) {
   const s = cleanSettings({ ...cleanSettings(store.notifySettings), ...input });
+  const deps = await resolveDeps(store);
+  if (s.ownerEmailAlerts && !deps.providers.email) { const e = new Error("Connect this store's own email provider before turning on email alerts"); e.status=400; throw e; }
+  if ((s.ownerSmsAlerts || s.customerSms) && !deps.providers.sms) { const e = new Error("Connect this store's own SMS provider before turning on SMS alerts"); e.status=400; throw e; }
+  if (s.ownerSmsAlerts && !s.ownerPhone) { const e = new Error('Add your alert mobile number before turning on owner SMS alerts'); e.status=400; throw e; }
+  if ((s.lowStockAlerts || s.weeklyReport) && !s.ownerEmailAlerts && !s.ownerSmsAlerts) { const e = new Error('Turn on owner email or SMS alerts first so reports have a destination'); e.status=400; throw e; }
+
   if (s.ownerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(s.ownerEmail)) { const e = new Error('Enter a valid alert email address'); e.status = 400; throw e; }
   if (s.ownerPhone) { const p = anyNumber(s.ownerPhone); if (!p) { const e = new Error('Enter a valid mobile number for SMS alerts'); e.status = 400; throw e; } s.ownerPhone = p.to; }
   await store.update({ notifySettings: s });
