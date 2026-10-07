@@ -30,7 +30,7 @@ import { mergePaymentKeys, paymentView, createPaymentLink, fetchPaymentLink, ver
 import { cleanFieldDefs } from '../custom-fields.js';
 import { invoiceUrl } from '../invoice.js';
 import { sendWeeklyReport } from '../reports.js';
-import { notifyStatusChange, providerStatus, resolveProviders, cleanSettings, saveSettings, sendEmail, sendSms } from '../notify.js';
+import { notifyStatusChange, providerStatus, resolveStoreProviders, cleanSettings, saveSettings, sendEmail, sendSms } from '../notify.js';
 import { NotifySecret, PaymentSecret } from '../models/index.js';
 import { encryptJson, decryptJson, mergeSecrets, publicView } from '../notify-secrets.js';
 const restoreUntil = restoreDeadline;
@@ -94,7 +94,7 @@ r.use('/:storeId', wrap(async (req, res, next) => {
 
 const testCooldown = new Map();
 const loadCreds = async store => decryptJson((await NotifySecret.findByPk(store.id))?.payload);
-const notifyState = async store => { const creds = await loadCreds(store); return { settings: cleanSettings(store.notifySettings), providers: providerStatus(resolveProviders(creds)), keys: publicView(creds) }; };
+const notifyState = async store => { const creds = await loadCreds(store); return { settings: cleanSettings(store.notifySettings), providers: providerStatus(resolveStoreProviders(creds)), keys: publicView(creds) }; };
 r.get('/:storeId/notifications', ownerOnly, wrap(async (req, res) => res.json(await notifyState(req.store))));
 r.put('/:storeId/notifications/keys', ownerOnly, wrap(async (req, res) => {
   let next;
@@ -111,7 +111,7 @@ r.put('/:storeId/notifications', ownerOnly, wrap(async (req, res) => {
   try { await saveSettings(req.store, input); res.json(await notifyState(req.store)); } catch (err) { throw bad(err.status || 500, err.message); }
 }));
 r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
-  const channel = req.body?.channel, s = cleanSettings(req.store.notifySettings), providerSet = resolveProviders(await loadCreds(req.store)), providers = providerStatus(providerSet);
+  const channel = req.body?.channel, s = cleanSettings(req.store.notifySettings), providerSet = resolveStoreProviders(await loadCreds(req.store)), providers = providerStatus(providerSet);
   if (!['email', 'sms'].includes(channel)) throw bad(400, 'Choose email or SMS');
   if (Date.now() - (testCooldown.get(req.store.id) || 0) < 20000) throw bad(429, 'Wait a few seconds before sending another test');
   if (!providers[channel].configured) throw bad(400, `${channel === 'email' ? 'Email' : 'SMS'} sending is not set up yet. Add your own key in the section above.`);
