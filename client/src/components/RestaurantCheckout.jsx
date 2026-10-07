@@ -15,6 +15,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const [orderType, setOrderType] = useState('dine-in');
   const [tableNumber, setTableNumber] = useState(initialTable);
   const [customerName, setCustomerName] = useState('');
+  const [customerEmail,setCustomerEmail]=useState(''),[customerEmailConsent,setCustomerEmailConsent]=useState(false);
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [couponCode, setCouponCode] = useState('');
@@ -29,6 +30,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
       const result = await api(`/public/stores/${slug}/restaurant-orders`, { method: 'POST', body: {
         orderType, tableNumber: orderType === 'dine-in' ? Number(tableNumber) : null,
         customerName: orderType === 'dine-in' ? null : customerName,
+        customerEmail,customerEmailConsent,
         customerPhone: orderType === 'dine-in' ? null : customerPhone,
         deliveryAddress: orderType === 'delivery' ? deliveryAddress : null,
         couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(),
@@ -49,7 +51,8 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             <label>{t('type')}<select value={orderType} onChange={e => setOrderType(e.target.value)}><option value="dine-in">{t('dine')}</option><option value="takeaway">{t('takeaway')}</option><option value="delivery">{t('delivery')}</option></select></label>
             {orderType === 'dine-in' ? <label>{t('table')}<select value={tableNumber} onChange={e => setTableNumber(e.target.value)} required><option value="">Choose your table</option>{Array.from({ length: business.tableCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>
               : <><label>{t('name')}<input value={customerName} onChange={e => setCustomerName(e.target.value)} maxLength={100} required/></label><label>{t('phone')}<input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} minLength={8} maxLength={25} required/></label></>}
-            {orderType === 'delivery' && <label>{t('address')}<textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} maxLength={500} required rows={3}/></label>}
+            <label>Email for this order <small>(optional, no offers)</small><input type="email" maxLength={160} value={customerEmail} onChange={e=>{setCustomerEmail(e.target.value);setCustomerEmailConsent(false);}}/></label><label className="check-label"><input type="checkbox" disabled={!customerEmail} checked={customerEmailConsent} onChange={e=>setCustomerEmailConsent(e.target.checked)}/> Email me updates for this order if the store offers email alerts. Not marketing consent.</label>
+            {orderType === 'delivery'  && <label>{t('address')}<textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} maxLength={500} required rows={3}/></label>}
             <label>Referral code <small>(optional; reward after order confirmation)</small><input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="FR..." maxLength={24}/></label>
             <label>Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="SAVE10" maxLength={24}/></label>
             <div className="drawer-totals"><div className="grand"><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div></div>
