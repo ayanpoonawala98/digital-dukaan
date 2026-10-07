@@ -29,12 +29,12 @@ export function aggregateSales(stores,owners,leads,orders,rules) {
   }
   const list=[...rows.values()].map(r=>({...r,sales:money(r.sales),pendingValue:money(r.pendingValue),commission:money(r.commission),paidSales:money(r.paidSales)}));
   const totals=list.reduce((a,r)=>{for(const k of ['sales','completed','requests','pendingValue','cancelled','commission','paidSales'])a[k]+=r[k];return a;},{sales:0,completed:0,requests:0,pendingValue:0,cancelled:0,commission:0,paidSales:0});
+  for(const k of ['sales','pendingValue','commission','paidSales'])totals[k]=money(totals[k]);
   return {totals,stores:list.sort((a,b)=>b.sales-a.sales),products:[...products.values()].map(p=>({...p,itemValue:money(p.itemValue)})).sort((a,b)=>b.units-a.units),daily:[...daily.values()].sort((a,b)=>a.date.localeCompare(b.date)),rules};
 }
 export async function platformSales(query={}) {
   dateWindow(query);const numeric=v=>{if(!v)return null;const n=Number(v);if(!Number.isSafeInteger(n)||n<1)throw bad(400,'Choose a valid store or owner');return n;};
   const storeId=numeric(query.storeId),ownerId=numeric(query.ownerId);
-  const storeWhere={...(storeId?{id:storeId}:{}),...(ownerId?{ownerId}:{})};
   const allStores=await Business.findAll({attributes:['id','name','slug','ownerId','storeType','deletedAt'],raw:true});
   const stores=allStores.filter(s=>(!storeId||s.id===storeId)&&(!ownerId||s.ownerId===ownerId));
   const owners=await User.findAll({where:{role:'owner'},attributes:['id','name','email'],raw:true});
