@@ -85,6 +85,7 @@ export const Product = sequelize.define('Product', {
 }, { tableName: 'products', indexes: [{ fields: ['businessId', 'categoryId'] }] });
 
 export const Lead = sequelize.define('Lead', {
+  orderNumber: { type: DataTypes.INTEGER, allowNull: true },
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
   productId: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'products', key: 'id' } },
@@ -151,6 +152,7 @@ export const ShopRequest = sequelize.define('ShopRequest', {
 
 // Restaurant-only orders are intentionally separate from WhatsApp enquiry Leads.
 export const RestaurantOrder = sequelize.define('RestaurantOrder', {
+  orderNumber: { type: DataTypes.INTEGER, allowNull: true },
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
   orderType: { type: DataTypes.STRING(20), allowNull: false },
