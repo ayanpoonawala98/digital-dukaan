@@ -27,6 +27,7 @@ export function ensureRestaurantSchema() {
     await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "closeTime" varchar(5) NOT NULL DEFAULT ''`);
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "blockWhenClosed" boolean');
     await RestaurantOrder.sync(); // New table only. Do not alter production tables.
+    for(const table of ['leads','restaurant_orders']) { await sequelize.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS "customerEmail" varchar(160) DEFAULT ''`); await sequelize.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS "customerEmailConsent" boolean DEFAULT false`); }
     await OrderPushSubscription.sync(); // New table only, separate from store broadcast subscriptions.
     // orderId holds restaurant order ids AND retail lead ids, so an FK to restaurant_orders rejects retail orders.
     await sequelize.query('ALTER TABLE order_push_subscriptions DROP CONSTRAINT IF EXISTS "order_push_subscriptions_orderId_fkey"');
