@@ -102,7 +102,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
   const copy = async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } };
   const saved = [{ kind, id: Number(id), token }];
   const flow = flowFor(kind, data?.store?.storeType);
-  return <><Header shop={slug}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
+  return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">YOUR ORDER</span><h1>Order #{data?.order?.orderNumber ?? id}</h1>
     {error && <p className="notice error" role="alert">{error}</p>}{!data && !error && <p role="status">Loading your order...</p>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
@@ -131,7 +131,7 @@ export function MyOrdersPage() {
   }, [slug, saved]);
   usePoll(load, true);
   const orders = data?.orders || [];
-  return <><Header shop={slug}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
+  return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">{data?.store?.name || 'MY ORDERS'}</span><h1>My orders</h1>
     <p>Orders placed from this browser. No login needed. Status updates appear here automatically.</p>
     {error && <p className="notice error" role="alert">{error}</p>}
