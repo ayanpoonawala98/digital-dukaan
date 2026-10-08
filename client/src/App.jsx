@@ -1,3 +1,4 @@
+import SetPassword from './pages/SetPassword.jsx';
 import {OfferOptOut} from './components/OfferCampaigns.jsx';
 import React, { createContext, useContext, useState } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
@@ -38,6 +39,7 @@ export default function App() {
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
     <Route path="/near" element={<Nearby/>}/>
     <Route path="/signup" element={<ShopRequest/>}/>
+    <Route path="/set-password" element={<SetPassword/>}/>
     <Route path="/login" element={<Access mode="login"/>}/>
     <Route path="/store/:slug" element={<ShopPage/>}/>
     <Route path="/store/:slug/product/:id" element={<ProductPage/>}/>
