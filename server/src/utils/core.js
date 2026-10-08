@@ -9,6 +9,7 @@ export function whatsappUrl(business, product, photoUrl, answers = []) {
   if(Number(product.orderQty)>1)lines.push(`Quantity: ${product.orderQty}`,`Unit price: ₹${Number(product.unitPrice).toFixed(2)}`);
   for (const a of answers) if (a?.label && a?.value) lines.push(`${a.label}: ${a.value}`);
   if (photoUrl) lines.push(`Photo: ${photoUrl}`);
+  if (business.upiId) lines.push(`UPI: ${business.upiId}`);
   if (business.orderNumber) lines.push(`Order #${business.orderNumber}`);
   if (businessOrderPanelUrl(business)) lines.push('', `Order panel (shop owner): ${businessOrderPanelUrl(business)}`);
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(lines.join('\n'))}`;
