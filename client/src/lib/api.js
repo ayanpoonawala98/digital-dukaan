@@ -7,7 +7,7 @@ export async function api(path, { token, body, feedback = true, successMessage, 
   const method = (options.method || 'GET').toUpperCase();
   let data;
   try {
-    const res = await fetch(`${BASE}/api${path}`, { cache: 'no-store', ...options, headers: { ...(isForm ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers }, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body) });
+    const res = await fetch(`${BASE}/api${path}`, { cache: 'no-store', ...options, headers: { ...(isForm || body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...options.headers }, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body) });
     data = res.status === 204 ? null : await res.json().catch(() => ({}));
     if (!res.ok) throw Error(res.status === 403 ? 'Kindly contact admin to enable access.' : data?.error || 'Something went wrong. Please try again.');
   } catch (error) {

@@ -7,7 +7,7 @@ import { useFeedbackState } from '../components/Toasts.jsx';
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ChartNoAxesCombined, LayoutDashboard, Lock, LockOpen, MessageCircle, Package, Store, Users } from 'lucide-react';
-import { useAuth } from '../App.jsx';
+import { useAuth } from '../auth.jsx';
 import { api } from '../lib/api.js';
 import { storeLink } from '../lib/store-domain.js';
 import { Notice } from '../components/chrome.jsx';

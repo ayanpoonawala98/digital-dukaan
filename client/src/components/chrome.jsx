@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Menu, X, Store } from 'lucide-react';
-import { useAuth } from '../App.jsx';
+import { useAuth } from '../auth.jsx';
 import { ThemeToggle } from '../theme.jsx';
 import { imageSrc } from '../lib/api.js';
 import { storePath } from '../lib/store-domain.js';

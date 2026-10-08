@@ -2,7 +2,7 @@ import { useFeedbackState } from '../components/Toasts.jsx';
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { useAuth } from '../App.jsx';
+import { useAuth } from '../auth.jsx';
 import { safeDashboardReturn } from '../lib/order-panel.js';
 import { api } from '../lib/api.js';
 import { Logo, Notice } from '../components/chrome.jsx';

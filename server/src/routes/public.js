@@ -1,3 +1,4 @@
+import { catalogCursor, afterCatalogCursor, catalogResult } from '../catalog-page.js';
 import { populatedCategories } from '../storefront-categories.js';
 import {shopCardPdf} from '../shop-card-pdf.js';
 import {campaignPublicRoutes} from '../campaigns.js';
@@ -262,12 +263,20 @@ r.get('/stores/:slug/products', storefrontCache, wrap(async (req, res) => {
   const where = { businessId: business.id, active: true };
   if (req.query.category) {
     const category = await Category.findOne({ where: { businessId: business.id, slug: String(req.query.category) } });
-    if (!category) return res.json({ products: [] });
+    if (!category) return res.json({ products: [],total:0,hasMore:false,nextCursor:null });
     where.categoryId = category.id;
   }
   if (req.query.search) where.name = { [Op.iLike]: `%${escapeLike(String(req.query.search).slice(0, 80))}%` };
-  const products = await Product.findAll({ where, include: [categoryInclude], order: [['featured', 'DESC'], ['createdAt', 'DESC']], limit: 100 });
-  res.json({ products });
+  const page = catalogCursor(req.query);
+  if (!page) {
+    const products = await Product.findAll({ where, include: [categoryInclude], order: [['featured','DESC'],['createdAt','DESC'],['id','DESC']], limit:100 });
+    return res.json({products});
+  }
+  const [rows,total] = await Promise.all([
+    Product.findAll({where:{...where,...afterCatalogCursor(page.cursor)},include:[categoryInclude],order:[['featured','DESC'],['createdAt','DESC'],['id','DESC']],limit:16}),
+    Product.count({where})
+  ]);
+  res.json(catalogResult(rows,total));
 }));
 
 r.get('/stores/:slug/products/:id', wrap(async (req, res) => {

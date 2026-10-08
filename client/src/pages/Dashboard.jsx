@@ -15,7 +15,7 @@ import { CustomFieldsEditor } from '../components/CustomFields.jsx';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
-import { useAuth } from '../App.jsx';
+import { useAuth } from '../auth.jsx';
 import LocationPicker from '../components/LocationPicker.jsx';
 import { api, download, imageSrc, inr } from '../lib/api.js';
 import { storeLink } from '../lib/store-domain.js';

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../App.jsx';
+import { useAuth } from '../auth.jsx';
 import { api } from '../lib/api.js';
 import Busy from './Busy.jsx';
 export default function ChangePassword() {

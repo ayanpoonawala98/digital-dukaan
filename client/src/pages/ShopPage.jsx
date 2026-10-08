@@ -1,3 +1,6 @@
+import { useShowcaseScroll } from '../lib/showcase-scroll.js';
+import { useProductPages } from '../lib/use-product-pages.js';
+import { storeImage } from '../lib/store-image.js';
 import {downloadShopCard} from '../lib/shop-card-download.js';
 import { shouldInvite, hasSeenPushInvite, rememberPushInvite } from '../lib/push-prompt.js';
 import ClosedBanner, { hoursLabel } from '../components/ClosedBanner.jsx';
@@ -226,7 +229,7 @@ function ProductCard({ product, slug, wishlist, cart, index, t }) {
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
   return <article className={`product-card anim-up ${out ? 'sold-out' : ''}`} style={{ animationDelay: `${Math.min(index, 8) * 60}ms` }}>
     <Link to={storePath(slug, product.id)} className="product-img">
-      {product.imageUrl ? <img src={imageSrc(product.imageUrl)} alt={product.name} loading="lazy"/> : <span><Package size={40}/></span>}
+      {product.imageUrl ? <img src={storeImage(imageSrc(product.imageUrl), 720)} alt={product.name} loading="lazy"/> : <span><Package size={40}/></span>}
       {product.featured && <span className="chip chip-star"><Star size={12}/> {t('bestseller')}</span>}
       {!product.featured && Date.now() - new Date(product.createdAt).getTime() < 30 * 86400000 && <span className="chip chip-new">{t('fresh')}</span>}
       {product.kind === 'service' && <span className="chip chip-service">{product.duration || 'Service'}</span>}
@@ -256,21 +259,15 @@ export default function ShopPage({ hostedSlug }) {
   const slug = hostedSlug || pathSlug;
   const { theme } = useTheme();
   const { shop, error } = useShop(slug);
-  const [products, setProducts] = useState([]), [search, setSearch] = useState(''), [category, setCategory] = useState(''), [loading, setLoading] = useState(true);
+  useShowcaseScroll(slug, Boolean(shop?.business && !shop.paused));
+  const [search, setSearch] = useState(''), [category, setCategory] = useState('');
+  const {products,loading,loadingMore,total,hasMore,pageError,loadMore,sentinel} = useProductPages(slug,search,category,shop?.paused);
   const [lang, setLang] = useState(() => { try { return localStorage.getItem('dd-language') || 'en'; } catch { return 'en'; } });
   const t = key => translate(lang, key);
   const setLanguage = next => { setLang(next); try { localStorage.setItem('dd-language', next); } catch {} };
   const [offerOpen, setOfferOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false), [wishOpen, setWishOpen] = useState(false), [qrOpen, setQrOpen] = useState(false);
   const cart = useCart(slug), wishlist = useWishlist(slug), orders = useOrders(slug);
-
-  useEffect(() => {
-    if (shop?.paused) { setProducts([]); setLoading(false); return; }
-    let active = true;
-    setLoading(true);
-    const t = setTimeout(() => api(`/public/stores/${slug}/products?${new URLSearchParams({ search, category })}`).then(r => { if (active) setProducts(r.products); }).catch(() => {}).finally(() => { if (active) setLoading(false); }), 200);
-    return () => { active = false; clearTimeout(t); };
-  }, [slug, search, category, shop?.paused]);
 
   useEffect(() => { if (!shop?.business?.offerPopupActive || !shop.business.offerPopupText) return; const key = `dd-offer-seen-${slug}`; try { if (sessionStorage.getItem(key)) return; } catch {} const timer = setTimeout(() => setOfferOpen(true), 1100); return () => clearTimeout(timer); }, [shop, slug]);
   const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}`, 'yes'); } catch {} setOfferOpen(false); };
@@ -284,10 +281,10 @@ export default function ShopPage({ hostedSlug }) {
     <ClosedBanner business={business}/>
     {business.bannerActive && business.bannerText && <div className="offer-banner"><div className="offer-track"><span>{business.bannerText}</span><span aria-hidden="true">{business.bannerText}</span></div></div>}
     <main>
-      <div className="store-banner" style={business.coverUrl ? { backgroundImage: `linear-gradient(rgba(20,18,14,.55), rgba(20,18,14,.72)), url(${imageSrc(business.coverUrl)})` } : undefined}>
+      <div className="store-banner" style={business.coverUrl ? { backgroundImage: `linear-gradient(rgba(20,18,14,.55), rgba(20,18,14,.72)), url(${storeImage(imageSrc(business.coverUrl), 1440)})` } : undefined}>
         <div className="container">
           <div className="store-identity">
-            {business.logoUrl && <img className="store-logo" src={imageSrc(business.logoUrl)} alt={`${business.name} logo`}/>}
+            {business.logoUrl && <img className="store-logo" src={storeImage(imageSrc(business.logoUrl), 192)} alt={`${business.name} logo`}/>}
             <span className={`open-pill ${business.isOpen ? 'open' : 'closed'}`}><Clock size={14}/> {business.isOpen ? 'Open now' : 'Closed'}{hoursLabel(business) ? ` · ${hoursLabel(business)}` : ''}</span>
           </div>
           <h1>{business.name}<span>.</span></h1>
@@ -295,7 +292,7 @@ export default function ShopPage({ hostedSlug }) {
           <div className="store-banner-bottom">
             <span><MapPin size={15}/> {business.location || 'Made with care'}</span>
             <div className="store-banner-actions">
-              <InstallApp name={business.name} t={t}/>
+              
               <button className="chip-btn" onClick={() => setQrOpen(true)}><QrCode size={16}/> {t('share')}</button>
               <button className="chip-btn" onClick={() => setWishOpen(true)}><Heart size={16}/> {t('favorites')} {wishlist.ids.length > 0 && `(${wishlist.ids.length})`}</button>
             </div>
@@ -304,7 +301,7 @@ export default function ShopPage({ hostedSlug }) {
       </div>
       <PushPrompt key={slug} slug={slug} business={business} blocked={offerOpen || cartOpen || wishOpen || qrOpen}/>
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
-        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{products.length} {t('productsCount')}</span></div>
+        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{total} {t('productsCount')}</span></div>
         <div className="catalog-tools">
           <div className="filter-tabs" role="group" aria-label="Product categories"><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
           <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} aria-label={t('search')}/></label>
@@ -314,6 +311,7 @@ export default function ShopPage({ hostedSlug }) {
           : products.length
             ? <div className="product-grid">{products.map((p, i) => <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
             : <div className="empty-state"><Package size={38}/><h3>{t('empty')}</h3><p>{t('emptyHint')}</p></div>}
+        {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{pageError}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading more...' : pageError ? 'Retry loading products' : 'Load 15 more'}</button><small>{products.length} of {total} products</small></div>}
       </div>
       {business.storeType !== 'restaurant' && orders.orders.length > 0 && <div className="container order-history">
         <div className="catalog-head"><div><span className="kicker">YOUR HISTORY</span><h2>Order again<span className="accent-dot">.</span></h2></div></div>
