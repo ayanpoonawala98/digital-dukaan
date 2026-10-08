@@ -72,7 +72,7 @@ export default function SuperAdmin() {
     <div className="page-title"><div><span className="kicker">PLATFORM ADMIN</span><h1>{tab === 'sales' ? 'Sales & commission.' : tab === 'overview' ? 'The big picture.' : tab === 'businesses' ? 'Businesses.' : tab === 'requests' ? 'Shop requests.' : 'People.'}</h1><p>Keep track of the community growing on Digital Shop.</p></div></div>
     <Notice error={error}/>{!['overview','sales'].includes(tab) && <FilterBar value={filters} onChange={setFilters} statuses={['businesses','users'].includes(tab)?['active','inactive']:[]}/>}
     {loading ? <LoadSkeleton label={`Loading ${tab === 'overview' ? 'platform overview' : tab}`} cards={tab === 'overview' ? 4 : 2} rows={3}/> : <>
-    {tab === 'overview' && <PlatformEmailSummary token={token}/>}
+    {tab === 'overview' && <><PlatformEmailSummary token={token}/><PlatformEmailSummary token={token} sample/></>}
     {tab === 'sales' && <PlatformSales token={token}/>}
     {tab === 'users' && <div className="dashboard-panel"><h3>Create an owner and store</h3><p className="muted">Only your superadmin account can create new owner logins. Agree on a password and share it with the owner through a secure channel.</p><form className="owner-create-form" onSubmit={createOwner}>
       <label>Owner name<input required maxLength="100" value={owner.name} onChange={e => setOwner({ ...owner, name: e.target.value })}/></label>
