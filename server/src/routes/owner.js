@@ -1,3 +1,4 @@
+import {streamBill} from '../invoice.js';
 import {updateOrderStock,RETAIL_DEDUCT,RESTAURANT_DEDUCT} from '../order-stock.js';
 import {OrderStockLedger,historicalOrder,ensureOrderStockSchema} from '../order-stock-schema.js';
 import {shopCardPdf} from '../shop-card-pdf.js';
@@ -442,49 +443,7 @@ r.post('/:storeId/notifications/report', ownerOnly, wrap(async (req, res) => {
 r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
   const lead = await Lead.findOne({ where: { id: numId(req.params.leadId, 'enquiry ID'), businessId: bid(req) } });
   if (!lead) throw bad(404, 'Enquiry not found');
-  const shop = req.store;
-  res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `attachment; filename="estimate-${lead.id}.pdf"`);
-  const doc = new PDFDocument({ margin: 50, size: 'A4' });
-  doc.pipe(res);
-  doc.fontSize(20).text(shop.name, { align: 'left' });
-  if (shop.location) doc.fontSize(10).fillColor('#666').text(shop.location);
-  if (shop.gstin) doc.fontSize(10).fillColor('#666').text(`GSTIN: ${shop.gstin}`);
-  doc.moveDown(0.5);
-  doc.fontSize(13).fillColor('#000').text('ORDER ESTIMATE', { align: 'right' });
-  doc.fontSize(10).fillColor('#666').text(`Estimate #${lead.id}`, { align: 'right' }).text(new Date(lead.createdAt).toLocaleString('en-IN'), { align: 'right' });
-  doc.moveDown(1.5);
-  doc.moveTo(50, doc.y).lineTo(545, doc.y).strokeColor('#ddd').stroke();
-  doc.moveDown(0.5);
-  const items = Array.isArray(lead.items) && lead.items.length ? lead.items : [{ name: lead.productName, qty: 1, price: lead.price }];
-  let y = doc.y;
-  const row = (name, qty, price, amount, header = false) => {
-    doc.fontSize(10).fillColor(header ? '#666' : '#000');
-    doc.text(String(name), 50, y, { width: 265 });
-    doc.text(String(qty), 325, y, { width: 50, align: 'right' });
-    doc.text(String(price), 390, y, { width: 70, align: 'right' });
-    doc.text(String(amount), 470, y, { width: 75, align: 'right' });
-    y += 28;
-  };
-  row('ITEM', 'QTY', 'PRICE', 'AMOUNT', true);
-  let subtotal = 0;
-  for (const item of items) {
-    if (y > 690) { doc.addPage(); y = 50; row('ITEM', 'QTY', 'PRICE', 'AMOUNT', true); }
-    const qty = Number(item.qty) || 1, price = Number(item.price) || 0, amount = qty * price;
-    subtotal += amount;
-    row(String(item.name).slice(0, 45), qty, `Rs.${price.toFixed(2)}`, `Rs.${amount.toFixed(2)}`);
-  }
-  if (y > 620) { doc.addPage(); y = 50; }
-  doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke(); y += 16;
-  const totalRow = (label, amount) => { doc.fontSize(11).fillColor('#000').text(label, 330, y, { width:130 }); doc.text(amount, 470, y, {width:75,align:'right'}); y += 24; };
-  totalRow('Subtotal', `Rs.${subtotal.toFixed(2)}`);
-  const discount = Math.max(0, Number(lead.discount) || 0);
-  if (discount) totalRow(`Discount${lead.couponCode ? ` (${lead.couponCode})` : ''}`, `-Rs.${discount.toFixed(2)}`);
-  const delivery = Math.max(0, Number(lead.price) - subtotal + discount);
-  if (Array.isArray(lead.items) && lead.items.length) totalRow('Delivery', delivery > 0 ? `Rs.${delivery.toFixed(2)}` : 'FREE');
-  totalRow('Total', `Rs.${Number(lead.price).toFixed(2)}`);
-  doc.fontSize(8).fillColor('#777').text('This is an estimate generated from a WhatsApp enquiry on Digital Shop. It is not a tax invoice. Prices confirmed on WhatsApp at order time.', 50, y + 30, { width: 495, align: 'center' });
-  doc.end();
+  streamBill(res, req.store, lead, 'lead', { estimate: true });
 }));
 
 
