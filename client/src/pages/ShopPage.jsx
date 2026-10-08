@@ -123,7 +123,7 @@ function QrModal({ slug, business, onClose }) {
       <button className="modal-close" onClick={onClose} aria-label="Close"><X/></button>
       <span className="kicker">SHARE THIS SHOP</span>
       <h2>Scan to open {business.name}</h2>
-      <div className="qr-frame"><img src={qrUrl} alt={`QR code for ${business.name}`}/></div>
+      <div className="qr-frame qr-themed-online"><img src={qrUrl} alt={`QR code for ${business.name}`}/></div>
       <div className="url-pill">{shopLink}</div>
       <div className="qr-actions">
         <a className="btn btn-green" href={qrUrl} download={`${slug}-qr.svg`}>Download QR</a>
@@ -329,4 +329,4 @@ export default function ShopPage({ hostedSlug }) {
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
     {qrOpen && <QrModal slug={slug} business={business} onClose={() => setQrOpen(false)}/>}
   </div>;
-      }
+}
