@@ -169,6 +169,15 @@ for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
     if (!order) throw bad(404, 'Order not found');
     res.json({ order: serializeOrder(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
   }));
+  r.get(`/stores/:slug/${segment}/:id/push-subscription`, wrap(async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const id = numId(req.params.id), access = verifyTracking(bearer(req), id, kind);
+    const business = await trackedBusiness(req.params.slug, cfg, access);
+    if (!(await cfg.model().findOne({ where: { id, businessId: business.id } }))) throw bad(404, 'Order not found');
+    const endpoint = typeof req.query.endpoint === 'string' ? req.query.endpoint : '';
+    const row = endpoint && await OrderPushSubscription.findOne({ where: { businessId: business.id, orderType: kind, orderId: id, endpoint } });
+    res.json({ enrolled: Boolean(row) });
+  }));
   // Same tracking capability as the status read: only the holder of the private link can register or remove.
   r.post(`/stores/:slug/${segment}/:id/push-subscription`, wrap(async (req, res) => {
     res.set('Cache-Control', 'no-store');

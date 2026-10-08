@@ -39,7 +39,7 @@ test('payment status only counts as paid when Razorpay says paid', async () => {
 test('bill links are signed per order and kind', () => {
   assert.ok(invoiceSigValid('lead', 5, invoiceSig('lead', 5)));
   assert.ok(!invoiceSigValid('lead', 6, invoiceSig('lead', 5))); assert.ok(!invoiceSigValid('restaurant', 5, invoiceSig('lead', 5))); assert.ok(!invoiceSigValid('lead', 5, 'x'));
-  assert.match(invoiceUrl('https://api.example.com/', 'lead', 5), /^https:\/\/api\.example\.com\/api\/public\/bill\/lead\/5\/[0-9a-f]{32}$/);
+  assert.match(invoiceUrl('https://api.example.com/', 'lead', 5), /^https:\/\/api\.example\.com\/api\/public\/bill\/lead\/5\/[0-9a-f]{32}\?design=2$/);
 });
 test('bill PDF renders for retail and restaurant', async () => {
   for (const [kind, order] of [['lead', { id: 1, productName: 'Frame', price: 500, items: [{ name: 'Frame', qty: 1, price: 500 }], createdAt: new Date(), paymentStatus: 'paid' }], ['restaurant', { id: 2, total: 300, items: [{ name: 'Chai', qty: 2, price: 150 }], createdAt: new Date() }]]) {

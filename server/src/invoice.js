@@ -13,7 +13,7 @@ export function invoiceSigValid(kind, id, sig) {
   for (const key of secrets()) { const a = Buffer.from(sigWith(key, kind, id)); if (a.length === b.length && crypto.timingSafeEqual(a, b)) ok = true; }
   return ok;
 }
-export const invoiceUrl = (base, kind, id) => `${String(base).replace(/\/$/, '')}/api/public/bill/${kind}/${id}/${invoiceSig(kind, id)}`;
+export const invoiceUrl = (base, kind, id) => `${String(base).replace(/\/$/, '')}/api/public/bill/${kind}/${id}/${invoiceSig(kind, id)}?design=2`;
 
 // A single layout for customer bills and owner estimates. Stored totals stay authoritative.
 export function billModel(order, kind = 'lead') {
@@ -86,8 +86,8 @@ export function createBillDocument(shop, order, kind = 'lead', { estimate = fals
 }
 export async function streamBill(res, shop, order, kind = 'lead', options = {}) {
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `${options.estimate ? 'attachment' : 'inline'}; filename="${options.estimate ? 'estimate' : 'bill'}-${kind === 'restaurant' ? 'R' : 'O'}${order.id}.pdf"`);
-  res.setHeader('Cache-Control', 'private, max-age=300');
+  res.setHeader('Content-Disposition', `${options.estimate ? 'attachment' : 'inline'}; filename="${options.estimate ? 'estimate' : 'bill'}-${kind === 'restaurant' ? 'R' : 'O'}${order.id}-v2.pdf"`);
+  res.setHeader('Cache-Control', 'private, no-store, max-age=0');
   const logo = await loadShopLogo(shop);
   const doc = createBillDocument(shop, order, kind, { ...options, logo }); doc.pipe(res); doc.end();
 }

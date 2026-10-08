@@ -31,13 +31,22 @@ function pushErrorMessage(e) {
 function PushControl({ slug, orders, onChange }) {
   const [state, setState] = useState('idle'), [err, setErr] = useFeedbackState('');
   const supported = pushSupported();
+  const orderKey = orders.map(o => `${o.kind}:${o.id}:${o.token}`).join('|');
   useEffect(() => {
     let active = true;
+    setState('idle');
     if (!supported) return;
     if (Notification.permission === 'denied') { setState('denied'); return; }
-    currentBrowserSubscription().then(sub => { if (active && sub) { try { setState(localStorage.getItem(`dd-push-on-${slug}`) === sub.endpoint ? 'on' : 'idle'); } catch {} } });
+    (async () => {
+      try {
+        const sub = await currentBrowserSubscription();
+        if (!sub || !orders.length) return;
+        const states = await Promise.all(orders.map(o => api(`/public/stores/${encodeURIComponent(slug)}/${o.kind === 'lead' ? 'lead-orders' : 'restaurant-orders'}/${o.id}/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`, { token: o.token, feedback: false })));
+        if (active) setState(states.every(s => s.enrolled) ? 'on' : 'idle');
+      } catch { if (active) setState('idle'); }
+    })();
     return () => { active = false; };
-  }, [slug, supported]);
+  }, [slug, supported, orderKey]);
   if (!supported) return null;
   const on = async () => {
     setErr(''); setState('busy');

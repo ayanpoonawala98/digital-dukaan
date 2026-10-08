@@ -464,9 +464,12 @@ async function notifyOrderSubscribers(store, kind, order) {
     await Promise.allSettled(subs.map(async sub => {
       try {
         await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({ title: customerOrderPushTitle(store, order), body: `${label} Tap to view.`, url: sub.returnPath, ...(pushImage(store) ? { image: pushImage(store) } : {}) }));
-      } catch (err) { if (err.statusCode === 404 || err.statusCode === 410) await sub.destroy(); }
+      } catch (err) {
+        if (err.statusCode === 404 || err.statusCode === 410) await sub.destroy();
+        console.error('Customer status push failed', { category: err.statusCode ? 'push-service' : 'transport-or-config', statusCode: Number(err.statusCode) || null, businessId: store.id, orderType: kind, orderId: order.id });
+      }
     }));
-  } catch (err) { console.error('Order push failed', err.message); }
+  } catch (err) { console.error('Customer status push lookup failed', { category: 'subscription-query', businessId: store.id, orderType: kind, orderId: order.id }); }
 }
 
 r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {

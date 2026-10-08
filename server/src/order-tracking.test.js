@@ -19,13 +19,14 @@ test('flows are per store type', () => {
 });
 
 test('lead tracking, My Orders, and push registration use per-order capabilities', async () => {
-  const saved = { b: Business.findOne, l: [Lead.findOne, Lead.findAll], r: RestaurantOrder.findAll, s: [OrderPushSubscription.findOrCreate, OrderPushSubscription.findAll, OrderPushSubscription.destroy] };
+  const saved = { b: Business.findOne, l: [Lead.findOne, Lead.findAll], r: RestaurantOrder.findAll, s: [OrderPushSubscription.findOrCreate, OrderPushSubscription.findAll, OrderPushSubscription.destroy, OrderPushSubscription.findOne] };
   Business.findOne = async ({ where }) => ({ shop: retail, salon: services }[where.slug] || null);
   const leads = { 11: { id: 11, businessId: 5, status: 'shipped', productName: '2 items', price: 300, items: [{ name: 'Tee', qty: 2, price: 150 }], createdAt: new Date() }, 12: { id: 12, businessId: 6, status: 'in-progress', productName: 'Haircut', price: 200, items: null, createdAt: new Date() } };
   Lead.findOne = async ({ where }) => (leads[where.id] && leads[where.id].businessId === where.businessId ? leads[where.id] : null);
   Lead.findAll = async ({ where }) => Object.values(leads).filter(l => l.businessId === where.businessId);
   RestaurantOrder.findAll = async () => [];
   const registered = [], destroyed = [];
+  OrderPushSubscription.findOne = async ({where}) => registered.find(r => r.businessId===where.businessId && r.orderType===where.orderType && r.orderId===where.orderId && r.endpoint===where.endpoint) || null;
   OrderPushSubscription.findOrCreate = async ({ where, defaults }) => { registered.push({ ...where, ...defaults }); return [{ update: async () => {} }, true]; };
   OrderPushSubscription.findAll = async ({ where }) => (where.endpoint === 'https://push.example.com/e1' ? [{ orderType: 'lead', orderId: 11, returnPath: '/store/shop/order/lead/11#token=x' }] : []);
   OrderPushSubscription.destroy = async ({ where }) => { destroyed.push(where); };
@@ -44,7 +45,14 @@ test('lead tracking, My Orders, and push registration use per-order capabilities
     assert.equal((await fetch(`${base}/salon/lead-orders/11`, { headers: auth(tok) })).status, 404, 'token is bound to its store');
     const sub = { endpoint: 'https://push.example.com/e1', keys: { p256dh: 'p', auth: 'a' } };
     r = await fetch(`${base}/shop/lead-orders/11/push-subscription`, { method: 'POST', headers: auth(tok), body: JSON.stringify(sub) });
-    assert.equal(r.status, 201); assert.equal(registered[0].orderType, 'lead'); assert.equal(registered[0].returnPath, `/store/shop/order/lead/11#token=${tok}`);
+    assert.equal(r.status, 201);
+    let enrollment = await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`, {headers:auth(tok)});
+    assert.equal(enrollment.status,200);assert.equal((await enrollment.json()).enrolled,true);
+    enrollment = await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=https%3A%2F%2Fpush.example.com%2Fother`, {headers:auth(tok)});
+    assert.equal((await enrollment.json()).enrolled,false);
+    assert.equal((await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`)).status,404);
+    assert.equal((await fetch(`${base}/salon/lead-orders/11/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`, {headers:auth(tok)})).status,404);
+    assert.equal(registered[0].orderType, 'lead'); assert.equal(registered[0].returnPath, `/store/shop/order/lead/11#token=${tok}`);
     assert.equal((await fetch(`${base}/shop/lead-orders/11/push-subscription`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ endpoint: 'http://insecure', keys: sub.keys }) })).status, 400);
     // My Orders: token-based and push-endpoint-based, never for another store's orders.
     r = await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ orders: [{ kind: 'lead', id: 11, token: tok }, { kind: 'lead', id: 12, token: sign('lead', 12, 6) }, { kind: 'lead', id: 11, token: 'junk' }] }) });
@@ -64,6 +72,6 @@ test('lead tracking, My Orders, and push registration use per-order capabilities
     assert.equal(r.status, 204); assert.equal(destroyed.at(-1).endpoint, sub.endpoint); assert.equal(destroyed.at(-1).businessId, 5);
   } finally {
     server.close();
-    Business.findOne = saved.b; [Lead.findOne, Lead.findAll] = saved.l; RestaurantOrder.findAll = saved.r; [OrderPushSubscription.findOrCreate, OrderPushSubscription.findAll, OrderPushSubscription.destroy] = saved.s;
+    Business.findOne = saved.b; [Lead.findOne, Lead.findAll] = saved.l; RestaurantOrder.findAll = saved.r; [OrderPushSubscription.findOrCreate, OrderPushSubscription.findAll, OrderPushSubscription.destroy, OrderPushSubscription.findOne] = saved.s;
   }
 });
