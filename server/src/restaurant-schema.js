@@ -5,6 +5,8 @@ import { ensureCrmSchema } from './crm.js';
 let ready;
 export function ensureRestaurantSchema() {
   if (!ready) ready = (async () => {
+    await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "passwordSetupHash" varchar(64)');
+    await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "passwordSetupExpiresAt" timestamp with time zone');
     await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "passwordChangedAt" timestamp with time zone');
     await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"storeType\" varchar(20) NOT NULL DEFAULT 'retail'");
     await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "notifyImageUrl" varchar(255) NOT NULL DEFAULT ''`);
