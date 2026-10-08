@@ -1,7 +1,7 @@
 import {ensureOrderStockSchema} from './order-stock-schema.js';
 import { ensureOrderNumbers } from './order-numbers.js';
 import { sequelize } from './db.js';
-import { RestaurantOrder, OrderPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from './models/index.js';
+import { RestaurantOrder, OrderPushSubscription, OwnerPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from './models/index.js';
 import { ensureCrmSchema } from './crm.js';
 let ready;
 export function ensureRestaurantSchema() {
@@ -33,6 +33,7 @@ export function ensureRestaurantSchema() {
     await RestaurantOrder.sync(); // New table only. Do not alter production tables.
     for(const table of ['leads','restaurant_orders']) { await sequelize.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS "customerEmail" varchar(160) DEFAULT ''`); await sequelize.query(`ALTER TABLE ${table} ADD COLUMN IF NOT EXISTS "customerEmailConsent" boolean DEFAULT false`); }
     await OrderPushSubscription.sync(); // New table only, separate from store broadcast subscriptions.
+    await OwnerPushSubscription.sync(); // New table only: owner/staff devices for new-order alerts.
     // orderId holds restaurant order ids AND retail lead ids, so an FK to restaurant_orders rejects retail orders.
     await sequelize.query('ALTER TABLE order_push_subscriptions DROP CONSTRAINT IF EXISTS "order_push_subscriptions_orderId_fkey"');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "subtotal" double precision NOT NULL DEFAULT 0');

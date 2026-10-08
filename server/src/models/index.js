@@ -144,6 +144,18 @@ export const OrderPushSubscription = sequelize.define('OrderPushSubscription', {
 Business.hasMany(OrderPushSubscription, { foreignKey: 'businessId' });
 OrderPushSubscription.belongsTo(Business, { foreignKey: 'businessId' });
 
+// Devices of a store's owner/staff that receive new-order alerts. Separate from storefront
+// subscriber pushes so order details never reach customers who only followed the shop.
+export const OwnerPushSubscription = sequelize.define('OwnerPushSubscription', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
+  userId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'users', key: 'id' } },
+  endpoint: { type: DataTypes.TEXT, allowNull: false, unique: true },
+  keys: { type: DataTypes.JSONB, allowNull: false }
+}, { tableName: 'owner_push_subscriptions', timestamps: true, updatedAt: false, indexes: [{ fields: ['businessId'] }] });
+Business.hasMany(OwnerPushSubscription, { foreignKey: 'businessId' });
+OwnerPushSubscription.belongsTo(Business, { foreignKey: 'businessId' });
+
 // Platform-level shop requests are separate from customer order enquiries.
 export const ShopRequest = sequelize.define('ShopRequest', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

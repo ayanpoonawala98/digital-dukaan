@@ -23,9 +23,10 @@ import { whatsappCloudOwnerRoutes } from '../whatsapp-cloud.js';
 import { byoOwnerRoutes, sendOrderStatus as sendOrderStatusWhatsApp } from '../whatsapp-byo.js';
 import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
+import { notifyNewProduct } from '../new-product-push.js';
 import { flowFor } from '../order-flows.js';
 import { featureForOwnerRoute, isLocked } from '../feature-locks.js';
-import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
+import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { validateProductRows } from '../product-import.js';
 import { insights } from '../sales-insights.js';
 import { dateWhere, dateWindow, summarize, ordersCsv, csvCell as reportCell } from '../reporting.js';
@@ -314,13 +315,17 @@ r.post('/:storeId/products', wrap(async (req, res) => {
   if (!fields.name?.trim()) throw bad(400, 'Product name required');
   if (fields.price === undefined) throw bad(400, 'Price required');
   if (!fields.categoryId) throw bad(400, 'Choose one of your shop categories');
-  res.status(201).json({ product: await Product.create({ ...fields, businessId: bid(req) }) });
+  const product = await Product.create({ ...fields, businessId: bid(req) });
+  void notifyNewProduct({ store: req.store, product, PushSubscription, send: (sub, payload) => webpush.sendNotification(sub, payload), configured: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), log: (msg, m) => console.error(msg, m) });
+  res.status(201).json({ product });
 }));
 r.patch('/:storeId/products/:id', wrap(async (req, res) => {
   const fields = await productFields(req);
   const product = await Product.findOne({ where: { id: numId(req.params.id, 'product ID'), businessId: bid(req) } });
   if (!product) throw bad(404, 'Product not found');
+  const wasLive = product.active;
   await product.update(fields);
+  if (!wasLive && product.active) void notifyNewProduct({ store: req.store, product, PushSubscription, send: (sub, payload) => webpush.sendNotification(sub, payload), configured: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), log: (msg, m) => console.error(msg, m) });
   res.json({ product });
 }));
 r.delete('/:storeId/products/:id', wrap(async (req, res) => {
@@ -605,6 +610,24 @@ r.get('/:storeId/export/vyapar.csv', wrap(async (req, res) => {
   res.send(`\uFEFF${rows.join('\n')}`);
 }));
 
+r.get('/:storeId/order-push-subscription', wrap(async (req, res) => {
+  const endpoint = String(req.query.endpoint || '');
+  if (!/^https:\/\//.test(endpoint) || endpoint.length > 1000) return res.json({ enrolled: false });
+  res.json({ enrolled: Boolean(await OwnerPushSubscription.findOne({ where: { businessId: bid(req), endpoint } })) });
+}));
+r.post('/:storeId/order-push-subscription', wrap(async (req, res) => {
+  const push = req.body || {};
+  if (typeof push.endpoint !== 'string' || !/^https:\/\//.test(push.endpoint) || push.endpoint.length > 1000 || !push.keys || typeof push.keys.p256dh !== 'string' || typeof push.keys.auth !== 'string' || push.keys.p256dh.length > 300 || push.keys.auth.length > 300) throw bad(400, 'Invalid push subscription');
+  const [row, created] = await OwnerPushSubscription.findOrCreate({ where: { endpoint: push.endpoint }, defaults: { businessId: bid(req), userId: req.user.id, keys: push.keys } });
+  if (!created) await row.update({ businessId: bid(req), userId: req.user.id, keys: push.keys });
+  res.status(201).json({ ok: true });
+}));
+r.delete('/:storeId/order-push-subscription', wrap(async (req, res) => {
+  const endpoint = String(req.body?.endpoint || '');
+  if (!/^https:\/\//.test(endpoint) || endpoint.length > 1000) throw bad(400, 'Invalid push subscription');
+  await OwnerPushSubscription.destroy({ where: { businessId: bid(req), endpoint } });
+  res.status(204).end();
+}));
 r.get('/:storeId/push-subscribers', wrap(async (req, res) => {
   res.json({ subscribers: await PushSubscription.count({ where: { businessId: bid(req) } }) });
 }));

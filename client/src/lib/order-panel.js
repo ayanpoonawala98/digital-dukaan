@@ -5,6 +5,11 @@ export function safeDashboardReturn(next) {
 }
 export function requestedOrderStore(stores, search) {
   const query = new URLSearchParams(search), slug = query.get('store');
-  if (!slug || query.get('tab') !== 'leads') return null;
+  if (!slug || !['leads', 'restaurant'].includes(query.get('tab'))) return null;
   return stores.find(store => store.slug === slug) || false;
+}
+
+export function requestedOrderTab(search) {
+  const tab = new URLSearchParams(search).get('tab');
+  return ['leads', 'restaurant'].includes(tab) ? tab : null;
 }

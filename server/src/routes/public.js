@@ -10,6 +10,7 @@ import {shopQrSvg} from '../shop-qr.js';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { isLocked } from '../feature-locks.js';
 import { notifyNewOrder } from '../notify.js';
+import { notifyOwnerDevices } from '../order-push-wired.js';
 import { validateAnswers } from '../custom-fields.js';
 import { invoiceSigValid, streamBill } from '../invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike, clientBase } from '../utils/core.js';
@@ -117,6 +118,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const total = Number((subtotal - discount).toFixed(2));
   const order = await RestaurantOrder.create({ businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
   void notifyNewOrder(business, 'restaurant', order);
+  void notifyOwnerDevices(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, total, trackingToken });
@@ -291,6 +293,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const lines=[{productId:product.id,name:product.name,price:product.price,qty,...(answers.length?{answers}:{})}];
   const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: subtotal, items:lines, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
+  void notifyOwnerDevices(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
   const waUrl = whatsappUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, {...(typeof product.get==='function'?product.get({plain:true}):product),price:subtotal,orderQty:qty,unitPrice:product.price}, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
@@ -321,6 +324,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const total = Number((subtotal - discount + delivery).toFixed(2));
   const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
+  void notifyOwnerDevices(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   const url = whatsappCartUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
   const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
