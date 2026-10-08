@@ -6,6 +6,7 @@ export const escapeLike = value => String(value).replace(/[\\%_]/g, c => `\\${c}
 export function whatsappUrl(business, product, photoUrl, answers = []) {
   const { whatsapp } = business;
   const lines = [`Hi! I'm interested in this product:`, `ID: ${product.id || product._id}`, `Name: ${product.name}`, `Price: ₹${Number(product.price).toFixed(2)}`];
+  if(Number(product.orderQty)>1)lines.push(`Quantity: ${product.orderQty}`,`Unit price: ₹${Number(product.unitPrice).toFixed(2)}`);
   for (const a of answers) if (a?.label && a?.value) lines.push(`${a.label}: ${a.value}`);
   if (photoUrl) lines.push(`Photo: ${photoUrl}`);
   if (business.orderNumber) lines.push(`Order #${business.orderNumber}`);
