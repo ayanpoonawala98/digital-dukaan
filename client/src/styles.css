@@ -1267,3 +1267,32 @@ footer { background:#101d15; }
 .table-qr-card img{width:150px;height:auto;padding:0;border-radius:12px}
 @keyframes qr-frame-glow{0%,100%{box-shadow:0 0 0 4px color-mix(in srgb,var(--accent,#0e9f6e) 12%,transparent)}50%{box-shadow:0 0 0 10px color-mix(in srgb,var(--accent,#0e9f6e) 22%,transparent)}}
 @media(prefers-reduced-motion:reduce){.qr-frame.qr-themed-online{animation:none}}
+
+/* Product actions remain contained at desktop widths and become readable cards on phones. */
+.products-table .row-actions { white-space:normal; min-width:160px; max-width:320px; }
+.products-table .row-actions > button { margin:3px; min-height:40px; }
+.products-table .inline-delete-confirm { display:flex; margin:8px 0 0; padding:12px; border:1px solid var(--line); border-radius:10px; background:var(--bg-soft); text-align:left; max-width:100%; }
+.products-table .inline-delete-confirm > span { flex:0 0 100%; white-space:normal; overflow-wrap:anywhere; font-size:13px; line-height:1.5; }
+.products-table .inline-delete-confirm button { min-height:44px; }
+.products-table .table-product { min-width:0; }
+.products-table .table-product img,.products-table .table-product > span { flex-shrink:0; }
+.products-table .table-product strong { overflow-wrap:anywhere; }
+@media(max-width:900px) {
+ .products-table,.products-table tbody { display:block; width:100%; }
+ .products-table thead { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); }
+ .products-table tbody { display:grid; gap:16px; }
+ .products-table tr { display:block; padding:8px 14px; border:1px solid var(--line); border-radius:12px; }
+ .products-table td { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; text-align:right; overflow-wrap:anywhere; }
+ .products-table td::before { content:attr(data-label); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); text-align:left; flex-shrink:0; }
+ .products-table td:first-child { text-align:left; }
+ .products-table td:first-child::before { display:none; }
+ .products-table td.row-actions { display:flex; flex-wrap:wrap; justify-content:flex-start; max-width:none; min-width:0; border:0; }
+ .products-table td.row-actions::before { flex:0 0 100%; }
+ .products-table .inline-delete-confirm { flex:0 0 100%; }
+ .products-table .table-product strong { font-size:15px; }
+}
+.products-table .inline-delete-confirm small { display:block; color:var(--muted); margin-top:4px; }
+@media(max-width:900px) {
+ .products-table,.products-table tbody,.products-table tr,.products-table td { min-width:0; width:100%; max-width:100%; }
+}
+@media(max-width:900px) { .table-wrap .products-table { min-width:0; } }
