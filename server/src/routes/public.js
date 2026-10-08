@@ -5,7 +5,7 @@ import { haversineKm } from '../utils/geo.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { storeUrl } from '../utils/store-domain.js';
-import QRCode from 'qrcode';
+import {shopQrSvg} from '../shop-qr.js';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
 import { isLocked } from '../feature-locks.js';
 import { notifyNewOrder } from '../notify.js';
@@ -333,10 +333,7 @@ r.get('/stores/:slug/qr', wrap(async (req, res) => {
   const table = Number(req.query.table);
   if (req.query.table !== undefined && (business.storeType !== 'restaurant' || !Number.isInteger(table) || table < 1 || table > business.tableCount)) throw bad(400, 'Invalid restaurant table');
   const destination = req.query.table === undefined ? shopUrl(business.slug) : `${shopUrl(business.slug)}?table=${table}`;
-  // Embed a small branded mark in a high-correction QR; the generated PNG is
-  // scaled from QR modules rather than SVG strokes so phones can scan it.
-  const png = await QRCode.toBuffer(destination, { type: 'png', margin: 4, width: 1024, errorCorrectionLevel: 'H', color: { dark: '#162b1d', light: '#ffffff' } });
-  const mark = `<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><image x="0" y="0" width="512" height="512" href="data:image/png;base64,${png.toString('base64')}"/><rect x="235" y="235" width="42" height="42" rx="8" fill="#ffffff"/><rect x="239" y="239" width="34" height="34" rx="6" fill="#0e9f6e"/><text x="256" y="262" text-anchor="middle" font-size="15" font-family="Arial,sans-serif" font-weight="bold" fill="white">DD</text></svg>`;
+  const mark = await shopQrSvg(business, destination, req.query.table === undefined ? null : table);
   res.type('image/svg+xml').send(mark);
 }));
 
