@@ -11,6 +11,7 @@ import { uploadImageKit } from '../utils/imagekit.js';
 import { registerStoreDomain, storeDomain, storeUrl } from '../utils/store-domain.js';
 import { effective as staffPerms, clean as cleanPerms, staffAllowed } from '../permissions.js';
 import QRCode from 'qrcode';
+import {qrBrand} from '../shop-qr.js';
 import PDFDocument from 'pdfkit';
 import { whatsappCloudOwnerRoutes } from '../whatsapp-cloud.js';
 import { byoOwnerRoutes, sendOrderStatus as sendOrderStatusWhatsApp } from '../whatsapp-byo.js';
@@ -363,7 +364,8 @@ r.get('/:storeId/shop-qr.pdf', wrap(async(req,res)=>{
   const doc=new PDFDocument({size:'A4',margin:50});
   res.type('application/pdf').attachment(`${req.store.slug}-shop-qr.pdf`);doc.pipe(res);
   doc.registerFont('ShopText',path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../fonts/DejaVuSans.ttf'));doc.font('ShopText');
-  doc.fontSize(16).fillColor('#0e9f6e').text('DIGITAL SHOP',{align:'center'});doc.moveDown();doc.fontSize(28).fillColor('#162b1d').text(req.store.name,{align:'center'});doc.moveDown();doc.fontSize(16).text('Scan to browse our shop',{align:'center'});const qrTop=Math.max(220,doc.y+20);doc.image(png,137,qrTop,{width:320});doc.fontSize(11).text(url,50,qrTop+340,{align:'center',width:495});doc.fontSize(12).text('Your shop. One link away.',50,qrTop+385,{align:'center',width:495});doc.end();
+  const brand=qrBrand(req.store);doc.lineWidth(4).strokeColor(brand.color).roundedRect(30,30,535,782,20).stroke();
+  doc.fontSize(16).fillColor(brand.color).text('DIGITAL SHOP',{align:'center'});doc.moveDown();doc.fontSize(28).fillColor('#162b1d').text(req.store.name,{align:'center'});doc.moveDown();doc.fontSize(16).text('Scan to browse our shop',{align:'center'});const qrTop=Math.max(220,doc.y+20);doc.image(png,137,qrTop,{width:320});doc.roundedRect(281,qrTop+144,32,32,6).fill('white');doc.roundedRect(285,qrTop+148,24,24,4).fill(brand.color);doc.fontSize(9).fillColor(brand.foreground).text(brand.initials,285,qrTop+155,{width:24,align:'center'});doc.fillColor('#162b1d');doc.fontSize(11).text(url,50,qrTop+340,{align:'center',width:495});doc.fontSize(12).text('Your shop. One link away.',50,qrTop+385,{align:'center',width:495});doc.end();
 }));
 r.get('/:storeId/leads', wrap(async (req,res) => res.json(await orderPage(req,Lead,'whatsapp'))));
 r.get('/:storeId/leads/report.csv', wrap(async (req,res) => {
