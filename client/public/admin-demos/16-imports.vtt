@@ -1,89 +1,119 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:04.119
-Bulk import से CSV या Excel file के कई products एक साथ
+00:00:00.000 --> 00:00:05.492
+Bulk import से CSV या Excel file के कई products एक साथ जोड़े जा सकते हैं।
 
-00:00:04.119 --> 00:00:08.238
-जोड़े जा सकते हैं। Owner को Products section में Import products मिलता
+00:00:05.492 --> 00:00:08.581
+Owner को Products section में Import products मिलता है।
 
-00:00:08.238 --> 00:00:12.357
-है। Staff को permission हो तो अलग Bulk import tab मिल सकता
+00:00:08.581 --> 00:00:12.700
+Staff को permission हो तो अलग Bulk import tab मिल सकता है।
 
-00:00:12.357 --> 00:00:16.475
-है। Customer import deployment पर enabled हो तभी उपलब्ध है। इस live
+00:00:12.700 --> 00:00:15.789
+Customer import deployment पर enabled हो तभी उपलब्ध है।
 
-00:00:16.475 --> 00:00:20.594
-deployment में Customers menu नहीं दिख रहा, इसलिए video उसमें successful customer
+00:00:15.789 --> 00:00:22.310
+इस live deployment में Customers menu नहीं दिख रहा, इसलिए video उसमें successful customer import का दावा नहीं करता।
 
-00:00:20.594 --> 00:00:24.713
-import का दावा नहीं करता। पहले सही दुकान चुनें। Product example CSV
+00:00:22.310 --> 00:00:23.683
+पहले सही दुकान चुनें।
 
-00:00:24.713 --> 00:00:28.832
-डाउनलोड करके headers और example row देखें। Fields में name, price, stock,
+00:00:23.683 --> 00:00:27.116
+Product example CSV डाउनलोड करके headers और example row देखें।
 
-00:00:28.832 --> 00:00:32.951
-category और description हैं। Blank stock unlimited है। Images, options और visibility
+00:00:27.116 --> 00:00:30.205
+Fields में name, price, stock, category और description हैं।
 
-00:00:32.951 --> 00:00:37.070
-अलग product editing में manage होते हैं। Example row को अपने data
+00:00:30.205 --> 00:00:31.578
+Blank stock unlimited है।
 
-00:00:37.070 --> 00:00:41.188
-से बदलना जरूरी है। CSV या XLSX file दो मेगाबाइट के अंदर
+00:00:31.578 --> 00:00:35.353
+Images, options और visibility अलग product editing में manage होते हैं।
 
-00:00:41.188 --> 00:00:45.307
-रखें। एक बार में एक से पाँच सौ rows supported हैं। Excel
+00:00:35.353 --> 00:00:38.443
+Example row को अपने data से बदलना जरूरी है।
 
-00:00:45.307 --> 00:00:49.426
-में first worksheet और header row इस्तेमाल होती है। Headers unique और
+00:00:38.443 --> 00:00:41.532
+CSV या XLSX file दो मेगाबाइट के अंदर रखें।
 
-00:00:49.426 --> 00:00:53.545
-nonempty होने चाहिए। गलत format या empty file पर error आएगा। Choose
+00:00:41.532 --> 00:00:44.964
+एक बार में एक से पाँच सौ rows supported हैं।
 
-00:00:53.545 --> 00:00:57.664
-file के बाद column mapping खुलता है। आपकी file के column names
+00:00:44.964 --> 00:00:48.396
+Excel में first worksheet और header row इस्तेमाल होती है।
 
-00:00:57.664 --> 00:01:01.783
-अलग हो सकते हैं। हर store field को सही file column से
+00:00:48.396 --> 00:00:50.456
+Headers unique और nonempty होने चाहिए।
 
-00:01:01.783 --> 00:01:05.902
-match करें। Suggested match केवल suggestion है। Sample value पढ़कर confirm करें।
+00:00:50.456 --> 00:00:53.202
+गलत format या empty file पर error आएगा।
 
-00:01:05.902 --> 00:01:10.020
-Required fields missing न हों। Unmapped columns ignored रहते हैं। Validate and
+00:00:53.202 --> 00:00:55.948
+Choose file के बाद column mapping खुलता है।
 
-00:01:10.020 --> 00:01:14.139
-preview से review बनता है। इस stage पर Nothing imported yet दिखना
+00:00:55.948 --> 00:00:59.037
+आपकी file के column names अलग हो सकते हैं।
 
-00:01:14.139 --> 00:01:18.258
-जरूरी है। New, existing और errors की count पढ़ें। Row errors पहले
+00:00:59.037 --> 00:01:02.469
+हर store field को सही file column से match करें।
 
-00:01:18.258 --> 00:01:22.377
-ठीक करें। Preview table में action देखें। Existing records skipped होते हैं,
+00:01:02.469 --> 00:01:04.185
+Suggested match केवल suggestion है।
 
-00:01:22.377 --> 00:01:26.496
-overwritten नहीं। Mapping बदलने पर पुराने preview पर भरोसा न करें, दुबारा
+00:01:04.185 --> 00:01:05.902
+Sample value पढ़कर confirm करें।
 
-00:01:26.496 --> 00:01:30.615
-validate करें। केवल सही preview और zero errors पर Import these products
+00:01:05.902 --> 00:01:07.618
+Required fields missing न हों।
 
-00:01:30.615 --> 00:01:34.733
-final commit है। फिर created और skipped result आता है। Catalogue में
+00:01:07.618 --> 00:01:09.334
+Unmapped columns ignored रहते हैं।
 
-00:01:34.733 --> 00:01:38.852
-actual records जाँचें। Customer import available होने पर contact import marketing consent
+00:01:09.334 --> 00:01:11.737
+Validate and preview से review बनता है।
 
-00:01:38.852 --> 00:01:42.971
-नहीं बनाता। Consent अलग real evidence से record होता है। Phone list
+00:01:11.737 --> 00:01:14.826
+इस stage पर Nothing imported yet दिखना जरूरी है।
 
-00:01:42.971 --> 00:01:47.090
-को promotional audience मानकर send न करें। इस demo में sample file
+00:01:14.826 --> 00:01:17.228
+New, existing और errors की count पढ़ें।
 
-00:01:47.090 --> 00:01:51.209
-और mapping समझाया गया है, import commit नहीं किया गया। Final import
+00:01:17.228 --> 00:01:18.945
+Row errors पहले ठीक करें।
 
-00:01:51.209 --> 00:01:55.328
-live data जोड़ता है। गलत column में price या stock जाने से
+00:01:18.945 --> 00:01:20.661
+Preview table में action देखें।
 
-00:01:55.328 --> 00:01:58.760
-shop गलत दिख सकती है, इसलिए preview skip मत करें।
+00:01:20.661 --> 00:01:23.063
+Existing records skipped होते हैं, overwritten नहीं।
+
+00:01:23.063 --> 00:01:27.182
+Mapping बदलने पर पुराने preview पर भरोसा न करें, दुबारा validate करें।
+
+00:01:27.182 --> 00:01:31.644
+केवल सही preview और zero errors पर Import these products final commit है।
+
+00:01:31.644 --> 00:01:34.047
+फिर created और skipped result आता है।
+
+00:01:34.047 --> 00:01:35.763
+Catalogue में actual records जाँचें।
+
+00:01:35.763 --> 00:01:39.539
+Customer import available होने पर contact import marketing consent नहीं बनाता।
+
+00:01:39.539 --> 00:01:42.285
+Consent अलग real evidence से record होता है।
+
+00:01:42.285 --> 00:01:45.374
+Phone list को promotional audience मानकर send न करें।
+
+00:01:45.374 --> 00:01:50.522
+इस demo में sample file और mapping समझाया गया है, import commit नहीं किया गया।
+
+00:01:50.522 --> 00:01:52.582
+Final import live data जोड़ता है।
+
+00:01:52.582 --> 00:01:58.760
+गलत column में price या stock जाने से shop गलत दिख सकती है, इसलिए preview skip मत करें।
 

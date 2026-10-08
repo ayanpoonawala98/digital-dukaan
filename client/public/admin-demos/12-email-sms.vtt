@@ -1,92 +1,107 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:04.237
-Email and SMS offers promotional campaigns के लिए है। ये order receipt
+00:00:00.000 --> 00:00:03.178
+Email and SMS offers promotional campaigns के लिए है।
 
-00:00:04.237 --> 00:00:08.475
-या service updates से अलग है। पहले सही दुकान चुनिए। इस demo
+00:00:03.178 --> 00:00:06.355
+ये order receipt या service updates से अलग है।
 
-00:00:08.475 --> 00:00:12.712
-store का provider connected नहीं है, इसलिए हम actual send नहीं कर
+00:00:06.355 --> 00:00:07.768
+पहले सही दुकान चुनिए।
 
-00:00:12.712 --> 00:00:16.950
-रहे हैं। Offers केवल दुकान के अपने email या SMS provider से
+00:00:07.768 --> 00:00:13.417
+इस demo store का provider connected नहीं है, इसलिए हम actual send नहीं कर रहे हैं।
 
-00:00:16.950 --> 00:00:21.187
-जाते हैं। Shop settings में business account setup होना चाहिए। Platform का
+00:00:13.417 --> 00:00:17.654
+Offers केवल दुकान के अपने email या SMS provider से जाते हैं।
 
-00:00:21.187 --> 00:00:25.425
-कोई shared sender fallback नहीं है। SMS paid हो सकता है; provider
+00:00:17.654 --> 00:00:20.478
+Shop settings में business account setup होना चाहिए।
 
-00:00:25.425 --> 00:00:29.662
-fees, account reputation और compliance आपकी business responsibility हैं। Channel में Email
+00:00:20.478 --> 00:00:23.303
+Platform का कोई shared sender fallback नहीं है।
 
-00:00:29.662 --> 00:00:33.900
-या SMS चुनें। Consent भी उसी channel का होना चाहिए। Order देने,
+00:00:23.303 --> 00:00:28.599
+SMS paid हो सकता है; provider fees, account reputation और compliance आपकी business responsibility हैं।
 
-00:00:33.900 --> 00:00:38.137
-phone import होने या WhatsApp permission मिलने से email या SMS marketing
+00:00:28.599 --> 00:00:30.717
+Channel में Email या SMS चुनें।
 
-00:00:38.137 --> 00:00:42.374
-consent नहीं मिलता। Customer ने इस दुकान के promotional offers के लिए
+00:00:30.717 --> 00:00:33.189
+Consent भी उसी channel का होना चाहिए।
 
-00:00:42.374 --> 00:00:46.612
-अलग approval दिया होना चाहिए। Offer subject, physical postal address और message
+00:00:33.189 --> 00:00:39.191
+Order देने, phone import होने या WhatsApp permission मिलने से email या SMS marketing consent नहीं मिलता।
 
-00:00:46.612 --> 00:00:50.849
-fields भरें। Store name और opt out link message में जुड़ते हैं।
+00:00:39.191 --> 00:00:44.134
+Customer ने इस दुकान के promotional offers के लिए अलग approval दिया होना चाहिए।
 
-00:00:50.849 --> 00:00:55.087
-SMS लंबा हो तो multiple paid segments बन सकते हैं। अभी text
+00:00:44.134 --> 00:00:47.312
+Offer subject, physical postal address और message fields भरें।
 
-00:00:55.087 --> 00:00:59.324
-लिखने से send नहीं होता। पहले recipient selection है। एक batch में
+00:00:47.312 --> 00:00:50.842
+Store name और opt out link message में जुड़ते हैं।
 
-00:00:59.324 --> 00:01:03.562
-दस contacts तक चुन सकते हैं। Small batch से शुरू करें और
+00:00:50.842 --> 00:00:54.373
+SMS लंबा हो तो multiple paid segments बन सकते हैं।
 
-00:01:03.562 --> 00:01:07.799
-हर address व content review करें। Offer contacts में consent evidence, source
+00:00:54.373 --> 00:00:56.845
+अभी text लिखने से send नहीं होता।
 
-00:01:07.799 --> 00:01:12.037
-और agreed time record होता है। Correct channel, address और customer name
+00:00:56.845 --> 00:00:58.257
+पहले recipient selection है।
 
-00:01:12.037 --> 00:01:16.274
-लिखें। Consent checkbox तभी करें जब असली evidence मौजूद हो। Find order
+00:00:58.257 --> 00:01:01.435
+एक batch में दस contacts तक चुन सकते हैं।
 
-00:01:16.274 --> 00:01:20.511
-contacts केवल lookup है, consent create नहीं करता। Suppressed contact को फिर
+00:01:01.435 --> 00:01:05.672
+Small batch से शुरू करें और हर address व content review करें।
 
-00:01:20.511 --> 00:01:24.749
-add करने से suppression हटती नहीं। SMS STOP replies यहाँ automatic read
+00:01:05.672 --> 00:01:09.908
+Offer contacts में consent evidence, source और agreed time record होता है।
 
-00:01:24.749 --> 00:01:28.986
-नहीं होते; opt out request को contact suppression में honor करें। Review
+00:01:09.908 --> 00:01:12.380
+Correct channel, address और customer name लिखें।
 
-00:01:28.986 --> 00:01:33.224
-offer and audience preview stage है। Final sending से पहले actual recipients,
+00:01:12.380 --> 00:01:15.558
+Consent checkbox तभी करें जब असली evidence मौजूद हो।
 
-00:01:33.224 --> 00:01:37.461
-message और provider देखना जरूरी है। Interrupted campaign को blindly retry मत
+00:01:15.558 --> 00:01:19.088
+Find order contacts केवल lookup है, consent create नहीं करता।
 
-00:01:37.461 --> 00:01:41.699
-करें। History में accepted का मतलब provider accepted है, verified delivery नहीं।
+00:01:19.088 --> 00:01:22.619
+Suppressed contact को फिर add करने से suppression हटती नहीं।
 
-00:01:41.699 --> 00:01:45.936
-Result और error का फर्क समझें। Campaign history से कब, किस channel
+00:01:22.619 --> 00:01:28.621
+SMS STOP replies यहाँ automatic read नहीं होते; opt out request को contact suppression में honor करें।
 
-00:01:45.936 --> 00:01:50.173
-पर और क्या outcome हुआ, देख सकते हैं। ये public customer list
+00:01:28.621 --> 00:01:31.093
+Review offer and audience preview stage है।
 
-00:01:50.173 --> 00:01:54.411
-नहीं है। Export या screenshot में private addresses share न करें। इस
+00:01:31.093 --> 00:01:35.330
+Final sending से पहले actual recipients, message और provider देखना जरूरी है।
 
-00:01:54.411 --> 00:01:58.648
-recording में consent या provider नहीं बनाया गया, campaign नहीं चला और
+00:01:35.330 --> 00:01:37.801
+Interrupted campaign को blindly retry मत करें।
 
-00:01:58.648 --> 00:02:02.886
-कोई fee नहीं लगी। पहले अपना provider configure करें, real channel specific
+00:01:37.801 --> 00:01:41.685
+History में accepted का मतलब provider accepted है, verified delivery नहीं।
 
-00:02:02.886 --> 00:02:06.417
-consent रखें, छोटा audience review करें, फिर authorized send करें।
+00:01:41.685 --> 00:01:43.803
+Result और error का फर्क समझें।
+
+00:01:43.803 --> 00:01:48.746
+Campaign history से कब, किस channel पर और क्या outcome हुआ, देख सकते हैं।
+
+00:01:48.746 --> 00:01:50.865
+ये public customer list नहीं है।
+
+00:01:50.865 --> 00:01:54.042
+Export या screenshot में private addresses share न करें।
+
+00:01:54.042 --> 00:02:00.045
+इस recording में consent या provider नहीं बनाया गया, campaign नहीं चला और कोई fee नहीं लगी।
+
+00:02:00.045 --> 00:02:06.400
+पहले अपना provider configure करें, real channel specific consent रखें, छोटा audience review करें, फिर authorized send करें।
 

@@ -1,92 +1,98 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:03.797
-Notifications में दो अलग काम हैं: owner और staff के इस device
+00:00:00.000 --> 00:00:07.277
+Notifications में दो अलग काम हैं: owner और staff के इस device पर new order alerts, और storefront subscribers को दुकान की announcements।
 
-00:00:03.797 --> 00:00:07.593
-पर new order alerts, और storefront subscribers को दुकान की announcements। इन्हें
+00:00:07.277 --> 00:00:10.441
+इन्हें customer के per order status updates से अलग समझिए।
 
-00:00:07.593 --> 00:00:11.390
-customer के per order status updates से अलग समझिए। सबसे पहले इस
+00:00:10.441 --> 00:00:13.605
+सबसे पहले इस device वाले order alerts card को देखें।
 
-00:00:11.390 --> 00:00:15.186
-device वाले order alerts card को देखें। Enable new order alerts browser
+00:00:13.605 --> 00:00:16.452
+Enable new order alerts browser permission माँग सकता है।
 
-00:00:15.186 --> 00:00:18.983
-permission माँग सकता है। आपका browser और device support जरूरी है। Permission
+00:00:16.452 --> 00:00:18.667
+आपका browser और device support जरूरी है।
 
-00:00:18.983 --> 00:00:22.780
-blocked हो तो browser settings में allow करना पड़ेगा। iPhone पर web
+00:00:18.667 --> 00:00:21.831
+Permission blocked हो तो browser settings में allow करना पड़ेगा।
 
-00:00:22.780 --> 00:00:26.576
-push के लिए supported home screen web app setup जरूरी हो सकता
+00:00:21.831 --> 00:00:26.893
+iPhone पर web push के लिए supported home screen web app setup जरूरी हो सकता है।
 
-00:00:26.576 --> 00:00:30.373
-है। सिर्फ switch दिखने से हर phone की delivery verified नहीं होती।
+00:00:26.893 --> 00:00:30.373
+सिर्फ switch दिखने से हर phone की delivery verified नहीं होती।
 
-00:00:30.373 --> 00:00:34.169
-Device बदलने पर उसका enrollment अलग हो सकता है। दुकान को नया
+00:00:30.373 --> 00:00:33.220
+Device बदलने पर उसका enrollment अलग हो सकता है।
 
-00:00:34.169 --> 00:00:37.966
-order आने पर enrolled owner या staff device को alert मिलता है।
+00:00:33.220 --> 00:00:37.966
+दुकान को नया order आने पर enrolled owner या staff device को alert मिलता है।
 
-00:00:37.966 --> 00:00:41.763
-Staff permissions और store scope लागू रहता है। ग्राहक को ये owner
+00:00:37.966 --> 00:00:40.497
+Staff permissions और store scope लागू रहता है।
 
-00:00:41.763 --> 00:00:45.559
-alert नहीं जाता। Customer की order status notification उसके tracking page पर
+00:00:40.497 --> 00:00:42.712
+ग्राहक को ये owner alert नहीं जाता।
 
-00:00:45.559 --> 00:00:49.356
-Notify me से जुड़ती है। पुराने order की subscription अपने आप अगले
+00:00:42.712 --> 00:00:47.141
+Customer की order status notification उसके tracking page पर Notify me से जुड़ती है।
 
-00:00:49.356 --> 00:00:53.153
-order को subscribe नहीं करती। नीचे Broadcast to subscribers में इसी दुकान
+00:00:47.141 --> 00:00:50.938
+पुराने order की subscription अपने आप अगले order को subscribe नहीं करती।
 
-00:00:53.153 --> 00:00:56.949
-के allowed visitors की count दिखती है। Title और message लिखिए। Optional
+00:00:50.938 --> 00:00:55.367
+नीचे Broadcast to subscribers में इसी दुकान के allowed visitors की count दिखती है।
 
-00:00:56.949 --> 00:01:00.746
-product चुनें या इसी shop का valid page link दें। Tap करने
+00:00:55.367 --> 00:00:56.633
+Title और message लिखिए।
 
-00:01:00.746 --> 00:01:04.542
-पर उसी destination पर जाना चाहिए। Product और pasted link को सही
+00:00:56.633 --> 00:01:00.113
+Optional product चुनें या इसी shop का valid page link दें।
 
-00:01:04.542 --> 00:01:08.339
-customer destination के हिसाब से चुनें। Optional image JPEG, PNG या WebP
+00:01:00.113 --> 00:01:02.644
+Tap करने पर उसी destination पर जाना चाहिए।
 
-00:01:08.339 --> 00:01:12.136
-हो सकती है, पाँच मेगाबाइट तक। Image skip होने पर दुकान की
+00:01:02.644 --> 00:01:06.441
+Product और pasted link को सही customer destination के हिसाब से चुनें।
 
-00:01:12.136 --> 00:01:15.932
-configured default notification image, cover या logo इस्तेमाल हो सकता है। Image
+00:01:06.441 --> 00:01:10.237
+Optional image JPEG, PNG या WebP हो सकती है, पाँच मेगाबाइट तक।
 
-00:01:15.932 --> 00:01:19.729
-upload पूरा होने तक इंतजार करें। Title, message, recipient scope और destination
+00:01:10.237 --> 00:01:15.616
+Image skip होने पर दुकान की configured default notification image, cover या logo इस्तेमाल हो सकता है।
 
-00:01:19.729 --> 00:01:23.525
-review करके ही Send notification दबाएँ। ये real outgoing send है। इस
+00:01:15.616 --> 00:01:17.831
+Image upload पूरा होने तक इंतजार करें।
 
-00:01:23.525 --> 00:01:27.322
-demo में button नहीं दबाया गया है। नया product publish होने या
+00:01:17.831 --> 00:01:21.627
+Title, message, recipient scope और destination review करके ही Send notification दबाएँ।
 
-00:01:27.322 --> 00:01:31.119
-hidden item live होने पर store subscribers के launch alerts अलग flow
+00:01:21.627 --> 00:01:23.209
+ये real outgoing send है।
 
-00:01:31.119 --> 00:01:34.915
-से आते हैं। हर edit announcement नहीं है। Browser subscription record और
+00:01:23.209 --> 00:01:25.740
+इस demo में button नहीं दबाया गया है।
 
-00:01:34.915 --> 00:01:38.712
-delivered notification अलग evidence हैं; send error हो तो delivery assume न
+00:01:25.740 --> 00:01:32.068
+नया product publish होने या hidden item live होने पर store subscribers के launch alerts अलग flow से आते हैं।
 
-00:01:38.712 --> 00:01:42.508
-करें। अगर subscribers zero हों तो send बंद रहेगा और storefront से
+00:01:32.068 --> 00:01:33.650
+हर edit announcement नहीं है।
 
-00:01:42.508 --> 00:01:46.305
-visitors subscribe कर सकते हैं। Permission optional रखें। Customer या staff को
+00:01:33.650 --> 00:01:39.028
+Browser subscription record और delivered notification अलग evidence हैं; send error हो तो delivery assume न करें।
 
-00:01:46.305 --> 00:01:50.102
-बिना उसकी browser approval silently enroll न करें। Test के लिए demo
+00:01:39.028 --> 00:01:44.090
+अगर subscribers zero हों तो send बंद रहेगा और storefront से visitors subscribe कर सकते हैं।
 
-00:01:50.102 --> 00:01:52.000
-order और consenting device इस्तेमाल करें।
+00:01:44.090 --> 00:01:45.040
+Permission optional रखें।
+
+00:01:45.040 --> 00:01:48.836
+Customer या staff को बिना उसकी browser approval silently enroll न करें।
+
+00:01:48.836 --> 00:01:52.000
+Test के लिए demo order और consenting device इस्तेमाल करें।
 

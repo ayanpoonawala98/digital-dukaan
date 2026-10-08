@@ -1,101 +1,119 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:04.553
-Orders सेक्शन customer की enquiries और requests संभालता है। Enquiry paid sale
+00:00:00.000 --> 00:00:02.951
+Orders सेक्शन customer की enquiries और requests संभालता है।
 
-00:00:04.553 --> 00:00:09.106
-नहीं होती। पहले सही दुकान चुनिए। Restaurant के in-app orders के लिए
+00:00:02.951 --> 00:00:04.591
+Enquiry paid sale नहीं होती।
 
-00:00:09.106 --> 00:00:13.659
-Table orders अलग section है। ऊपर search, status और date filters से
+00:00:04.591 --> 00:00:05.902
+पहले सही दुकान चुनिए।
 
-00:00:13.659 --> 00:00:18.212
-जरूरी request ढूँढें। तारीखों पर Indian standard time लिखा है। Clear filters
+00:00:05.902 --> 00:00:09.509
+Restaurant के in-app orders के लिए Table orders अलग section है।
 
-00:00:18.212 --> 00:00:22.765
-से पूरा view वापस आता है। कई records हों तो pagination में
+00:00:09.509 --> 00:00:12.788
+ऊपर search, status और date filters से जरूरी request ढूँढें।
 
-00:00:22.765 --> 00:00:27.318
-Previous और Next इस्तेमाल करें। Download report CSV देता है। Report को
+00:00:12.788 --> 00:00:15.083
+तारीखों पर Indian standard time लिखा है।
 
-00:00:27.318 --> 00:00:31.871
-आगे भेजने से पहले customer information जाँचें। Order row में customer-facing order
+00:00:15.083 --> 00:00:17.707
+Clear filters से पूरा view वापस आता है।
 
-00:00:31.871 --> 00:00:36.424
-number, item, quantity, चुने हुए answers, total और received time मिलते हैं।
+00:00:17.707 --> 00:00:20.330
+कई records हों तो पहले पंद्रह दिखते हैं।
 
-00:00:36.424 --> 00:00:40.977
-Physical products के लिए confirmed, packed, shipped, out for delivery और delivered
+00:00:20.330 --> 00:00:23.937
+नीचे scroll करने पर अगले दस अपने आप load होते हैं।
 
-00:00:40.977 --> 00:00:45.530
-जैसे stages हैं। Services में confirmed, in progress और completed जैसे stages
+00:00:23.937 --> 00:00:25.576
+Download report CSV देता है।
 
-00:00:45.530 --> 00:00:50.083
-हैं। Cancelled request को अलग status मिलता है। सही stage तभी चुनें
+00:00:25.576 --> 00:00:28.527
+Report को आगे भेजने से पहले customer information जाँचें।
 
-00:00:50.083 --> 00:00:54.636
-जब काम सच में उस stage तक पहुँचा हो। Customer WhatsApp number
+00:00:28.527 --> 00:00:34.101
+Order row में customer-facing order number, item, quantity, चुने हुए answers, total और received time मिलते हैं।
 
-00:00:54.636 --> 00:00:59.189
-edit करने पर field से बाहर निकलते ही update save हो सकता
+00:00:34.101 --> 00:00:39.020
+Physical products के लिए confirmed, packed, shipped, out for delivery और delivered जैसे stages हैं।
 
-00:00:59.189 --> 00:01:03.742
-है। इसलिए test करने के लिए असली customer का number मत बदलें।
+00:00:39.020 --> 00:00:42.299
+Services में confirmed, in progress और completed जैसे stages हैं।
 
-00:01:03.742 --> 00:01:08.295
-Status drop-down बदलने पर भी update तुरंत लागू होता है। ये सिर्फ
+00:00:42.299 --> 00:00:44.594
+Cancelled request को अलग status मिलता है।
 
-00:01:08.295 --> 00:01:12.848
-preview control नहीं है। बदलाव पर enrolled customer को status push मिल
+00:00:44.594 --> 00:00:48.857
+सही stage तभी चुनें जब काम सच में उस stage तक पहुँचा हो।
 
-00:01:12.848 --> 00:01:17.401
-सकता है। Stock reservation और restoration भी order status से जुड़े हैं।
+00:00:48.857 --> 00:00:54.103
+Customer WhatsApp number edit करने पर field से बाहर निकलते ही update save हो सकता है।
 
-00:01:17.401 --> 00:01:21.954
-इसलिए status को बार बार बदलकर stock adjust करने की कोशिश न
+00:00:54.103 --> 00:00:57.710
+इसलिए test करने के लिए असली customer का number मत बदलें।
 
-00:01:21.954 --> 00:01:26.507
-करें। Update button WhatsApp status message खोल सकता है। सही number और
+00:00:57.710 --> 00:01:00.989
+Status drop-down बदलने पर भी update तुरंत लागू होता है।
 
-00:01:26.507 --> 00:01:31.060
-outgoing message जाँचकर खुद भेजें। WhatsApp window खुलने का मतलब delivered message
+00:01:00.989 --> 00:01:02.957
+ये सिर्फ preview control नहीं है।
 
-00:01:31.060 --> 00:01:35.613
-नहीं है। PDF button order estimate download करता है। Bill में item
+00:01:02.957 --> 00:01:06.236
+बदलाव पर enrolled customer को status push मिल सकता है।
 
-00:01:35.613 --> 00:01:40.166
-names, selected answers, amount और current status देखें। Send bill जैसे विकल्प
+00:01:06.236 --> 00:01:09.515
+Stock reservation और restoration भी order status से जुड़े हैं।
 
-00:01:40.166 --> 00:01:44.719
-signed link दे सकते हैं; private customer link को public post न
+00:01:09.515 --> 00:01:13.777
+इसलिए status को बार बार बदलकर stock adjust करने की कोशिश न करें।
 
-00:01:44.719 --> 00:01:49.272
-करें। Order quantity और product details उस समय के snapshot हैं। बाद
+00:01:13.777 --> 00:01:16.400
+Update button WhatsApp status message खोल सकता है।
 
-00:01:49.272 --> 00:01:53.825
-में product listing बदलने या हटाने पर पुराना history मिटना नहीं चाहिए।
+00:01:16.400 --> 00:01:19.024
+सही number और outgoing message जाँचकर खुद भेजें।
 
-00:01:53.825 --> 00:01:58.378
-Customer के order को current catalogue price देखकर गलत मत बदलें। अगर
+00:01:19.024 --> 00:01:21.975
+WhatsApp window खुलने का मतलब delivered message नहीं है।
 
-00:01:58.378 --> 00:02:02.931
-online payment वाले controls locked दिखें, तो सिर्फ दिखने से payment connected
+00:01:21.975 --> 00:01:24.270
+PDF button order estimate download करता है।
 
-00:02:02.931 --> 00:02:07.484
-नहीं होता। Razorpay अभी platform पर locked है। Paid collection का दावा
+00:01:24.270 --> 00:01:27.877
+Bill में item names, selected answers, amount और current status देखें।
 
-00:02:07.484 --> 00:02:12.037
-मत करें। Restaurant में payment in person होता है। इस demo में
+00:01:27.877 --> 00:01:33.451
+Send bill जैसे विकल्प signed link दे सकते हैं; private customer link को public post न करें।
 
-00:02:12.037 --> 00:02:16.590
-कोई status, customer number या message update नहीं किया गया है। काम
+00:01:33.451 --> 00:01:36.730
+Order quantity और product details उस समय के snapshot हैं।
 
-00:02:16.590 --> 00:02:21.143
-करने का सुरक्षित तरीका है: order और customer पढ़ें, सही stage verify
+00:01:36.730 --> 00:01:40.993
+बाद में product listing बदलने या हटाने पर पुराना history मिटना नहीं चाहिए।
 
-00:02:21.143 --> 00:02:25.696
-करें, update करें, और फिर stored result जाँचें। केवल enquiry value को
+00:01:40.993 --> 00:01:44.600
+Customer के order को current catalogue price देखकर गलत मत बदलें।
 
-00:02:25.696 --> 00:02:26.834
-revenue मत मानिए।
+00:01:44.600 --> 00:01:49.518
+अगर online payment वाले controls locked दिखें, तो सिर्फ दिखने से payment connected नहीं होता।
+
+00:01:49.518 --> 00:01:51.486
+Razorpay अभी platform पर locked है।
+
+00:01:51.486 --> 00:01:53.453
+Paid collection का दावा मत करें।
+
+00:01:53.453 --> 00:01:55.748
+Restaurant में payment in person होता है।
+
+00:01:55.748 --> 00:02:00.339
+इस demo में कोई status, customer number या message update नहीं किया गया है।
+
+00:02:00.339 --> 00:02:07.225
+काम करने का सुरक्षित तरीका है: order और customer पढ़ें, सही stage verify करें, update करें, और फिर stored result जाँचें।
+
+00:02:07.225 --> 00:02:09.520
+केवल enquiry value को revenue मत मानिए।
 

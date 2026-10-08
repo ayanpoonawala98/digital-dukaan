@@ -1,77 +1,77 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:03.721
-Referrals दो customers के reward का manual ledger है। ये automatic checkout
+00:00:00.000 --> 00:00:02.791
+Referrals दो customers के reward का manual ledger है।
 
-00:00:03.721 --> 00:00:07.442
-discount नहीं है। दोनों sides दस percent के लिए तभी eligible होते
+00:00:02.791 --> 00:00:04.651
+ये automatic checkout discount नहीं है।
 
-00:00:07.442 --> 00:00:11.163
-हैं जब linked order दुकान verify करती है। Referral links form में
+00:00:04.651 --> 00:00:09.922
+दोनों sides दस percent के लिए तभी eligible होते हैं जब linked order दुकान verify करती है।
 
-00:00:11.163 --> 00:00:14.884
-referrer का phone country code के साथ लिखें। Create referral link से
+00:00:09.922 --> 00:00:13.643
+Referral links form में referrer का phone country code के साथ लिखें।
 
-00:00:14.884 --> 00:00:18.606
-code बनता है। इस tutorial में कोई real phone डालकर नया link
+00:00:13.643 --> 00:00:15.813
+Create referral link से code बनता है।
 
-00:00:18.606 --> 00:00:22.327
-नहीं बनाया गया है। Saved list में code और pending या confirmed
+00:00:15.813 --> 00:00:19.844
+इस tutorial में कोई real phone डालकर नया link नहीं बनाया गया है।
 
-00:00:22.327 --> 00:00:26.048
-status दिखता है। Copy link से वही दुकान का referral link मिलता
+00:00:19.844 --> 00:00:23.255
+Saved list में code और pending या confirmed status दिखता है।
 
-00:00:26.048 --> 00:00:29.769
-है। उसे किसके साथ share करना है, ये आप तय करते हैं।
+00:00:23.255 --> 00:00:26.356
+Copy link से वही दुकान का referral link मिलता है।
 
-00:00:29.769 --> 00:00:33.490
+00:00:26.356 --> 00:00:29.767
+उसे किसके साथ share करना है, ये आप तय करते हैं।
+
+00:00:29.767 --> 00:00:33.487
 Click होने या WhatsApp enquiry आने से reward अपने आप नहीं मिलता।
 
-00:00:33.490 --> 00:00:37.211
-Pending referral को verify करते समय order type, confirmed order number और
+00:00:33.487 --> 00:00:39.379
+Pending referral को verify करते समय order type, confirmed order number और referred friend का phone मिलाना होता है।
 
-00:00:37.211 --> 00:00:40.932
-referred friend का phone मिलाना होता है। सही order और phone match
+00:00:39.379 --> 00:00:43.720
+सही order और phone match होने पर Confirm reward से entitlement record होता है।
 
-00:00:40.932 --> 00:00:44.653
-होने पर Confirm reward से entitlement record होता है। Confirmed entry में
+00:00:43.720 --> 00:00:47.130
+Confirmed entry में referrer और friend का reward अलग दिखता है।
 
-00:00:44.653 --> 00:00:48.374
-referrer और friend का reward अलग दिखता है। दोनों का status pending
+00:00:47.130 --> 00:00:49.921
+दोनों का status pending या used हो सकता है।
 
-00:00:48.374 --> 00:00:52.095
-या used हो सकता है। Discount खुद सही transaction में apply करें
+00:00:49.921 --> 00:00:54.572
+Discount खुद सही transaction में apply करें और सिर्फ इस्तेमाल होने पर Mark used करें।
 
-00:00:52.095 --> 00:00:55.817
-और सिर्फ इस्तेमाल होने पर Mark used करें। एक reward को दो
+00:00:54.572 --> 00:00:57.053
+एक reward को दो बार इस्तेमाल न करें।
 
-00:00:55.817 --> 00:00:59.538
-बार इस्तेमाल न करें। Mark used actual ledger change है, demo button
+00:00:57.053 --> 00:00:59.843
+Mark used actual ledger change है, demo button नहीं।
 
-00:00:59.538 --> 00:01:03.259
-नहीं। Search और status filter से code या entry ढूँढें। गलत phone,
+00:00:59.843 --> 00:01:02.634
+Search और status filter से code या entry ढूँढें।
 
-00:01:03.259 --> 00:01:06.980
-unconfirmed order या सिर्फ link click पर reward confirm न करें। अगर
+00:01:02.634 --> 00:01:06.665
+गलत phone, unconfirmed order या सिर्फ link click पर reward confirm न करें।
 
-00:01:06.980 --> 00:01:10.701
-customer identity unclear है, पहले उससे verify करें। इस feature का मतलब
+00:01:06.665 --> 00:01:09.455
+अगर customer identity unclear है, पहले उससे verify करें।
 
-00:01:10.701 --> 00:01:14.422
-wallet credit या automatic cash payout नहीं है। ये दुकान के दस
+00:01:09.455 --> 00:01:13.176
+इस feature का मतलब wallet credit या automatic cash payout नहीं है।
 
-00:01:14.422 --> 00:01:18.143
-percent reward rules का record है। Customer को ऐसा promise मत करें
+00:01:13.176 --> 00:01:16.277
+ये दुकान के दस percent reward rules का record है।
 
-00:01:18.143 --> 00:01:21.864
-जो यहाँ automatic नहीं होता। सही process है: referral link बनाइए, linked
+00:01:16.277 --> 00:01:19.687
+Customer को ऐसा promise मत करें जो यहाँ automatic नहीं होता।
 
-00:01:21.864 --> 00:01:25.585
-order verify कीजिए, identity और phone match कीजिए, reward record कीजिए, discount
+00:01:19.687 --> 00:01:27.749
+सही process है: referral link बनाइए, linked order verify कीजिए, identity और phone match कीजिए, reward record कीजिए, discount देते समय एक बार used mark कीजिए।
 
-00:01:25.585 --> 00:01:29.306
-देते समय एक बार used mark कीजिए। Tutorial में कोई reward create,
-
-00:01:29.306 --> 00:01:31.167
-confirm या redeem नहीं हुआ है।
+00:01:27.749 --> 00:01:31.160
+Tutorial में कोई reward create, confirm या redeem नहीं हुआ है।
 

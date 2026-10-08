@@ -1,161 +1,197 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:04.092
-Shop settings आपकी दुकान की पहचान, presentation, delivery और opening hours संभालता
+00:00:00.000 --> 00:00:04.432
+Shop settings आपकी दुकान की पहचान, presentation, delivery और opening hours संभालता है।
 
-00:00:04.092 --> 00:00:08.184
-है। इस वीडियो में चारों tabs और नीचे connections समझेंगे। सही दुकान
+00:00:04.432 --> 00:00:07.501
+इस वीडियो में चारों tabs और नीचे connections समझेंगे।
 
-00:00:08.184 --> 00:00:12.275
-चुने बिना बदलाव न करें। इस demo में सभी changes unsaved हैं
+00:00:07.501 --> 00:00:09.888
+सही दुकान चुने बिना बदलाव न करें।
 
-00:00:12.275 --> 00:00:16.367
-और कोई provider enabled नहीं होगा। पहला tab Business details है। Store
+00:00:09.888 --> 00:00:14.320
+इस demo में सभी changes unsaved हैं और कोई provider enabled नहीं होगा।
 
-00:00:16.367 --> 00:00:20.459
-type में retail, restaurant या services आता है। Restaurant में table count
+00:00:14.320 --> 00:00:16.025
+पहला tab Business details है।
 
-00:00:20.459 --> 00:00:24.551
-होता है। Type बदलने से workflows बदल सकते हैं, इसलिए केवल अपनी
+00:00:16.025 --> 00:00:19.093
+Store type में retail, restaurant या services आता है।
 
-00:00:24.551 --> 00:00:28.642
-दुकान के हिसाब से चुनें। Shop name, description, location और country code
+00:00:19.093 --> 00:00:21.139
+Restaurant में table count होता है।
 
-00:00:28.642 --> 00:00:32.734
-वाला WhatsApp number सही रखें। GSTIN optional है और estimates पर दिख
+00:00:21.139 --> 00:00:26.253
+Type बदलने से workflows बदल सकते हैं, इसलिए केवल अपनी दुकान के हिसाब से चुनें।
 
-00:00:32.734 --> 00:00:36.826
-सकता है। नीचे public shop link देख सकते हैं। दूसरा tab Look
+00:00:26.253 --> 00:00:30.344
+Shop name, description, location और country code वाला WhatsApp number सही रखें।
 
-00:00:36.826 --> 00:00:40.918
-and offers है। Visitor offer popup में active switch, headline, message, button
+00:00:30.344 --> 00:00:33.413
+GSTIN optional है और estimates पर दिख सकता है।
 
-00:00:40.918 --> 00:00:45.009
-label, destination link और image आते हैं। Preview popup से appearance देखिए;
+00:00:33.413 --> 00:00:35.800
+नीचे public shop link देख सकते हैं।
 
-00:00:45.009 --> 00:00:49.101
-preview publish नहीं करता। Link और offer conditions जाँचें। Announcement bar में
+00:00:35.800 --> 00:00:37.845
+दूसरा tab Look and offers है।
 
-00:00:49.101 --> 00:00:53.193
-banner text और show switch है। Festive presets color, banner और popup
+00:00:37.845 --> 00:00:43.301
+Visitor offer popup में active switch, headline, message, button label, destination link और image आते हैं।
 
-00:00:53.193 --> 00:00:57.285
-draft तैयार करते हैं। Existing content बदल सकता है, इसलिए preset चुनने
+00:00:43.301 --> 00:00:46.369
+Preview popup से appearance देखिए; preview publish नहीं करता।
 
-00:00:57.285 --> 00:01:01.377
-के बाद review जरूरी है। Shop color theme दुकान और dashboard दोनों
+00:00:46.369 --> 00:00:48.074
+Link और offer conditions जाँचें।
 
-00:01:01.377 --> 00:01:05.468
-पर असर डालता है। Swatches या custom color से choice तैयार होती
+00:00:48.074 --> 00:00:51.142
+Announcement bar में banner text और show switch है।
 
-00:01:05.468 --> 00:01:09.560
-है। Logo, default notification image और cover photo अलग हैं। Notification image
+00:00:51.142 --> 00:00:54.552
+Festive presets color, banner और popup draft तैयार करते हैं।
 
-00:01:09.560 --> 00:01:13.652
-खाली हो तो cover, फिर logo fallback हो सकता है। Images upload
+00:00:54.552 --> 00:00:58.984
+Existing content बदल सकता है, इसलिए preset चुनने के बाद review जरूरी है।
 
-00:01:13.652 --> 00:01:17.744
-होने का इंतजार करें। Location picker जरूरत के अनुसार public shop location
+00:00:58.984 --> 00:01:02.735
+Shop color theme दुकान और dashboard दोनों पर असर डालता है।
 
-00:01:17.744 --> 00:01:21.835
-सेट करता है। असली address और map pin share करने से पहले
+00:01:02.735 --> 00:01:05.803
+Swatches या custom color से choice तैयार होती है।
 
-00:01:21.835 --> 00:01:25.927
-जाँचें। तीसरा tab Orders and delivery है। Delivery charge, free delivery threshold
+00:01:05.803 --> 00:01:08.872
+Logo, default notification image और cover photo अलग हैं।
 
-00:01:25.927 --> 00:01:30.019
-और minimum order तय करें। Blank free delivery threshold का मतलब कभी
+00:01:08.872 --> 00:01:12.963
+Notification image खाली हो तो cover, फिर logo fallback हो सकता है।
 
-00:01:30.019 --> 00:01:34.111
-free नहीं है। UPI ID order message में जा सकती है ताकि
+00:01:12.963 --> 00:01:15.009
+Images upload होने का इंतजार करें।
 
-00:01:34.111 --> 00:01:38.203
-ग्राहक pay कर सके। UPI text का होना payment verification नहीं है।
+00:01:15.009 --> 00:01:18.759
+Location picker जरूरत के अनुसार public shop location सेट करता है।
 
-00:01:38.203 --> 00:01:42.294
-App में total और actual received payment अलग जाँचें। चौथा tab Hours
+00:01:18.759 --> 00:01:22.169
+असली address और map pin share करने से पहले जाँचें।
 
-00:01:42.294 --> 00:01:46.386
-and QR है। Shop is open को off करने पर दुकान अभी
+00:01:22.169 --> 00:01:24.214
+तीसरा tab Orders and delivery है।
 
-00:01:46.386 --> 00:01:50.478
-closed होती है। Automatic hours चुनकर opens और closes time Indian time
+00:01:24.214 --> 00:01:27.624
+Delivery charge, free delivery threshold और minimum order तय करें।
 
-00:01:50.478 --> 00:01:54.570
-में दें। Closing time opening से पहले हो तो shop past midnight
+00:01:27.624 --> 00:01:31.033
+Blank free delivery threshold का मतलब कभी free नहीं है।
 
-00:01:54.570 --> 00:01:58.661
-तक खुली रहती है। No orders while closed on हो तो customer
+00:01:31.033 --> 00:01:35.466
+UPI ID order message में जा सकती है ताकि ग्राहक pay कर सके।
 
-00:01:58.661 --> 00:02:02.753
-order नहीं दे सकता। Off हो तो बंद समय की request आप
+00:01:35.466 --> 00:01:38.193
+UPI text का होना payment verification नहीं है।
 
-00:02:02.753 --> 00:02:06.845
-बाद में confirm कर सकते हैं। Restaurant में closed orders रोकना useful
+00:01:38.193 --> 00:01:41.262
+App में total और actual received payment अलग जाँचें।
 
-00:02:06.845 --> 00:02:10.937
-default है। Opening hours note automatic schedule नहीं है, केवल text है।
+00:01:41.262 --> 00:01:43.308
+चौथा tab Hours and QR है।
 
-00:02:10.937 --> 00:02:15.028
-QR scan से public shop खुलता है। Restaurant table QR हर table
+00:01:43.308 --> 00:01:47.399
+Shop is open को off करने पर दुकान अभी closed होती है।
 
-00:02:15.028 --> 00:02:19.120
-number के लिए menu खोलता है। Download करके print से पहले link
+00:01:47.399 --> 00:01:51.149
+Automatic hours चुनकर opens और closes time Indian time में दें।
 
-00:02:19.120 --> 00:02:23.212
-और table जाँचें। Save shop settings चारों tabs के draft changes एक
+00:01:51.149 --> 00:01:55.923
+Closing time opening से पहले हो तो shop past midnight तक खुली रहती है।
 
-00:02:23.212 --> 00:02:27.304
-साथ save करता है। Unsaved changes label देखें। सिर्फ tab बदलने से
+00:01:55.923 --> 00:02:00.014
+No orders while closed on हो तो customer order नहीं दे सकता।
 
-00:02:27.304 --> 00:02:31.396
-changes publish नहीं होते। Provider settings अलग save होती हैं। Upload pending
+00:02:00.014 --> 00:02:04.787
+Off हो तो बंद समय की request आप बाद में confirm कर सकते हैं।
 
-00:02:31.396 --> 00:02:35.487
-हो तो save रुक सकता है। नीचे Messages and connections में अपना
+00:02:04.787 --> 00:02:07.515
+Restaurant में closed orders रोकना useful default है।
 
-00:02:35.487 --> 00:02:39.579
-business email और SMS provider आता है। Provider चुनने, secrets save करने
+00:02:07.515 --> 00:02:10.925
+Opening hours note automatic schedule नहीं है, केवल text है।
 
-00:02:39.579 --> 00:02:43.671
-और alerts enabled करने के अलग controls हैं। Platform shared sender fallback
+00:02:10.925 --> 00:02:13.311
+QR scan से public shop खुलता है।
 
-00:02:43.671 --> 00:02:47.763
-नहीं है। Customer email receipt के लिए requested updates और email जरूरी
+00:02:13.311 --> 00:02:17.062
+Restaurant table QR हर table number के लिए menu खोलता है।
 
-00:02:47.763 --> 00:02:51.854
-हैं। Marketing offers का consent अलग है। Low stock alerts और weekly
+00:02:17.062 --> 00:02:20.130
+Download करके print से पहले link और table जाँचें।
 
-00:02:51.854 --> 00:02:55.946
-report उन्हीं own provider settings पर depend करते हैं। SMS paid है;
+00:02:20.130 --> 00:02:24.563
+Save shop settings चारों tabs के draft changes एक साथ save करता है।
 
-00:02:55.946 --> 00:03:00.038
-provider balance और approved templates जाँचें। SMTP standard ports current free hosting
+00:02:24.563 --> 00:02:25.926
+Unsaved changes label देखें।
 
-00:03:00.038 --> 00:03:04.130
-पर blocked बताए गए हैं। HTTPS provider path अलग है। इस demo
+00:02:25.926 --> 00:02:28.654
+सिर्फ tab बदलने से changes publish नहीं होते।
 
-00:03:04.130 --> 00:03:08.222
-में connection और paid test नहीं किया गया। Online payments Razorpay अभी
+00:02:28.654 --> 00:02:30.700
+Provider settings अलग save होती हैं।
 
-00:03:08.222 --> 00:03:12.313
-locked है। कोई key डालकर इसे bypass करने की कोशिश न करें।
+00:02:30.700 --> 00:02:33.427
+Upload pending हो तो save रुक सकता है।
 
-00:03:12.313 --> 00:03:16.405
-Store removal advanced action है: shop offline होती है और current policy
+00:02:33.427 --> 00:02:37.860
+नीचे Messages and connections में अपना business email और SMS provider आता है।
 
-00:03:16.405 --> 00:03:20.497
-में thirty days restore window है। Confirmation बिना पढ़े मत करें। Change
+00:02:37.860 --> 00:02:42.292
+Provider चुनने, secrets save करने और alerts enabled करने के अलग controls हैं।
 
-00:03:20.497 --> 00:03:24.589
-password में मजबूत नया password सुरक्षित रखें। इन fields की recording में
+00:02:42.292 --> 00:02:44.338
+Platform shared sender fallback नहीं है।
 
-00:03:24.589 --> 00:03:28.680
-secrets नहीं दिखाए जाते। अंत में public storefront refresh करके name, color,
+00:02:44.338 --> 00:02:48.088
+Customer email receipt के लिए requested updates और email जरूरी हैं।
 
-00:03:28.680 --> 00:03:32.772
-offer, hours और delivery check करें। Safe setup का मतलब पहले preview,
+00:02:48.088 --> 00:02:50.134
+Marketing offers का consent अलग है।
 
-00:03:32.772 --> 00:03:35.500
-फिर review, फिर save और live check है।
+00:02:50.134 --> 00:02:54.907
+Low stock alerts और weekly report उन्हीं own provider settings पर depend करते हैं।
+
+00:02:54.907 --> 00:02:57.976
+SMS paid है; provider balance और approved templates जाँचें।
+
+00:02:57.976 --> 00:03:01.726
+SMTP standard ports current free hosting पर blocked बताए गए हैं।
+
+00:03:01.726 --> 00:03:03.431
+HTTPS provider path अलग है।
+
+00:03:03.431 --> 00:03:06.840
+इस demo में connection और paid test नहीं किया गया।
+
+00:03:06.840 --> 00:03:08.886
+Online payments Razorpay अभी locked है।
+
+00:03:08.886 --> 00:03:12.295
+कोई key डालकर इसे bypass करने की कोशिश न करें।
+
+00:03:12.295 --> 00:03:18.433
+Store removal advanced action है: shop offline होती है और current policy में thirty days restore window है।
+
+00:03:18.433 --> 00:03:20.137
+Confirmation बिना पढ़े मत करें।
+
+00:03:20.137 --> 00:03:22.865
+Change password में मजबूत नया password सुरक्षित रखें।
+
+00:03:22.865 --> 00:03:25.933
+इन fields की recording में secrets नहीं दिखाए जाते।
+
+00:03:25.933 --> 00:03:30.707
+अंत में public storefront refresh करके name, color, offer, hours और delivery check करें।
+
+00:03:30.707 --> 00:03:35.480
+Safe setup का मतलब पहले preview, फिर review, फिर save और live check है।
 

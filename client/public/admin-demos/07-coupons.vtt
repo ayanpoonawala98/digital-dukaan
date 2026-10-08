@@ -1,65 +1,71 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:04.266
-Coupons customers को checkout पर discount code इस्तेमाल करने देते हैं। सही
+00:00:00.000 --> 00:00:03.910
+Coupons customers को checkout पर discount code इस्तेमाल करने देते हैं।
 
-00:00:04.266 --> 00:00:08.533
-दुकान चुनकर Coupons खोलिए। Discount codes वाले form में code लिखिए और
+00:00:03.910 --> 00:00:05.687
+सही दुकान चुनकर Coupons खोलिए।
 
-00:00:08.533 --> 00:00:12.799
-percentage चुनिए। Code साफ और याद रखने लायक रखें। Percentage की value
+00:00:05.687 --> 00:00:09.241
+Discount codes वाले form में code लिखिए और percentage चुनिए।
 
-00:00:12.799 --> 00:00:17.066
-दोबारा जाँचें। Create coupon save करने वाला action है; इस demo में
+00:00:09.241 --> 00:00:11.729
+Code साफ और याद रखने लायक रखें।
 
-00:00:17.066 --> 00:00:21.332
-हम उसे submit नहीं कर रहे हैं। Saved list में code, percentage
+00:00:11.729 --> 00:00:13.506
+Percentage की value दोबारा जाँचें।
 
-00:00:21.332 --> 00:00:25.598
-और active status दिखता है। Active coupon checkout पर इस्तेमाल हो सकता
+00:00:13.506 --> 00:00:19.548
+Create coupon save करने वाला action है; इस demo में हम उसे submit नहीं कर रहे हैं।
 
-00:00:25.598 --> 00:00:29.865
-है। Disable करने पर नया इस्तेमाल रुकता है। Search और active inactive
+00:00:19.548 --> 00:00:23.102
+Saved list में code, percentage और active status दिखता है।
 
-00:00:29.865 --> 00:00:34.131
-filter से codes ढूँढ सकते हैं। जब offer खत्म हो, सही coupon
+00:00:23.102 --> 00:00:25.945
+Active coupon checkout पर इस्तेमाल हो सकता है।
 
-00:00:34.131 --> 00:00:38.398
-बंद करें, product price को सिर्फ इस कारण बदलना जरूरी नहीं है।
+00:00:25.945 --> 00:00:28.433
+Disable करने पर नया इस्तेमाल रुकता है।
 
-00:00:38.398 --> 00:00:42.664
-Discount item subtotal पर लगता है। Delivery charges unchanged रहते हैं। इसलिए
+00:00:28.433 --> 00:00:31.987
+Search और active inactive filter से codes ढूँढ सकते हैं।
 
-00:00:42.664 --> 00:00:46.930
-subtotal, discount, delivery और final total अलग पढ़ें। Customer को discount बताने
+00:00:31.987 --> 00:00:38.384
+जब offer खत्म हो, सही coupon बंद करें, product price को सिर्फ इस कारण बदलना जरूरी नहीं है।
 
-00:00:46.930 --> 00:00:51.197
-से पहले checkout calculation जाँचिए। Feature locked हो तो contact platform admin
+00:00:38.384 --> 00:00:40.517
+Discount item subtotal पर लगता है।
 
-00:00:51.197 --> 00:00:55.463
-का message मिलता है। UI दिखना और feature enabled होना अलग है।
+00:00:40.517 --> 00:00:42.294
+Delivery charges unchanged रहते हैं।
 
-00:00:55.463 --> 00:00:59.730
-Coupon बनाने का permission owner के पास है; staff helpers को coupon
+00:00:42.294 --> 00:00:45.492
+इसलिए subtotal, discount, delivery और final total अलग पढ़ें।
 
-00:00:59.730 --> 00:01:03.996
-creation access नहीं दिया जाता। एक sample समझिए: items की कुल कीमत
+00:00:45.492 --> 00:00:48.691
+Customer को discount बताने से पहले checkout calculation जाँचिए।
 
-00:01:03.996 --> 00:01:08.262
-पाँच सौ रुपये और दस percent coupon है, तो item discount पचास
+00:00:48.691 --> 00:00:52.601
+Feature locked हो तो contact platform admin का message मिलता है।
 
-00:01:08.262 --> 00:01:12.529
-रुपये है। Delivery fee अलग रहेगी। इस उदाहरण से actual shop में
+00:00:52.601 --> 00:00:55.444
+UI दिखना और feature enabled होना अलग है।
 
-00:01:12.529 --> 00:01:16.795
-कोई नया coupon नहीं बनता। सुरक्षित flow है: code और percentage तय
+00:00:55.444 --> 00:01:01.486
+Coupon बनाने का permission owner के पास है; staff helpers को coupon creation access नहीं दिया जाता।
 
-00:01:16.795 --> 00:01:21.061
-करें, save से पहले review करें, public checkout पर calculation test करें,
+00:01:01.486 --> 00:01:08.950
+एक sample समझिए: items की कुल कीमत पाँच सौ रुपये और दस percent coupon है, तो item discount पचास रुपये है।
 
-00:01:21.061 --> 00:01:25.328
-फिर offer अपने chosen channel पर share करें। किसी customer को message
+00:01:08.950 --> 00:01:10.371
+Delivery fee अलग रहेगी।
 
-00:01:25.328 --> 00:01:26.750
-अपने आप नहीं जाता।
+00:01:10.371 --> 00:01:14.281
+इस उदाहरण से actual shop में कोई नया coupon नहीं बनता।
+
+00:01:14.281 --> 00:01:23.877
+सुरक्षित flow है: code और percentage तय करें, save से पहले review करें, public checkout पर calculation test करें, फिर offer अपने chosen channel पर share करें।
+
+00:01:23.877 --> 00:01:26.720
+किसी customer को message अपने आप नहीं जाता।
 

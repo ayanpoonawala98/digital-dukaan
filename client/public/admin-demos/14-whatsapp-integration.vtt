@@ -1,83 +1,92 @@
 WEBVTT
 
-00:00:00.000 --> 00:00:04.353
-WhatsApp integration आपकी दुकान के अपने business number और provider को जोड़ता
+00:00:00.000 --> 00:00:04.714
+WhatsApp integration आपकी दुकान के अपने business number और provider को जोड़ता है।
 
-00:00:04.353 --> 00:00:08.707
-है। इस demo में connection not connected है। हम secrets नहीं दिखाते
+00:00:04.714 --> 00:00:07.253
+इस demo में connection not connected है।
 
-00:00:08.707 --> 00:00:13.060
-और Save and test नहीं दबाएँगे। हर दुकान अपना number इस्तेमाल करती
+00:00:07.253 --> 00:00:10.879
+हम secrets नहीं दिखाते और Save and test नहीं दबाएँगे।
 
-00:00:13.060 --> 00:00:17.413
-है। Provider billing भी उसी business की होती है। Meta Cloud API,
+00:00:10.879 --> 00:00:13.418
+हर दुकान अपना number इस्तेमाल करती है।
 
-00:00:17.413 --> 00:00:21.767
-three sixty dialog और Twilio जैसे setup paths दिखाई देते हैं। सही
+00:00:13.418 --> 00:00:16.319
+Provider billing भी उसी business की होती है।
 
-00:00:21.767 --> 00:00:26.120
-provider अपने actual account के अनुसार चुनें। Provider का info button उसके
+00:00:16.319 --> 00:00:21.396
+Meta Cloud API, three sixty dialog और Twilio जैसे setup paths दिखाई देते हैं।
 
-00:00:26.120 --> 00:00:30.473
-steps समझाता है। Credentials में API key या account details जैसी private
+00:00:21.396 --> 00:00:24.298
+सही provider अपने actual account के अनुसार चुनें।
 
-00:00:30.473 --> 00:00:34.826
-values लगती हैं। इन्हें screenshot, recording या chat में मत दिखाएँ। सुरक्षित
+00:00:24.298 --> 00:00:27.199
+Provider का info button उसके steps समझाता है।
 
-00:00:34.826 --> 00:00:39.180
-setup में ही भरें। Provider बदलना केवल design preview नहीं है, real
+00:00:27.199 --> 00:00:31.551
+Credentials में API key या account details जैसी private values लगती हैं।
 
-00:00:39.180 --> 00:00:43.533
-messaging route बदलता है। Order confirmation, owner new order alert और order
+00:00:31.551 --> 00:00:34.452
+इन्हें screenshot, recording या chat में मत दिखाएँ।
 
-00:00:43.533 --> 00:00:47.886
-status update के template names approved provider templates से match होने चाहिए।
+00:00:34.452 --> 00:00:36.265
+सुरक्षित setup में ही भरें।
 
-00:00:47.886 --> 00:00:52.240
-सिर्फ कोई नाम लिखने से Meta approval नहीं मिलता। Save and test
+00:00:36.265 --> 00:00:40.617
+Provider बदलना केवल design preview नहीं है, real messaging route बदलता है।
 
-00:00:52.240 --> 00:00:56.593
-के बाद shop specific webhook URLs मिलते हैं। वे private हैं। Copy
+00:00:40.617 --> 00:00:47.870
+Order confirmation, owner new order alert और order status update के template names approved provider templates से match होने चाहिए।
 
-00:00:56.593 --> 00:01:00.946
-करके provider के सही callback setup में रखें। URLs या tokens public
+00:00:47.870 --> 00:00:51.134
+सिर्फ कोई नाम लिखने से Meta approval नहीं मिलता।
 
-00:01:00.946 --> 00:01:05.300
-demo में दिखाना सही नहीं है। Connected inbox में ग्राहक के message
+00:00:51.134 --> 00:00:55.123
+Save and test के बाद shop specific webhook URLs मिलते हैं।
 
-00:01:05.300 --> 00:01:09.653
-आने पर current service reply window लागू होती है। यहाँ screen guidance
+00:00:55.123 --> 00:00:56.211
+वे private हैं।
 
-00:01:09.653 --> 00:01:14.006
-पिछले twenty four hours में shop number को message करने वालों के
+00:00:56.211 --> 00:00:59.475
+Copy करके provider के सही callback setup में रखें।
 
-00:01:14.006 --> 00:01:18.360
-replies बताती है। इस app के inbox path में paid templates और
+00:00:59.475 --> 00:01:03.101
+URLs या tokens public demo में दिखाना सही नहीं है।
 
-00:01:18.360 --> 00:01:22.713
-campaigns enabled नहीं बताए गए हैं। Provider के actual rules और charges
+00:01:03.101 --> 00:01:08.541
+Connected inbox में ग्राहक के message आने पर current service reply window लागू होती है।
 
-00:01:22.713 --> 00:01:27.066
-independently देखें। Free text reply और approved template अलग workflows हैं। Reply
+00:01:08.541 --> 00:01:15.069
+यहाँ screen guidance पिछले twenty four hours में shop number को message करने वालों के replies बताती है।
 
-00:01:27.066 --> 00:01:31.420
-करने से पहले correct thread, customer, store number और message पढ़ें। Staff
+00:01:15.069 --> 00:01:20.508
+इस app के inbox path में paid templates और campaigns enabled नहीं बताए गए हैं।
 
-00:01:31.420 --> 00:01:35.773
-को WhatsApp permission चाहिए। Unrelated customer data या दूसरे store का message
+00:01:20.508 --> 00:01:23.409
+Provider के actual rules और charges independently देखें।
 
-00:01:35.773 --> 00:01:40.126
-share न करें। Provider acceptance को verified delivered reply मत मानें। Not
+00:01:23.409 --> 00:01:26.673
+Free text reply और approved template अलग workflows हैं।
 
-00:01:40.126 --> 00:01:44.479
-connected state में inbox send का दावा नहीं कर सकते। Account review,
+00:01:26.673 --> 00:01:31.025
+Reply करने से पहले correct thread, customer, store number और message पढ़ें।
 
-00:01:44.479 --> 00:01:48.833
-number registration या provider approval pending हो तो पहले वही dependency पूरी
+00:01:31.025 --> 00:01:32.838
+Staff को WhatsApp permission चाहिए।
 
-00:01:48.833 --> 00:01:53.186
-करें। इस tutorial में केवल setup controls और limitations दिखती हैं, successful
+00:01:32.838 --> 00:01:36.828
+Unrelated customer data या दूसरे store का message share न करें।
 
-00:01:53.186 --> 00:01:55.000
-connection या sent message नहीं।
+00:01:36.828 --> 00:01:39.729
+Provider acceptance को verified delivered reply मत मानें।
+
+00:01:39.729 --> 00:01:43.718
+Not connected state में inbox send का दावा नहीं कर सकते।
+
+00:01:43.718 --> 00:01:49.158
+Account review, number registration या provider approval pending हो तो पहले वही dependency पूरी करें।
+
+00:01:49.158 --> 00:01:54.960
+इस tutorial में केवल setup controls और limitations दिखती हैं, successful connection या sent message नहीं।
 
