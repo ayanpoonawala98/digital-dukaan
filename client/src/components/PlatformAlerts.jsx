@@ -9,7 +9,7 @@ export default function PlatformAlerts({token}) {
   const apply=d=>{setState(d.providers);setSet(d.settings);setKeys(d.keys);setKf(initForm(d.keys));};
   useEffect(()=>{api('/admin/alerts',{token,feedback:false}).then(apply).catch(()=>setState(false));},[token]);
   if(state===false)return null;
-  if(!set)return <div className="dashboard-panel"><h3>New-store request alerts</h3><p className="muted">Loading...</p></div>;
+  if(!set)return <div className="dashboard-panel"><h3>Platform email & request alerts</h3><p className="muted">Loading...</p></div>;
   const run=async(key,fn)=>{if(busy)return;setBusy(key);setMsg(null);try{await fn();}catch(e){setMsg({error:e.message});}finally{setBusy('');}};
   const setK=(g,f,v)=>setKf(x=>({...x,[g]:{...x[g],[f]:v}}));
   const secretIn=(g,f,label,saved,hint)=><label>{label}<input type="password" autoComplete="new-password" value={kf[`${g}_s`]?.[f]||''} onChange={e=>setKf(x=>({...x,[`${g}_s`]:{...x[`${g}_s`],[f]:e.target.value}}))} placeholder={saved?`${hint||'••••••••'} saved. Type to replace`:'Paste it here'}/></label>;
@@ -29,7 +29,7 @@ export default function PlatformAlerts({token}) {
   const test=ch=>run(`t-${ch}`,async()=>{await api('/admin/alerts/test',{token,method:'POST',body:{channel:ch},feedback:false});setMsg({ok:`Test ${ch==='email'?'email':'SMS'} sent`});});
   const badge=p=><span className={`status-pill ${p.configured?'on':'off'}`}>{p.configured?`Ready: ${p.label}`:'Not connected'}</span>;
   return <div className="dashboard-panel settings-panel notify-settings">
-    <h3>New-store request alerts</h3>
+    <h3>Platform email & request alerts</h3>
     <p className="muted">When someone asks to open a new shop, send you an email and/or SMS. Nothing is sent until you connect a provider and switch it on. Keys are encrypted and never shown again. SMS and email costs are charged by your provider.</p>
     <div className="notify-row"><strong>Email</strong>{badge(state.email)}</div>
     <details className="notify-provider"><summary>{state.email.configured?'Change email provider':'Connect an email provider'}</summary>
@@ -40,6 +40,7 @@ export default function PlatformAlerts({token}) {
         <div className="notify-two">{textIn('smtp','user','Username','you@gmail.com')}{secretIn('smtp','pass','Password or app password',keys.smtp.passSaved)}</div>{textIn('smtp','from','Send from','Digital Shop <you@gmail.com>')}</>}
       {kf.emailMode==='http'&&httpFields('emailHttp',keys.emailHttp,false)}
       <div className="notify-actions">{(kf.emailMode||state.email.configured)&&<button type="button" className="btn btn-green btn-small" disabled={Boolean(busy)} onClick={()=>saveProvider('email')}><Busy active={busy==='k-email'}>{kf.emailMode?'Save email provider':'Remove email provider'}</Busy></button>}</div></details>
+    <label className="check-label"><input type="checkbox" disabled={!state.email.configured && !set.ownerWelcomeEmails} checked={Boolean(set.ownerWelcomeEmails)} onChange={e=>setSet(x=>({...x,ownerWelcomeEmails:e.target.checked}))}/> Email newly created store admins their shop link, login email and a one-time set-password link</label><p className="muted">Welcome emails never include passwords. Turning this on sends an email each time you create an owner account.</p>
     <label className="check-label"><input type="checkbox" checked={set.emailAlerts} onChange={e=>setSet(x=>({...x,emailAlerts:e.target.checked}))}/> Email me for every new-store request</label>
     <label>Alert email<input type="email" value={set.alertEmail} onChange={e=>setSet(x=>({...x,alertEmail:e.target.value}))} placeholder="you@example.com"/></label>
     <div className="notify-row"><strong>SMS</strong>{badge(state.sms)}</div>
