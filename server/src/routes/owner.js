@@ -1,3 +1,4 @@
+import { customerOrderPushTitle } from '../customer-order-push.js';
 import {streamBill} from '../invoice.js';
 import {updateOrderStock,RETAIL_DEDUCT,RESTAURANT_DEDUCT} from '../order-stock.js';
 import {OrderStockLedger,historicalOrder,ensureOrderStockSchema} from '../order-stock-schema.js';
@@ -462,7 +463,7 @@ async function notifyOrderSubscribers(store, kind, order) {
     const subs = await OrderPushSubscription.findAll({ where: { orderType: kind, orderId: order.id, businessId: store.id } });
     await Promise.allSettled(subs.map(async sub => {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({ title: `Order #${order.id} at ${store.name}`, body: `${label} Tap to view.`, url: sub.returnPath, ...(pushImage(store) ? { image: pushImage(store) } : {}) }));
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({ title: customerOrderPushTitle(store, order), body: `${label} Tap to view.`, url: sub.returnPath, ...(pushImage(store) ? { image: pushImage(store) } : {}) }));
       } catch (err) { if (err.statusCode === 404 || err.statusCode === 410) await sub.destroy(); }
     }));
   } catch (err) { console.error('Order push failed', err.message); }
