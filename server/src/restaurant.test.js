@@ -32,6 +32,18 @@ test('restaurant ordering handles all three types and rejects invalid or cross-s
   try {
     let r = await post('test-restaurant', { orderType: 'dine-in', tableNumber: 2, items });
     assert.equal(r.status, 201); assert.equal((await r.json()).total, 250); assert.equal(created[0].tableNumber, 2); assert.equal(created[0].customerPhone, null);
+    restaurant.minOrder = 300;
+    r = await post('test-restaurant', { orderType: 'dine-in', tableNumber: 1, items });
+    assert.equal(r.status, 400); assert.match((await r.json()).error, /Minimum order/);
+    restaurant.minOrder = 0;
+    product.customFields = [{id:'spice',label:'Spice',type:'select',required:true,options:['Mild','Hot']}];
+    r = await post('test-restaurant', { orderType:'dine-in',tableNumber:1,items });
+    assert.equal(r.status,400);
+    r = await post('test-restaurant', { orderType:'dine-in',tableNumber:1,items:[{id:91,qty:2,answers:{spice:'Other'}}] });
+    assert.equal(r.status,400);
+    r = await post('test-restaurant', { orderType:'dine-in',tableNumber:1,items:[{id:91,qty:2,answers:{spice:'Hot'}}] });
+    assert.equal(r.status,201);assert.deepEqual(created.pop().items[0].answers,[{label:'Spice',value:'Hot'}]);
+    product.customFields = [];
     r = await post('test-restaurant', { orderType: 'takeaway', customerName: '  Ayan  ', customerPhone: '9876543210', items });
     assert.equal(r.status, 201); assert.equal(created[1].customerName, 'Ayan'); assert.equal(created[1].tableNumber, null);
     r = await post('test-restaurant', { orderType: 'delivery', customerName: 'Ayan', customerPhone: '9876543210', deliveryAddress: '  10 Main Rd  ', items });
