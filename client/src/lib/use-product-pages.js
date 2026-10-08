@@ -9,7 +9,7 @@ export function useProductPages(slug,search,category,paused){
   if(busy.current || query.current.paused)return;
   const seq=generation.current, q={...query.current};busy.current=true;setPageError('');first?setLoading(true):setLoadingMore(true);
   try{
-   const params=new URLSearchParams({search:q.search,category:q.category,limit:'15'});if(!first&&cursor.current)params.set('cursor',cursor.current);
+   const params=new URLSearchParams({search:q.search,category:q.category,limit:first?'15':'10'});if(!first&&cursor.current)params.set('cursor',cursor.current);
    const result=await api(`/public/stores/${q.slug}/products?${params}`,{feedback:false});
    if(seq!==generation.current)return;
    setProducts(p=>first?result.products:uniqueProducts(p,result.products));setTotal(result.total??result.products.length);setHasMore(Boolean(result.hasMore));cursor.current=result.nextCursor;

@@ -311,7 +311,7 @@ export default function ShopPage({ hostedSlug }) {
           : products.length
             ? <div className="product-grid">{products.map((p, i) => <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
             : <div className="empty-state"><Package size={38}/><h3>{t('empty')}</h3><p>{t('emptyHint')}</p></div>}
-        {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{pageError}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading more...' : pageError ? 'Retry loading products' : 'Load 15 more'}</button><small>{products.length} of {total} products</small></div>}
+        {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{pageError}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading more...' : pageError ? 'Retry loading products' : 'Load 10 more'}</button><small>{products.length} of {total} products</small></div>}
       </div>
       {business.storeType !== 'restaurant' && orders.orders.length > 0 && <div className="container order-history">
         <div className="catalog-head"><div><span className="kicker">YOUR HISTORY</span><h2>Order again<span className="accent-dot">.</span></h2></div></div>
