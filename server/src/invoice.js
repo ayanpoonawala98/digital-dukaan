@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import PDFDocument from 'pdfkit';
+import {CardSerif, CardSansBold} from './card-fonts.js';
 const secret = () => process.env.INVOICE_LINK_SECRET || process.env.JWT_SECRET || '';
 // Links signed before INVOICE_LINK_SECRET existed used JWT_SECRET; keep accepting them.
 const secrets = () => [...new Set([process.env.INVOICE_LINK_SECRET, process.env.JWT_SECRET].filter(Boolean))];
@@ -13,33 +14,77 @@ export function invoiceSigValid(kind, id, sig) {
 }
 export const invoiceUrl = (base, kind, id) => `${String(base).replace(/\/$/, '')}/api/public/bill/${kind}/${id}/${invoiceSig(kind, id)}`;
 
-// Customer-facing order bill. Not a GST tax invoice, and says so unless the shop has a GSTIN on file.
-export function streamBill(res, shop, order, kind = 'lead') {
-  const items = kind === 'restaurant' ? (order.items || []) : (Array.isArray(order.items) && order.items.length ? order.items : [{ name: order.productName, qty: 1, price: order.price }]);
+// A single layout for customer bills and owner estimates. Stored totals stay authoritative.
+export function billModel(order, kind = 'lead') {
+  const source = Array.isArray(order.items) && order.items.length ? order.items : [{ name: order.productName, qty: 1, price: order.price }];
+  const items = source.map(it => ({ name: String(it.name || 'Item'), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }));
+  const subtotal = items.reduce((sum, it) => sum + it.qty * it.price, 0);
   const total = Number(kind === 'restaurant' ? order.total : order.price) || 0;
+  const discount = Math.max(0, Number(order.discount) || 0);
+  return { items, subtotal, total, discount, adjustment: total - subtotal + discount };
+}
+export function createBillDocument(shop, order, kind = 'lead', { estimate = false } = {}) {
+  const m = billModel(order, kind);
+  const doc = new PDFDocument({ margin: 44, size: 'A4', bufferPages: true, info: { Title: `${estimate ? 'Order estimate' : 'Order bill'} #${order.orderNumber ?? order.id}`, Author: String(shop.name || 'Digital Shop') } });
+  doc.registerFont('Body', new URL('../fonts/DejaVuSans.ttf', import.meta.url).pathname);
+  doc.registerFont('Display', CardSerif);
+  doc.registerFont('Strong', CardSansBold);
+  const ink = '#251f21', muted = '#585254', teal = '#46796b', rule = '#eae9ea', pale = '#f4efec';
+  const money = n => `${Number(n) < 0 ? '-' : ''}₹${Math.abs(Number(n)).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const text = (value, x, y, width, size = 10, color = ink, font = 'Body', align = 'left') => doc.font(font).fontSize(size).fillColor(color).text(String(value), x, y, { width, align, lineGap: 3 });
+  const line = y => doc.moveTo(44, y).lineTo(551, y).lineWidth(.7).strokeColor(rule).stroke();
+  const pageHeader = continuation => {
+    doc.rect(0, 0, 595.28, 7).fill(teal);
+    text('DIGITAL SHOP  /  '+(estimate ? 'ORDER ESTIMATE' : 'ORDER BILL'), 44, 33, 350, 9, teal, 'Strong');
+    if (continuation) { text(`${shop.name}  ·  Continued`, 44, 55, 375, 14, ink, 'Display'); line(87); return 103; }
+    doc.font('Display').fontSize(25);
+    const nameH = doc.heightOfString(String(shop.name || 'Shop'), { width: 330, lineGap: 3 });
+    text(shop.name || 'Shop', 44, 65, 330, 25, ink, 'Display');
+    text(`#${order.orderNumber ?? order.id}`, 405, 64, 146, 22, ink, 'Strong', 'right');
+    const date = new Date(order.createdAt);
+    text(Number.isNaN(date.getTime()) ? 'Date not recorded' : date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })+' IST', 377, 95, 174, 8, muted, 'Body', 'right');
+    let y = Math.max(116, 70 + nameH);
+    if (shop.location) { doc.font('Body').fontSize(9); const h = doc.heightOfString(String(shop.location), { width: 330, lineGap: 3 }); text(shop.location, 44, y, 330, 9, muted); y += h + 6; }
+    if (shop.gstin) { text(`GSTIN: ${shop.gstin}`, 44, y, 330, 9, muted); y += 18; }
+    y += 12; line(y); y += 18;
+    text('ORDER DETAILS', 44, y, 200, 8, muted, 'Strong');
+    const labels = { new: 'Placed', confirmed: 'Confirmed', packed: 'Packed', shipped: 'Shipped', 'out-for-delivery': 'Out for delivery', delivered: 'Delivered', cancelled: 'Cancelled', preparing: 'Preparing', served: 'Served', completed: 'Completed', 'in-progress': 'In progress' };
+    text(labels[order.status] || String(order.status || 'Placed'), 44, y + 19, 190, 11, ink, 'Strong');
+    text(estimate ? 'Estimate only' : order.paymentStatus === 'paid' ? 'Paid online' : 'Payment not recorded as paid', 276, y + 19, 275, 10, order.paymentStatus === 'paid' && !estimate ? teal : muted, 'Body', 'right');
+    return y + 55;
+  };
+  const tableHeader = y => { doc.roundedRect(44, y, 507, 29, 5).fill(pale); text('ITEM', 55, y + 8, 245, 8, muted, 'Strong'); text('QTY', 311, y + 8, 35, 8, muted, 'Strong', 'right'); text('UNIT PRICE', 355, y + 8, 83, 8, muted, 'Strong', 'right'); text('AMOUNT', 448, y + 8, 92, 8, muted, 'Strong', 'right'); return y + 40; };
+  let y = tableHeader(pageHeader(false));
+  for (const it of m.items) {
+    // Split unusually long names rather than cutting away the ordered item.
+    const words = it.name.split(/\s+/); let chunk = '';
+    const chunks = [];
+    for (const word of words) { const candidate = chunk ? chunk+' '+word : word; doc.font('Body').fontSize(10); if (doc.heightOfString(candidate, { width: 240, lineGap: 3 }) > 310 && chunk) { chunks.push(chunk); chunk = word; } else chunk = candidate; }
+    chunks.push(chunk);
+    for (let part = 0; part < chunks.length; part++) {
+      doc.font('Body').fontSize(10); const h = Math.max(38, doc.heightOfString(chunks[part], { width: 240, lineGap: 3 }) + 18);
+      if (y + h > 695) { doc.addPage(); y = tableHeader(pageHeader(true)); }
+      text(chunks[part], 55, y + 4, 240, 10);
+      if (part === 0) { text(it.qty, 305, y + 4, 41, 10, ink, 'Body', 'right'); text(money(it.price), 352, y + 4, 86, 9, ink, 'Body', 'right'); text(money(it.qty * it.price), 443, y + 4, 97, 9, ink, 'Body', 'right'); }
+      y += h; line(y - 7);
+    }
+  }
+  const totalsH = 130 + (m.discount ? 22 : 0) + (Math.abs(m.adjustment) > .009 ? 22 : 0);
+  if (y + totalsH > 715) { doc.addPage(); y = pageHeader(true); }
+  y += 15;
+  const totalRow = (label, amount) => { text(label, 292, y, 150, 10, muted); text(money(amount), 442, y, 98, 10, ink, 'Body', 'right'); y += 24; };
+  totalRow('Subtotal', m.subtotal);
+  if (m.discount) totalRow('Discount', -m.discount);
+  if (Math.abs(m.adjustment) > .009) totalRow(m.adjustment > 0 ? 'Delivery / other' : 'Order adjustment', m.adjustment);
+  doc.roundedRect(284, y + 3, 267, 49, 6).fill(teal);
+  text(estimate ? 'Estimated total' : 'Total', 299, y + 18, 118, 12, '#ffffff', 'Strong'); text(money(m.total), 410, y + 18, 126, 13, '#ffffff', 'Body', 'right');
+  const range = doc.bufferedPageRange();
+  for (let i = 0; i < range.count; i++) { doc.switchToPage(i); line(747); text(estimate ? 'Order estimate only. This is not a tax invoice or payment receipt.' : 'Order bill only. This is not a GST tax invoice.', 44, 761, 420, 8, muted); text(`Page ${i + 1} of ${range.count}`, 466, 761, 85, 8, muted, 'Body', 'right'); text('Amounts as recorded by the shop. All times shown in IST.', 44, 778, 507, 7, muted); }
+  return doc;
+}
+export function streamBill(res, shop, order, kind = 'lead', options = {}) {
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `inline; filename="bill-${kind === 'restaurant' ? 'R' : 'O'}${order.id}.pdf"`);
+  res.setHeader('Content-Disposition', `${options.estimate ? 'attachment' : 'inline'}; filename="${options.estimate ? 'estimate' : 'bill'}-${kind === 'restaurant' ? 'R' : 'O'}${order.id}.pdf"`);
   res.setHeader('Cache-Control', 'private, max-age=300');
-  const doc = new PDFDocument({ margin: 50, size: 'A4' }); doc.pipe(res);
-  doc.fontSize(20).fillColor('#000').text(shop.name);
-  if (shop.location) doc.fontSize(10).fillColor('#666').text(shop.location);
-  if (shop.gstin) doc.fontSize(10).fillColor('#666').text(`GSTIN: ${shop.gstin}`);
-  doc.moveDown(0.5);
-  doc.fontSize(13).fillColor('#000').text('ORDER BILL', { align: 'right' });
-  doc.fontSize(10).fillColor('#666').text(`Order #${order.orderNumber ?? order.id}`, { align: 'right' }).text(new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }), { align: 'right' });
-  if (order.paymentStatus === 'paid') doc.fontSize(11).fillColor('#0e9f6e').text('PAID ONLINE', { align: 'right' });
-  doc.moveDown(1);
-  let y = doc.y; const row = (n, q, p, a, h) => { doc.fontSize(10).fillColor(h ? '#666' : '#000'); doc.text(String(n), 50, y, { width: 265 }); doc.text(String(q), 325, y, { width: 50, align: 'right' }); doc.text(String(p), 390, y, { width: 70, align: 'right' }); doc.text(String(a), 470, y, { width: 75, align: 'right' }); y += 26; };
-  row('ITEM', 'QTY', 'PRICE', 'AMOUNT', true);
-  let sub = 0;
-  for (const it of items) { if (y > 690) { doc.addPage(); y = 50; row('ITEM', 'QTY', 'PRICE', 'AMOUNT', true); } const q = Number(it.qty) || 1, p = Number(it.price) || 0; sub += q * p; row(String(it.name || 'Item').slice(0, 45), q, `Rs.${p.toFixed(2)}`, `Rs.${(q * p).toFixed(2)}`); }
-  if (y > 640) { doc.addPage(); y = 50; }
-  doc.moveTo(50, y).lineTo(545, y).strokeColor('#ddd').stroke(); y += 14;
-  const tr = (l, a) => { doc.fontSize(11).fillColor('#000').text(l, 330, y, { width: 130 }); doc.text(a, 470, y, { width: 75, align: 'right' }); y += 22; };
-  tr('Subtotal', `Rs.${sub.toFixed(2)}`);
-  const disc = Math.max(0, Number(order.discount) || 0); if (disc) tr(`Discount${order.couponCode ? ` (${order.couponCode})` : ''}`, `-Rs.${disc.toFixed(2)}`);
-  const extra = Math.max(0, total - sub + disc); if (extra > 0.009) tr('Delivery / other', `Rs.${extra.toFixed(2)}`);
-  tr('Total', `Rs.${total.toFixed(2)}`);
-  doc.fontSize(8).fillColor('#777').text(shop.gstin ? 'Amounts as recorded by the shop for this order.' : 'This is the shop\'s order bill. It is not a GST tax invoice.', 50, y + 24, { width: 495, align: 'center' });
-  doc.end();
+  const doc = createBillDocument(shop, order, kind, options); doc.pipe(res); doc.end();
 }
