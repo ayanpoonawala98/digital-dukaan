@@ -1,3 +1,4 @@
+import { sendOwnerInvite } from '../owner-invites.js';
 import { validatePasswordChange } from '../password-security.js';
 import { platformSales, salesCsv, CommissionRule, ensureCommissionSchema } from '../platform-sales.js';
 import { dateWindow } from '../reporting.js';
@@ -22,8 +23,16 @@ r.post('/users/:id/password', wrap(async (req, res) => {
   if (!owner || owner.role !== 'owner') throw bad(404, 'Store admin not found.');
   if (req.body.ownerEmail !== owner.email) throw bad(400, 'Type the exact owner email to confirm the account.');
   if (await bcrypt.compare(req.body.newPassword, owner.passwordHash)) throw bad(400, 'Choose a different new password.');
-  await owner.update({ passwordHash: await bcrypt.hash(req.body.newPassword, 12), passwordChangedAt: new Date() });
+  await owner.update({ passwordHash: await bcrypt.hash(req.body.newPassword, 12), passwordChangedAt: new Date(), passwordSetupHash:null, passwordSetupExpiresAt:null });
   res.json({ changed: true, owner: { id: owner.id, name: owner.name, email: owner.email } });
+}));
+r.post('/users/:id/welcome-email', wrap(async(req,res)=>{
+ const user=await User.unscoped().findByPk(numId(req.params.id));
+ if(!user||user.role!=='owner')throw bad(404,'Store admin not found.');
+ if(req.body?.ownerEmail!==user.email||req.body?.confirm!==true)throw bad(400,'Review and confirm the owner email before sending.');
+ const store=await Business.findOne({where:{ownerId:user.id,deletedAt:null},order:[['createdAt','ASC']]});
+ if(!store)throw bad(400,'This owner has no store.');
+ res.json({welcomeEmail:await sendOwnerInvite(user,store)});
 }));
 // Only the authenticated superadmin can create an owner account and its first store.
 r.post('/owners', wrap(async (req, res) => {
@@ -52,7 +61,8 @@ r.post('/owners', wrap(async (req, res) => {
     await user.destroy();
     throw bad(503, 'Store domain could not be registered. No owner or store was created. Try again later.');
   }
-  res.status(201).json({ user: { id: user.id, name: user.name, email: user.email, role: user.role }, store });
+  const welcomeEmail = await sendOwnerInvite(user,store);
+  res.status(201).json({ welcomeEmail, user: { id: user.id, name: user.name, email: user.email, role: user.role }, store });
 }));
 // New-store request alerts (superadmin only). Keys are encrypted and never returned.
 let alertTestAt = 0;
