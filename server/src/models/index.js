@@ -7,13 +7,15 @@ export const User = sequelize.define('User', {
   name: { type: DataTypes.STRING(100), allowNull: false },
   email: { type: DataTypes.STRING, allowNull: false, unique: true, set(value) { this.setDataValue('email', String(value || '').toLowerCase().trim()); } },
   passwordHash: { type: DataTypes.STRING, allowNull: false },
+  passwordSetupHash: { type: DataTypes.STRING(64), allowNull: true },
+  passwordSetupExpiresAt: { type: DataTypes.DATE, allowNull: true },
   passwordChangedAt: { type: DataTypes.DATE, allowNull: true },
   role: { type: DataTypes.ENUM('owner', 'superadmin', 'staff'), defaultValue: 'owner' },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
   managerId: { type: DataTypes.INTEGER, allowNull: true },
   staffBusinessId: { type: DataTypes.INTEGER, allowNull: true },
   permissions: { type: DataTypes.JSONB, allowNull: true }
-}, { tableName: 'users', defaultScope: { attributes: { exclude: ['passwordHash'] } } });
+}, { tableName: 'users', defaultScope: { attributes: { exclude: ['passwordHash', 'passwordSetupHash', 'passwordSetupExpiresAt'] } } });
 
 export const Business = sequelize.define('Business', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
