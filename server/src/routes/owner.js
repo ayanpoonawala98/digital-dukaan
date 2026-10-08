@@ -1,3 +1,4 @@
+import { productCatalogPdf } from '../product-pdf.js';
 import { deleteCatalogProduct } from '../delete-product.js';
 import {campaignOwnerRoutes} from '../campaigns.js';
 import { TIME_RE } from '../hours.js';
@@ -356,16 +357,35 @@ const orderPage = async (req, Model, kind) => {
   const { rows, count } = await Model.findAndCountAll({ where: listWhere(req, kind), order: [['createdAt','DESC'],['id','DESC']], limit, offset: (page-1)*limit });
   return { [kind === 'restaurant' ? 'orders':'leads']: rows, total: count, page, pageSize: limit };
 };
+r.get('/:storeId/products/catalog.pdf', wrap(async(req,res)=>{
+ const products=await Product.findAll({where:{businessId:bid(req)},include:[{model:Category,as:'category',attributes:['name']}],order:[['createdAt','DESC'],['id','DESC']]});
+ if(products.length>1000)throw bad(400,'Catalog PDF supports up to 1,000 products. Use CSV for larger catalogs.');
+ const doc=productCatalogPdf(req.store,products);
+ res.type('application/pdf').attachment(`products-${req.store.slug}.pdf`);doc.pipe(res);doc.end();
+}));
 r.get('/:storeId/shop-qr.pdf', wrap(async(req,res)=>{
   // Same canonical URL helper as public storefront QR; no guessed hostname.
   const url = process.env.STORE_SUBDOMAINS_READY === 'true' ? storeUrl(req.store.slug) : `${clientBase()}/store/${req.store.slug}`;
   if(!/^https?:\/\//.test(url)) throw bad(503,'Shop link is not configured. Kindly contact admin.');
   const png=await QRCode.toBuffer(url,{type:'png',width:1024,margin:4,errorCorrectionLevel:'H'});
-  const doc=new PDFDocument({size:'A4',margin:50});
+  const doc=new PDFDocument({size:'A4',layout:'landscape',margin:30});
   res.type('application/pdf').attachment(`${req.store.slug}-shop-qr.pdf`);doc.pipe(res);
   doc.registerFont('ShopText',path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../../fonts/DejaVuSans.ttf'));doc.font('ShopText');
-  const brand=qrBrand(req.store);doc.lineWidth(4).strokeColor(brand.color).roundedRect(30,30,535,782,20).stroke();
-  doc.fontSize(16).fillColor(brand.color).text('DIGITAL SHOP',{align:'center'});doc.moveDown();doc.fontSize(28).fillColor('#162b1d').text(req.store.name,{align:'center'});doc.moveDown();doc.fontSize(16).text('Scan to browse our shop',{align:'center'});const qrTop=Math.max(220,doc.y+20);doc.image(png,137,qrTop,{width:320});doc.roundedRect(281,qrTop+144,32,32,6).fill('white');doc.roundedRect(285,qrTop+148,24,24,4).fill(brand.color);doc.fontSize(9).fillColor(brand.foreground).text(brand.initials,285,qrTop+155,{width:24,align:'center'});doc.fillColor('#162b1d');doc.fontSize(11).text(url,50,qrTop+340,{align:'center',width:495});doc.fontSize(12).text('Your shop. One link away.',50,qrTop+385,{align:'center',width:495});doc.end();
+  const brand=qrBrand(req.store),left=40,right=510;
+  doc.lineWidth(2).strokeColor(brand.color).roundedRect(25,30,792,535,16).stroke();
+  doc.save().roundedRect(495,31,321,533,15).fill(brand.color).restore();
+  doc.fontSize(10).fillColor(brand.color).text('YOUR LOCAL STORE',left,65,{width:410});
+  doc.fontSize(28).fillColor('#162b1d').text(req.store.name,left,98,{width:410,height:105});
+  doc.fontSize(12).fillColor('#526156').text(req.store.description||'',left,217,{width:410,height:92,ellipsis:true});
+  let y=340;
+  if(req.store.whatsapp){doc.fontSize(9).fillColor(brand.color).text('WHATSAPP',left,y);doc.fontSize(15).fillColor('#162b1d').text('+'+req.store.whatsapp,left,y+19,{width:410});y+=65;}
+  if(req.store.location){doc.fontSize(9).fillColor(brand.color).text('VISIT US',left,y);doc.fontSize(12).fillColor('#162b1d').text(req.store.location,left,y+19,{width:410,height:68,ellipsis:true});}
+  doc.fontSize(8).fillColor('#526156').text('ONE SCAN. YOUR SHOP, ALWAYS WITH YOU.',left,532,{width:420});
+  doc.fontSize(11).fillColor(brand.foreground).text('SCAN & EXPLORE',right,106,{width:280,align:'center'});
+  doc.roundedRect(right,139,280,280,14).fill('white');doc.image(png,right+7,146,{width:266});
+  doc.roundedRect(right+122,261,36,36,7).fill('white');doc.roundedRect(right+127,266,26,26,5).fill(brand.color);doc.fontSize(9).fillColor(brand.foreground).text(brand.initials,right+127,274,{width:26,align:'center'});
+  doc.fontSize(11).text('Our full collection. Right on your phone.',right,443,{width:280,align:'center'});
+  doc.fontSize(7).text(url,right,475,{width:280,align:'center'});doc.end();
 }));
 r.get('/:storeId/leads', wrap(async (req,res) => res.json(await orderPage(req,Lead,'whatsapp'))));
 r.get('/:storeId/leads/report.csv', wrap(async (req,res) => {
