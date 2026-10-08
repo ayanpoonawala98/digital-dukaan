@@ -35,3 +35,29 @@ test('platform alert settings ignore unknown fields and non-booleans', () => {
   const s = cleanAlertSettings({ emailAlerts: 'yes', alertEmail: ' a@b.co ', evil: 1 });
   assert.deepEqual(s, { welcomeEmailMode:'credentials', ownerWelcomeEmails:false, emailAlerts: false, alertEmail: 'a@b.co', smsAlerts: false, alertPhone: '' });
 });
+
+
+test('platform settings updates never write or wipe the provider payload', async () => {
+  const { PlatformAlert, saveAlertSettings, saveAlertKeys, alertState } = await import('./platform-alerts.js');
+  const saved = [PlatformAlert.sync, PlatformAlert.findByPk, PlatformAlert.findOrCreate];
+  const { encryptJson } = await import('./notify-secrets.js');
+  const row = { payload: encryptJson(creds), settings: cleanAlertSettings({}), update: async (values, opts) => {
+    assert.deepEqual(Object.keys(values), opts.fields);
+    Object.assign(row, values);
+  }};
+  PlatformAlert.sync = async () => {};
+  PlatformAlert.findByPk = async () => row;
+  PlatformAlert.findOrCreate = async () => [row, false];
+  try {
+    const original = row.payload;
+    const state = await saveAlertSettings({ alertEmail: 'boss@example.com' });
+    assert.equal(row.payload, original);
+    assert.equal(state.keys.resend.apiKeySaved, true);
+    assert.equal(state.providers.email.configured, true);
+    assert.equal(state.settings.alertEmail, 'boss@example.com');
+    await saveAlertKeys({ emailMode: 'resend', resend: { from: 'Digital Shop <noreply@example.com>' } });
+    assert.equal(row.settings.alertEmail, 'boss@example.com');
+    assert.equal((await alertState()).keys.resend.apiKeySaved, true);
+    assert.equal((await alertState()).keys.resend.from, 'Digital Shop <noreply@example.com>');
+  } finally { [PlatformAlert.sync, PlatformAlert.findByPk, PlatformAlert.findOrCreate] = saved; }
+});
