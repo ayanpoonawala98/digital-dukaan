@@ -1,7 +1,7 @@
 // Response-time store metadata: social crawlers do not execute the React app.
 const API = 'https://api.digitalshop.website';
 const ROOT = 'https://digitalshop.website';
-export const config = { path: '/store/*' };
+export const config = { path: '/store/*', onError: 'bypass' };
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export function logoUrl(value) {
   try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? u.href : ''; } catch { return ''; }
