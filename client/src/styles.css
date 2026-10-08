@@ -1324,3 +1324,6 @@ footer { background:#101d15; }
 .pagination-sentinel small { color:var(--muted); }
 .store-install-footer { padding-top:24px; padding-bottom:24px; display:flex; justify-content:center; }
 .store-install-footer .chip-btn { color:var(--muted); border-color:var(--line); }
+
+/* Anchor headings remain visible below the sticky navigation. */
+#how-it-works, #demo { scroll-margin-top:82px; }
