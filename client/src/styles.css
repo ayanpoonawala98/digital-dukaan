@@ -1296,3 +1296,6 @@ footer { background:#101d15; }
  .products-table,.products-table tbody,.products-table tr,.products-table td { min-width:0; width:100%; max-width:100%; }
 }
 @media(max-width:900px) { .table-wrap .products-table { min-width:0; } }
+.qr-frame.qr-themed-online{width:min(780px,100%);box-sizing:border-box;margin:18px auto}
+.qr-frame.qr-themed-online img{width:100%;max-width:none;height:auto}
+.table-qr-card img{width:100%;max-width:420px;height:auto}
