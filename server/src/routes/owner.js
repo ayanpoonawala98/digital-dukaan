@@ -1,3 +1,4 @@
+import {ownerList} from '../owner-list-page.js';
 import { customerOrderPushTitle } from '../customer-order-push.js';
 import {streamBill} from '../invoice.js';
 import {updateOrderStock,RETAIL_DEDUCT,RESTAURANT_DEDUCT} from '../order-stock.js';
@@ -143,7 +144,7 @@ r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
   await req.store.update({ active: false, deletedAt, wasActiveBeforeDelete: req.store.active });
   res.json({ removed: true, slug: req.store.slug, restoreUntil: restoreUntil(deletedAt) });
 }));
-r.get('/:storeId/staff', ownerOnly, wrap(async (req, res) => res.json({ staff: (await User.findAll({ where: { managerId: req.user.id, staffBusinessId: bid(req), role: 'staff' } })).map(u => ({ id:u.id, name:u.name, email:u.email, active:u.active, permissions:staffPerms(u) })) })));
+r.get('/:storeId/staff', ownerOnly, wrap(async(req,res)=>res.json(await ownerList(User,'staff',req,{managerId:req.user.id,staffBusinessId:bid(req),role:'staff'},['name','email'],{},u=>({id:u.id,name:u.name,email:u.email,active:u.active,permissions:staffPerms(u)})))));
 r.post('/:storeId/staff', ownerOnly, wrap(async (req, res) => {
   const name = String(req.body?.name || '').trim(), email = String(req.body?.email || '').trim().toLowerCase(), password = req.body?.password;
   if (!name || name.length > 100 || !validEmail(email) || typeof password !== 'string' || password.length < 12 || password.length > 128) throw bad(400, 'Name, valid email and a temporary password of at least 12 characters are required');
@@ -246,7 +247,7 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   res.json({ business: req.store });
 }));
 
-r.get('/:storeId/categories', wrap(async (req, res) => res.json({ categories: await Category.findAll({ where: { businessId: bid(req) }, order: [['name', 'ASC']] }) })));
+r.get('/:storeId/categories', wrap(async(req,res)=>res.json(await ownerList(Category,'categories',req,{businessId:bid(req)},['name','slug']))));
 r.post('/:storeId/categories', wrap(async (req, res) => {
   const name = String(req.body.name || '').trim(), slug = slugify(name);
   if (!slug) throw bad(400, 'Category name required');
@@ -269,7 +270,7 @@ r.delete('/:storeId/categories/:id', wrap(async (req, res) => {
 }));
 
 const categoryInclude = { model: Category, as: 'category', attributes: ['name', 'slug'] };
-r.get('/:storeId/products', wrap(async (req, res) => res.json({ products: await Product.findAll({ where: { businessId: bid(req) }, include: [categoryInclude], order: [['createdAt', 'DESC']] }) })));
+r.get('/:storeId/products', wrap(async(req,res)=>res.json(await ownerList(Product,'products',req,{businessId:bid(req)},['name','description','$category.name$'],{include:[categoryInclude]}))));
 
 async function productFields(req) {
   const fields = {};
@@ -361,6 +362,7 @@ const listWhere = (req, kind) => {
   return where;
 };
 const orderPage = async (req, Model, kind) => {
+  if(req.query.limit!==undefined)return ownerList(Model,kind==='restaurant'?'orders':'leads',{query:{limit:req.query.limit,cursor:req.query.cursor}},listWhere(req,kind),[]);
   const page = Number(req.query.page || 1);
   if(!Number.isSafeInteger(page) || page<1 || page>100000) throw bad(400,'Invalid page');
   const asked = Number(req.query.pageSize); const limit = req.query.page ? (Number.isInteger(asked) && asked >= 5 && asked <= 100 ? asked : 50) : kind === 'restaurant' ? 200 : 500;
@@ -672,7 +674,7 @@ r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
   res.json({ sent, gone, total: subs.length });
 }));
 
-r.get('/:storeId/referrals', ownerOnly, wrap(async (req, res) => res.json({ referrals: await Referral.findAll({ where: { businessId: bid(req) }, order: [['createdAt', 'DESC']], limit: 100 }) })));
+r.get('/:storeId/referrals', ownerOnly, wrap(async(req,res)=>res.json(await ownerList(Referral,'referrals',req,{businessId:bid(req)},['code','referrerPhone','referredPhone']))));
 r.post('/:storeId/referrals', ownerOnly, wrap(async (req, res) => {
   const phone = String(req.body?.referrerPhone || '').trim();
   if (!validPhone(phone)) throw bad(400, 'Referrer phone needs a country code');
@@ -706,7 +708,7 @@ r.post('/:storeId/referrals/:id/redeem', ownerOnly, wrap(async (req, res) => {
   res.json({ ok:true });
 }));
 
-r.get('/:storeId/coupons', wrap(async (req, res) => res.json({ coupons: await Coupon.findAll({ where: { businessId: bid(req) }, order: [['createdAt', 'DESC']], limit: 100 }) })));
+r.get('/:storeId/coupons', wrap(async(req,res)=>res.json(await ownerList(Coupon,'coupons',req,{businessId:bid(req)},['code']))));
 r.post('/:storeId/coupons', wrap(async (req, res) => {
   const code = String(req.body?.code || '').trim().toUpperCase();
   const percentOff = Number(req.body?.percentOff);

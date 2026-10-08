@@ -8,3 +8,8 @@ test('15-row cursor pages have stable tie breaker and no overlap',()=>{
 test('pagination validation, full export compatibility and empty results',()=>{
  assert.equal(catalogCursor({}),null);assert.throws(()=>catalogCursor({limit:'100'}));assert.throws(()=>catalogCursor({limit:'15',cursor:'bad'}));assert.deepEqual(catalogResult([],0),{products:[],total:0,hasMore:false,nextCursor:null});assert.deepEqual(afterCatalogCursor(null),{});
 });
+test('100 catalogue records use 15 initially then ten until exhausted',()=>{
+ const all=Array.from({length:100},(_,i)=>({id:100-i,featured:false,createdAt:'2026-10-08T12:00:00.000Z'}));let offset=0;const counts=[],ids=[];
+ while(offset<100){const size=offset===0?15:10;const page=catalogResult(all.slice(offset,offset+size+1),100,size);ids.push(...page.products.map(p=>p.id));offset+=page.products.length;counts.push(offset);assert.equal(page.hasMore,offset<100);}
+ assert.deepEqual(counts,[15,25,35,45,55,65,75,85,95,100]);assert.equal(new Set(ids).size,100);assert.equal(catalogCursor({limit:10}).limit,10);
+});

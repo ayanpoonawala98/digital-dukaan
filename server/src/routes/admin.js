@@ -1,3 +1,4 @@
+import {ownerList} from '../owner-list-page.js';
 import { platformReport,sendPlatformReport,welcomeSample } from '../platform-email-report.js';
 import { sendOwnerInvite } from '../owner-invites.js';
 import { validatePasswordChange } from '../password-security.js';
@@ -90,9 +91,9 @@ r.post('/alerts/test', wrap(async (req, res) => {
   alertTestAt = Date.now();
   res.json(await sendAlertTest(req.body?.channel));
 }));
-r.get('/shop-requests', wrap(async (_, res) => {
+r.get('/shop-requests', wrap(async (req, res) => {
   await ShopRequest.sync();
-  res.json({ requests: await ShopRequest.findAll({ order: [['createdAt', 'DESC']], limit: 250 }) });
+  res.json(await ownerList(ShopRequest,'requests',req,{},['name','shopName','email','phone','message']));
 }));
 r.patch('/shop-requests/:id', wrap(async (req, res) => {
   if (!['new', 'contacted'].includes(req.body?.status)) throw bad(400, 'Invalid status');
@@ -103,7 +104,7 @@ r.patch('/shop-requests/:id', wrap(async (req, res) => {
   res.json({ request });
 }));
 
-r.get('/businesses', wrap(async (_, res) => res.json({ businesses: await Business.findAll({ where: { deletedAt: null }, order: [['createdAt', 'DESC']] }) })));
+r.get('/businesses',wrap(async(req,res)=>res.json(await ownerList(Business,'businesses',req,{deletedAt:null},['name','slug','whatsapp']))));
 r.delete('/businesses/:id', wrap(async (req, res) => {
   const b = await Business.findByPk(numId(req.params.id));
   if (!b || b.deletedAt) throw bad(404, 'Business not found');
@@ -128,7 +129,7 @@ r.patch('/businesses/:id', wrap(async (req, res) => {
   await business.update({ active: req.body.active });
   res.json({ business });
 }));
-r.get('/users', wrap(async (_, res) => res.json({ users: await User.findAll({ order: [['createdAt', 'DESC']] }) })));
+r.get('/users',wrap(async(req,res)=>res.json(await ownerList(User,'users',req,{},['name','email'],{},asyncUser=>asyncUser))));
 r.patch('/users/:id', wrap(async (req, res) => {
   if (typeof req.body.active !== 'boolean') throw bad(400, 'active must be true or false');
   if (String(req.user.id) === req.params.id && !req.body.active) throw bad(400, 'Cannot disable your own account');

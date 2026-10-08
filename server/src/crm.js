@@ -1,3 +1,4 @@
+import {ownerList} from './owner-list-page.js';
 import { DataTypes, Op } from 'sequelize';
 import { sequelize, Business } from './models/index.js';
 import { Router } from 'express';
@@ -101,6 +102,7 @@ crmRoutes.get('/', wrap(async (req, res) => {
   const limit = 50;
   const where = { businessId: req.store.id, archivedAt: null, ...(status !== 'all' ? { optInStatus: status } : {}) };
   if (q) where[Op.or] = [{ phone: { [Op.like]: `%${q.replace(/[%_\\]/g, '\\$&')}%` } }, { name: { [Op.iLike]: `%${q.replace(/[%_\\]/g, '\\$&')}%` } }];
+  if(req.query.limit!==undefined)return res.json(await ownerList(Customer,'customers',{query:{limit:req.query.limit,cursor:req.query.cursor}},where,[]));
   const result = await Customer.findAndCountAll({ where, order: [['createdAt', 'DESC'], ['id', 'DESC']], limit, offset: (page - 1) * limit });
   res.json({ customers: result.rows, total: result.count, page, pageSize: limit });
 }));

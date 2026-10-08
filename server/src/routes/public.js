@@ -273,10 +273,10 @@ r.get('/stores/:slug/products', storefrontCache, wrap(async (req, res) => {
     return res.json({products});
   }
   const [rows,total] = await Promise.all([
-    Product.findAll({where:{...where,...afterCatalogCursor(page.cursor)},include:[categoryInclude],order:[['featured','DESC'],['createdAt','DESC'],['id','DESC']],limit:16}),
+    Product.findAll({where:{...where,...afterCatalogCursor(page.cursor)},include:[categoryInclude],order:[['featured','DESC'],['createdAt','DESC'],['id','DESC']],limit:page.limit+1}),
     Product.count({where})
   ]);
-  res.json(catalogResult(rows,total));
+  res.json(catalogResult(rows,total,page.limit));
 }));
 
 r.get('/stores/:slug/products/:id', wrap(async (req, res) => {
