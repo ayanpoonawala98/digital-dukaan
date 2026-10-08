@@ -1,3 +1,4 @@
+import {shopCardPdf} from '../shop-card-pdf.js';
 import {campaignPublicRoutes} from '../campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../hours.js';
 import { Router } from 'express';
@@ -335,6 +336,12 @@ r.get('/stores/:slug/qr', wrap(async (req, res) => {
   const destination = req.query.table === undefined ? shopUrl(business.slug) : `${shopUrl(business.slug)}?table=${table}`;
   const mark = await shopQrSvg(business, destination, req.query.table === undefined ? null : table);
   res.type('image/svg+xml').send(mark);
+}));
+
+r.get('/stores/:slug/business-card.pdf', wrap(async(req,res)=>{
+ const business=await shop(req.params.slug);
+ const doc=await shopCardPdf(business,shopUrl(business.slug));
+ res.type('application/pdf').attachment(`${business.slug}-business-card.pdf`);doc.pipe(res);doc.end();
 }));
 
 r.get('/stores/:slug/push-key', wrap(async (req, res) => {
