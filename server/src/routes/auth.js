@@ -1,3 +1,4 @@
+import { validInvite } from '../owner-invites.js';
 import { passwordStamp, validatePasswordChange } from '../password-security.js';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
@@ -17,13 +18,24 @@ r.post('/login', wrap(async (req, res) => {
   if (!user.active) throw bad(403, 'Account unavailable');
   res.json({ token: sign(user), user: safeUser(user) });
 }));
+r.post('/set-password', wrap(async (req,res) => {
+ const { email, token, newPassword, confirmPassword }=req.body||{};
+ const problem=validatePasswordChange({currentPassword:'setup-link',newPassword,confirmPassword});
+ if(problem)throw bad(400,problem);
+ const user=await User.unscoped().findOne({where:{email:String(email||'').toLowerCase().trim()}});
+ if(!validInvite(user,token))throw bad(400,'This setup link is invalid or expired. Ask the platform admin for a new link.');
+ const hash=await bcrypt.hash(newPassword,12);
+ const [changed]=await User.update({passwordHash:hash,passwordChangedAt:new Date(),passwordSetupHash:null,passwordSetupExpiresAt:null},{where:{id:user.id,passwordSetupHash:user.passwordSetupHash}});
+ if(!changed)throw bad(400,'This setup link has already been used.');
+ res.json({changed:true});
+}));
 r.post('/change-password', auth, wrap(async (req, res) => {
   const problem = validatePasswordChange(req.body);
   if (problem) throw bad(400, problem);
   const user = await User.unscoped().findByPk(req.user.id);
   if (!user?.active || !await bcrypt.compare(req.body.currentPassword, user.passwordHash)) throw bad(400, 'Current password is incorrect.');
   const passwordHash = await bcrypt.hash(req.body.newPassword, 12);
-  const [changed] = await User.update({ passwordHash, passwordChangedAt: new Date() }, { where: { id: user.id, passwordHash: user.passwordHash } });
+  const [changed] = await User.update({ passwordHash, passwordChangedAt: new Date(), passwordSetupHash:null, passwordSetupExpiresAt:null }, { where: { id: user.id, passwordHash: user.passwordHash } });
   if (!changed) throw bad(409, 'Password changed elsewhere. Sign in again.');
   res.json({ changed: true });
 }));
