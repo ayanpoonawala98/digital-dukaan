@@ -1,3 +1,4 @@
+import {optimizeUpload} from '../optimize-upload.js';
 import {ownerList} from '../owner-list-page.js';
 import { customerOrderPushTitle } from '../customer-order-push.js';
 import {streamBill} from '../invoice.js';
@@ -339,16 +340,17 @@ r.delete('/:storeId/products/:id', wrap(async (req, res) => {
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (_, file, done) => done(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
 r.post('/:storeId/upload', upload.single('image'), wrap(async (req, res) => {
   if (!req.file) throw bad(400, 'Choose a JPEG, PNG or WebP image under 5 MB');
+  const optimized=await optimizeUpload(req.file.buffer,req.file.mimetype);
   if (process.env.IMAGEKIT_PRIVATE_KEY) {
-    const imageUrl = await uploadImageKit(req.file.buffer, `${randomUUID()}${({ 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' })[req.file.mimetype]}`, `${process.env.IMAGEKIT_UPLOAD_ROOT || "/digital-dukaan"}/${bid(req)}`);
+    const imageUrl = await uploadImageKit(optimized.buffer, `${randomUUID()}${optimized.ext}`, `${process.env.IMAGEKIT_UPLOAD_ROOT || "/digital-dukaan"}/${bid(req)}`);
     return res.status(201).json({ imageUrl });
   }
   if (process.env.VERCEL) throw bad(503, 'Image hosting is not configured');
-  const ext = ({ 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp' })[req.file.mimetype] || '';
+  const ext = optimized.ext;
   const name = `${randomUUID()}${ext}`;
   const dir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../uploads');
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(path.join(dir, name), req.file.buffer);
+  await fs.writeFile(path.join(dir, name), optimized.buffer);
   res.status(201).json({ imageUrl: `/uploads/${name}` });
 }));
 
