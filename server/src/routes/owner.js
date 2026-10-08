@@ -443,7 +443,7 @@ r.post('/:storeId/notifications/report', ownerOnly, wrap(async (req, res) => {
 r.get('/:storeId/leads/:leadId/invoice', wrap(async (req, res) => {
   const lead = await Lead.findOne({ where: { id: numId(req.params.leadId, 'enquiry ID'), businessId: bid(req) } });
   if (!lead) throw bad(404, 'Enquiry not found');
-  streamBill(res, req.store, lead, 'lead', { estimate: true });
+  await streamBill(res, req.store, lead, 'lead', { estimate: true });
 }));
 
 
