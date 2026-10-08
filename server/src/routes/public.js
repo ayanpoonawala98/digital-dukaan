@@ -107,9 +107,11 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const items = raw.map(entry => {
     const product = byId.get(Number(entry.id)), qty = Number(entry.qty);
     if (!Number.isInteger(qty) || qty < 1 || qty > 99 || product.stock === 0 || (product.stock !== null && qty > product.stock)) throw bad(400, 'Invalid quantity or insufficient stock');
-    return { productId: product.id, name: product.name, price: product.price, qty };
+    const answers = validateAnswers(product.customFields, entry.answers, product.name);
+    return { productId: product.id, name: product.name, price: product.price, qty, ...(answers.length ? { answers } : {}) };
   });
   const subtotal = items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0);
+  if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
   const referral = await checkReferral(business.id, req.body?.referralCode);
   const total = Number((subtotal - discount).toFixed(2));
