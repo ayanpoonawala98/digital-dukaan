@@ -1,3 +1,4 @@
+import { platformReport,sendPlatformReport } from '../platform-email-report.js';
 import { sendOwnerInvite } from '../owner-invites.js';
 import { validatePasswordChange } from '../password-security.js';
 import { platformSales, salesCsv, CommissionRule, ensureCommissionSchema } from '../platform-sales.js';
@@ -14,6 +15,12 @@ import { alertState, saveAlertKeys, saveAlertSettings, sendAlertTest } from '../
 const r = Router();
 r.use(auth, roles('superadmin'));
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
+r.get('/email-summary',wrap(async(req,res)=>res.json(await platformReport(req.user))));
+r.post('/email-summary',wrap(async(req,res)=>{
+ const report=await platformReport(req.user);
+ if(req.body?.confirm!==true||req.body?.to!==report.to||req.body?.text!==report.text)throw bad(409,'Summary changed or not confirmed. Preview it again.');
+ res.json(await sendPlatformReport(report));
+}));
 r.post('/users/:id/password', wrap(async (req, res) => {
   const problem = validatePasswordChange(req.body);
   if (problem) throw bad(400, problem);
@@ -61,7 +68,7 @@ r.post('/owners', wrap(async (req, res) => {
     await user.destroy();
     throw bad(503, 'Store domain could not be registered. No owner or store was created. Try again later.');
   }
-  const welcomeEmail = await sendOwnerInvite(user,store);
+  const welcomeEmail = await sendOwnerInvite(user,store,{},password);
   res.status(201).json({ welcomeEmail, user: { id: user.id, name: user.name, email: user.email, role: user.role }, store });
 }));
 // New-store request alerts (superadmin only). Keys are encrypted and never returned.
