@@ -1,3 +1,4 @@
+import {downloadShopCard} from '../lib/shop-card-download.js';
 import { shouldInvite, hasSeenPushInvite, rememberPushInvite } from '../lib/push-prompt.js';
 import ClosedBanner, { hoursLabel } from '../components/ClosedBanner.jsx';
 import { notify } from '../lib/notifications.js';
@@ -117,7 +118,8 @@ function QrModal({ slug, business, onClose }) {
   const BASE = import.meta.env.VITE_API_URL || '';
   const qrUrl = `${BASE}/api/public/stores/${slug}/qr`;
   const shopLink = storeLink(slug);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState(false), [downloading,setDownloading]=useState('');
+  const save=async format=>{setDownloading(format);try{await downloadShopCard(slug,format);}catch{}finally{setDownloading('');}};
   return <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <div className="modal qr-modal anim-pop">
       <button className="modal-close" onClick={onClose} aria-label="Close"><X/></button>
@@ -126,7 +128,7 @@ function QrModal({ slug, business, onClose }) {
       <div className="qr-frame qr-themed-online"><img src={qrUrl} alt={`QR code for ${business.name}`}/></div>
       <div className="url-pill">{shopLink}</div>
       <div className="qr-actions">
-        <a className="btn btn-green" href={qrUrl} download={`${slug}-qr.svg`}>Download QR</a>
+        <button className="btn btn-green" disabled={!!downloading} onClick={()=>save('png')}>{downloading==='png'?'Preparing...':'Download image'}</button><button className="btn btn-outline" disabled={!!downloading} onClick={()=>save('pdf')}>{downloading==='pdf'?'Preparing...':'Download PDF'}</button>
         <button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(shopLink); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } }}>{copied ? 'Copied!' : 'Copy link'}</button>
       </div>
     </div>
