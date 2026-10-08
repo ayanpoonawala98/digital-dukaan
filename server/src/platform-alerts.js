@@ -15,11 +15,11 @@ export const PlatformAlert = sequelize.define('PlatformAlert', {
 
 let ready;
 const ensure = () => (ready ||= PlatformAlert.sync().catch(e => { ready = null; throw e; }));
-export const DEFAULTS = Object.freeze({ ownerWelcomeEmails: false, emailAlerts: false, alertEmail: '', smsAlerts: false, alertPhone: '' });
+export const DEFAULTS = Object.freeze({ ownerWelcomeEmails: false, welcomeEmailMode: 'credentials', emailAlerts: false, alertEmail: '', smsAlerts: false, alertPhone: '' });
 
 export function cleanAlertSettings(raw) {
   const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  return { ownerWelcomeEmails: s.ownerWelcomeEmails === true, emailAlerts: s.emailAlerts === true, alertEmail: typeof s.alertEmail === 'string' ? s.alertEmail.trim().slice(0, 160) : '', smsAlerts: s.smsAlerts === true, alertPhone: typeof s.alertPhone === 'string' ? s.alertPhone.trim().slice(0, 20) : '' };
+  return { welcomeEmailMode: s.welcomeEmailMode === 'setup' ? 'setup' : 'credentials', ownerWelcomeEmails: s.ownerWelcomeEmails === true, emailAlerts: s.emailAlerts === true, alertEmail: typeof s.alertEmail === 'string' ? s.alertEmail.trim().slice(0, 160) : '', smsAlerts: s.smsAlerts === true, alertPhone: typeof s.alertPhone === 'string' ? s.alertPhone.trim().slice(0, 20) : '' };
 }
 async function load() {
   await ensure();
@@ -59,7 +59,7 @@ export async function sendAlertTest(channel, env = process.env, deps = {}) {
   const to = channel === 'email' ? settings.alertEmail : settings.alertPhone;
   if (!to) throw bad(400, channel === 'email' ? 'Save an alert email first' : 'Save an alert mobile number first');
   const d = { ...deps, providers };
-  const r = channel === 'email' ? await sendEmail({ to, subject: 'Test alert - Digital Shop', text: 'This is a test. New-store requests will be sent here.' }, d) : await sendSms({ to, text: 'Test alert from Digital Shop. New-store requests will be sent to this number.' }, d);
+  const r = channel === 'email' ? await sendEmail({ to, subject: 'Digital Shop platform email test', text: 'Digital Shop platform email test' }, d) : await sendSms({ to, text: 'Test alert from Digital Shop. New-store requests will be sent to this number.' }, d);
   if (!r.ok) throw bad(502, r.error || r.skipped || 'Could not send the test');
   return { ok: true };
 }
