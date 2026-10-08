@@ -8,10 +8,25 @@ export const qrBrand = business => {
  return {color,foreground:light?'#101611':'#ffffff',name,initials};
 };
 const escape=v=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+const lines=(value,max=46,count=3)=>{
+ const words=String(value||'').trim().split(/\s+/),out=[];let line='';
+ for(const word of words){if((line+' '+word).trim().length>max&&line){out.push(line);line=word;}else line=(line+' '+word).trim();}
+ if(line)out.push(line);return out.slice(0,count).map((v,i)=>i===count-1&&out.length>count?v.slice(0,max-3)+'...':v);
+};
 export async function shopQrSvg(business,destination,table){
  const b=qrBrand(business);
  const png=await QRCode.toBuffer(destination,{type:'png',margin:4,width:1024,errorCorrectionLevel:'H',color:{dark:'#162b1d',light:'#ffffff'}});
- const name=Array.from(b.name).length>34?Array.from(b.name).slice(0,31).join('')+'...':b.name;
- const title=table?`TABLE ${table} - SCAN TO OPEN MENU`:'SCAN TO EXPLORE OUR SHOP';
- return `<svg xmlns="http://www.w3.org/2000/svg" width="600" height="720" viewBox="0 0 600 720"><title>${escape(b.name)} QR code</title><rect x="5" y="5" width="590" height="710" rx="28" fill="white" stroke="${b.color}" stroke-width="6"/><rect x="22" y="22" width="556" height="68" rx="16" fill="${b.color}"/><text x="300" y="65" text-anchor="middle" font-family="Arial,sans-serif" font-size="25" font-weight="bold" fill="${b.foreground}">${escape(name)}</text><text x="300" y="123" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" fill="#162b1d">${title}</text><image x="35" y="135" width="530" height="530" href="data:image/png;base64,${png.toString('base64')}"/><rect x="276" y="376" width="48" height="48" rx="10" fill="white"/><rect x="281" y="381" width="38" height="38" rx="8" fill="${b.color}"/><text x="300" y="406" text-anchor="middle" font-size="15" font-family="Arial,sans-serif" font-weight="bold" fill="${b.foreground}">${escape(b.initials)}</text><text x="300" y="686" text-anchor="middle" font-family="Arial,sans-serif" font-size="11" fill="#162b1d">${escape(destination.replace(/^https?:\/\//,''))}</text></svg>`;
+ const name=lines(b.name,16,3), description=lines(business.description,52,3),address=lines(business.location,48,3);
+ const phone=String(business.whatsapp||'').replace(/[^+0-9]/g,'');
+ const phoneLabel=phone.startsWith('91')&&phone.length===12?`+91 ${phone.slice(2,7)} ${phone.slice(7)}`:phone?`${phone.startsWith('+')?'':'+'}${phone}`:'';
+ const rightX=758;
+ let left=`<text x="50" y="60" font-family="Arial,sans-serif" font-size="13" letter-spacing="2" font-weight="bold" fill="${b.color}">YOUR LOCAL ${business.storeType==='restaurant'?'RESTAURANT':business.storeType==='services'?'SERVICE BUSINESS':'STORE'}</text>`;
+ name.forEach((v,i)=>left+=`<text x="50" y="${132+i*62}" font-family="Georgia,serif" font-size="${Math.min(56,600/Math.max(1,v.length*.62))}" fill="#162b1d">${escape(v)}</text>`);
+ let y=155+name.length*62;left+=`<rect x="50" y="${y}" width="70" height="4" fill="${b.color}"/>`;y+=43;
+ description.forEach(v=>{left+=`<text x="50" y="${y}" font-family="Arial,sans-serif" font-size="18" fill="#526156">${escape(v)}</text>`;y+=27;});y+=25;
+ if(phoneLabel){left+=`<text x="50" y="${y}" font-family="Arial,sans-serif" font-size="11" letter-spacing="1.5" font-weight="bold" fill="${b.color}">WHATSAPP</text><text x="50" y="${y+28}" font-family="Arial,sans-serif" font-size="20" fill="#162b1d">${escape(phoneLabel)}</text>`;y+=70;}
+ if(address.length){left+=`<text x="50" y="${y}" font-family="Arial,sans-serif" font-size="11" letter-spacing="1.5" font-weight="bold" fill="${b.color}">VISIT US</text>`;y+=28;address.forEach(v=>{left+=`<text x="50" y="${y}" font-family="Arial,sans-serif" font-size="18" fill="#162b1d">${escape(v)}</text>`;y+=26;});}
+ const height=Math.max(700,y+70);
+ const qrY=(height-470)/2+65;
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="${height}" viewBox="0 0 1180 ${height}"><title>${escape(b.name)} business card QR code</title><rect x="3" y="3" width="1174" height="${height-6}" rx="26" fill="#fffdf8" stroke="${b.color}" stroke-width="4"/><path d="M700 5H1151Q1175 5 1175 29V${height-29}Q1175 ${height-5} 1151 ${height-5}H700Z" fill="${b.color}"/>${left}<text x="50" y="${height-30}" font-family="Arial,sans-serif" font-size="10" letter-spacing="1" fill="#6c786f">ONE SCAN. YOUR SHOP, ALWAYS WITH YOU.</text><text x="938" y="${qrY-30}" text-anchor="middle" font-family="Arial,sans-serif" font-size="15" letter-spacing="2" font-weight="bold" fill="${b.foreground}">${table?`TABLE ${table} - SCAN MENU`:'SCAN &amp; EXPLORE'}</text><rect x="${rightX}" y="${qrY}" width="360" height="360" rx="22" fill="white"/><image x="${rightX+8}" y="${qrY+8}" width="344" height="344" href="data:image/png;base64,${png.toString('base64')}"/><rect x="914" y="${qrY+156}" width="48" height="48" rx="10" fill="white"/><rect x="919" y="${qrY+161}" width="38" height="38" rx="8" fill="${b.color}"/><text x="938" y="${qrY+187}" text-anchor="middle" font-size="15" font-family="Arial,sans-serif" font-weight="bold" fill="${b.foreground}">${escape(b.initials)}</text><text x="938" y="${qrY+398}" text-anchor="middle" font-family="Arial,sans-serif" font-size="17" fill="${b.foreground}">Our full collection. Right on your phone.</text><text x="938" y="${qrY+430}" text-anchor="middle" font-family="Arial,sans-serif" font-size="10" fill="${b.foreground}">${escape(destination.replace(/^https?:\/\//,''))}</text></svg>`;
 }
