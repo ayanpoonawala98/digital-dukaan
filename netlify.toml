@@ -1,0 +1,3 @@
+# Build command/publish directory remain managed by the existing site settings.
+[edge_functions]
+  directory = "client/netlify/edge-functions"
