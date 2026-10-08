@@ -7,6 +7,7 @@ export const User = sequelize.define('User', {
   name: { type: DataTypes.STRING(100), allowNull: false },
   email: { type: DataTypes.STRING, allowNull: false, unique: true, set(value) { this.setDataValue('email', String(value || '').toLowerCase().trim()); } },
   passwordHash: { type: DataTypes.STRING, allowNull: false },
+  passwordChangedAt: { type: DataTypes.DATE, allowNull: true },
   role: { type: DataTypes.ENUM('owner', 'superadmin', 'staff'), defaultValue: 'owner' },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
   managerId: { type: DataTypes.INTEGER, allowNull: true },
