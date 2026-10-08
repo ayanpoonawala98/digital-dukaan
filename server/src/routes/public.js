@@ -279,14 +279,20 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const id = numId(req.params.id);
   const product = id && await Product.findOne({ where: { id, businessId: business.id, active: true } });
   if (!product) throw bad(404, 'Product not found');
+  const qty=Number(req.body?.qty??1);
+  if(!Number.isInteger(qty)||qty<1||qty>99)throw bad(400,'Invalid quantity');
   if (product.stock === 0) throw bad(400, 'This product is out of stock right now');
+  if(product.stock!==null&&qty>product.stock)throw bad(400,`Only ${product.stock} left in stock for ${product.name}`);
+  const subtotal=Number((product.price*qty).toFixed(2));
+  if(business.minOrder>0&&subtotal<business.minOrder)throw bad(400,`Minimum order is Rs.${business.minOrder.toFixed(0)}. Add more quantity or use the cart.`);
   const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
-  const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: product.price, ...(answers.length ? { items: [{ productId: product.id, name: product.name, price: product.price, qty: 1, answers }] } : {}), ...optionalContact(req.body) });
+  const lines=[{productId:product.id,name:product.name,price:product.price,qty,...(answers.length?{answers}:{})}];
+  const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: subtotal, items:lines, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
-  const waUrl = whatsappUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, product, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
-  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: product.price } });
+  const waUrl = whatsappUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, {...(typeof product.get==='function'?product.get({plain:true}):product),price:subtotal,orderQty:qty,unitPrice:product.price}, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
+  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: subtotal } });
 }));
 
 r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
