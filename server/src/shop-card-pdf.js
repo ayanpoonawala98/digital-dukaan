@@ -9,6 +9,8 @@ export async function shopCardPdf(business,url){
  const width=841.89,scale=width/1180;
  const doc=new PDFDocument({size:[width,height*scale],margin:0});
  doc.registerFont('CardSerif',CardSerif);doc.registerFont('CardSans',CardSans);doc.registerFont('CardSansBold',CardSansBold);
- SVGtoPDF(doc,svg,0,0,{width,height:height*scale,assumePt:true,fontCallback:(family,bold)=>family==='CardSerif'?'CardSerif':family==='CardSansBold'||bold?'CardSansBold':'CardSans'});
+ doc.save().scale(scale);
+ SVGtoPDF(doc,svg,0,0,{width:1180,height,assumePt:true,fontCallback:(family,bold)=>family==='CardSerif'?'CardSerif':family==='CardSansBold'||bold?'CardSansBold':'CardSans'});
+ doc.restore();
  return doc;
 }
