@@ -1,0 +1,77 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:03.929
+Staff section आपकी दुकान के helpers को limited access देता है। Owner
+
+00:00:03.929 --> 00:00:07.858
+password share करने के बजाय अलग staff account बनाइए। पहले सही दुकान
+
+00:00:07.858 --> 00:00:11.788
+देखिए। Form में name, email और temporary password आता है। Strong temporary
+
+00:00:11.788 --> 00:00:15.717
+password रखें और केवल सुरक्षित तरीके से helper तक पहुँचाएँ। Password को
+
+00:00:15.717 --> 00:00:19.646
+public demo, WhatsApp screenshot या shared video में मत दिखाएँ। इस screen
+
+00:00:19.646 --> 00:00:23.575
+recording में password fields खाली हैं। Can do में हर permission अलग
+
+00:00:23.575 --> 00:00:27.504
+चुन सकते हैं। जैसे products देखना और edit करना, orders देखना और
+
+00:00:27.504 --> 00:00:31.434
+status बदलना, bulk import, WhatsApp inbox और replies। Restaurant में order view
+
+00:00:31.434 --> 00:00:35.363
+और order update की permissions अलग आ सकती हैं। जितना काम जरूरी
+
+00:00:35.363 --> 00:00:39.292
+है, उतना ही access दें। जरूरत न हो तो permission off रखें।
+
+00:00:39.292 --> 00:00:43.221
+Helpers overview देख सकते हैं। वे नई दुकान नहीं बना सकते, shop
+
+00:00:43.221 --> 00:00:47.150
+settings बदल नहीं सकते, delete नहीं कर सकते, coupons नहीं बना सकते
+
+00:00:47.150 --> 00:00:51.079
+और payment keys या payments नहीं देख सकते। Product editing permission का
+
+00:00:51.079 --> 00:00:55.009
+मतलब हर owner action का access नहीं है। Create staff वास्तविक account
+
+00:00:55.009 --> 00:00:58.938
+बनाता है। नीचे staff list में email, active या disabled status और
+
+00:00:58.938 --> 00:01:02.867
+permissions दिखती हैं। Permission checkbox बदलने पर saved access बदल सकता है।
+
+00:01:02.867 --> 00:01:06.796
+Disable से account sign in नहीं कर सकता। Enable दोबारा access देता
+
+00:01:06.796 --> 00:01:10.725
+है। इसलिए इन buttons को demonstration के लिए असली helper पर न
+
+00:01:10.725 --> 00:01:14.655
+चलाएँ। Search से staff ढूँढें और status filter से active inactive accounts
+
+00:01:14.655 --> 00:01:18.584
+अलग करें। Helper का काम बदलने पर उसकी permission review करें। वह
+
+00:01:18.584 --> 00:01:22.513
+काम छोड़ दे तो account disable करें। Temporary password खो जाए तो
+
+00:01:22.513 --> 00:01:26.442
+current guidance के अनुसार पुराना account disable करके नया account बनाइए। इस
+
+00:01:26.442 --> 00:01:30.371
+demo में किसी का account बनाया, enabled या disabled नहीं हुआ। कोई
+
+00:01:30.371 --> 00:01:34.301
+password capture नहीं हुआ। Staff access को trust और job role के
+
+00:01:34.301 --> 00:01:36.920
+हिसाब से सीमित रखना ही सही तरीका है।
+

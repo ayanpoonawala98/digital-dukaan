@@ -1,0 +1,92 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.329
+Table orders restaurant की dine in, takeaway और delivery requests दिखाता है।
+
+00:00:04.329 --> 00:00:08.659
+ये section restaurant store चुनने पर आता है। स्क्रीन पर केवल QA
+
+00:00:08.659 --> 00:00:12.988
+restaurant के sample orders हैं। ऊपर search, status और Indian standard time
+
+00:00:12.988 --> 00:00:17.318
+वाले date filters हैं। Table number, customer या order detail ढूँढ सकते
+
+00:00:17.318 --> 00:00:21.647
+हैं। Clear filters से reset करें। कई records हों तो Previous और
+
+00:00:21.647 --> 00:00:25.977
+Next से page बदलें। Refresh orders नई activity load करता है। Download
+
+00:00:25.977 --> 00:00:30.306
+report CSV देता है। हर row में दुकान का order number, order
+
+00:00:30.306 --> 00:00:34.636
+type, item और quantity, selected questions के answers, customer या table, total
+
+00:00:34.636 --> 00:00:38.965
+और received time दिखता है। Dine in में table number पढ़िए। Takeaway
+
+00:00:38.965 --> 00:00:43.294
+में customer contact जाँचिए। Delivery में address और contact दोनों जरूरी हैं।
+
+00:00:43.294 --> 00:00:47.624
+Quantity और Spice जैसे answers को kitchen तक सही पहुँचाइए। Status flow
+
+00:00:47.624 --> 00:00:51.953
+में New, Preparing, Served और Cancelled आते हैं। Preparing तभी चुनें जब
+
+00:00:51.953 --> 00:00:56.283
+order सच में बन रहा हो। Served या fulfilled तभी करें जब
+
+00:00:56.283 --> 00:01:00.612
+काम पूरा हो। Cancelled होने पर कारण customer से स्पष्ट करें। Dropdown
+
+00:01:00.612 --> 00:01:04.942
+बदलते ही saved status बदल सकता है। ये सिर्फ sample filter नहीं
+
+00:01:04.942 --> 00:01:09.271
+है। Confirmed processing से stock reservation और cancellation पर restoration जुड़ा हो
+
+00:01:09.271 --> 00:01:13.600
+सकता है। Stock के लिए status बार बार बदलकर प्रयोग न करें।
+
+00:01:13.600 --> 00:01:17.930
+Enrolled customer को changed status पर push notification मिल सकता है। Tap
+
+00:01:17.930 --> 00:01:22.259
+करके उसका private tracking page खुलना चाहिए। Customer को Notify me अपने
+
+00:01:22.259 --> 00:01:26.589
+order पर चुनना होता है; storewide launch notifications और owner new order
+
+00:01:26.589 --> 00:01:30.918
+alerts अलग subscriptions हैं। Restaurant orders में payment in person है। App
+
+00:01:30.918 --> 00:01:35.248
+पर total दिखने से payment received मत मानिए। Automatic WhatsApp alert तभी
+
+00:01:35.248 --> 00:01:39.577
+है जब अपना business provider configured और enabled हो। Not connected या
+
+00:01:39.577 --> 00:01:43.907
+no automatic alert का label देखें। Table QR customer को उसी table
+
+00:01:43.907 --> 00:01:48.236
+के साथ menu खोलने देता है। इसे Shop settings में देख सकते
+
+00:01:48.236 --> 00:01:52.565
+हैं। Table count और QR restaurant configuration के अनुसार होता है। Customer
+
+00:01:52.565 --> 00:01:56.895
+ने सही table scan किया है, ये staff भी verify करे। इस
+
+00:01:56.895 --> 00:02:01.224
+recording में सभी status controls untouched हैं। किसी customer को push या
+
+00:02:01.224 --> 00:02:05.554
+message नहीं भेजा गया। पहले request पढ़ना, restaurant से confirm करना और
+
+00:02:05.554 --> 00:02:08.440
+फिर सही status update करना अच्छा workflow है।
+

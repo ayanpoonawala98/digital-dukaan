@@ -1,3 +1,4 @@
+import AdminDemoLibrary from '../components/AdminDemoLibrary.jsx';
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, ChartNoAxesCombined, MessageCircle, QrCode, Bell, ShoppingBag, Store } from 'lucide-react';
@@ -35,6 +36,7 @@ export default function Landing() {
       <div className="demo-copy"><span className="kicker">SEE IT IN ACTION / TWO TOURS</span><h2>A closer look at<br/><em>your digital shop.</em></h2><p>See both sides of Digital Shop. Start with the storefront and customer journey, then go behind the counter with an in-depth tour of the owner dashboard.</p><div className="demo-meta"><span>01:37 store tour</span><span>01:55 admin tour</span><span>Sound starts only when you press play</span></div><Link to="/store/apna-kirana-store" className="text-link">Explore a live shop <ArrowRight size={17}/></Link></div>
       <div className="demo-videos"><div className="demo-stage"><div className="demo-frame"><video controls playsInline preload="none" aria-label="Digital Shop storefront tour" poster="/digital-dukaan-tour-poster.jpg" width="720" height="1280"><source src="/digital-dukaan-tour.mp4" type="video/mp4"/>Your browser does not support video. <a href="/digital-dukaan-tour.mp4">Download the tour</a>.</video></div><span className="demo-caption">01 / STOREFRONT TOUR · 01:37</span></div><div className="demo-stage"><div className="demo-frame"><video controls playsInline preload="none" aria-label="Digital Shop admin panel tour" poster="/digital-dukaan-admin-poster.jpg" width="720" height="1280"><source src="/digital-dukaan-admin-tour.mp4" type="video/mp4"/>Your browser does not support video. <a href="/digital-dukaan-admin-tour.mp4">Download the admin tour</a>.</video></div><span className="demo-caption">02 / ADMIN PANEL TOUR · 01:55</span></div></div>
     </div></section>
+    <AdminDemoLibrary/>
     <section className="perks"><div className="container perks-grid">
       {[[QrCode, 'Store QR codes'], [ShoppingBag, 'Cart + bulk orders'], [Bell, 'Push notifications'], [MessageCircle, 'WhatsApp order updates']].map(([Icon, label]) => <div className="perk" key={label}><Icon size={20}/><span>{label}</span></div>)}
     </div></section>

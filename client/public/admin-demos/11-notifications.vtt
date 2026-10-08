@@ -1,0 +1,92 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:03.797
+Notifications में दो अलग काम हैं: owner और staff के इस device
+
+00:00:03.797 --> 00:00:07.593
+पर new order alerts, और storefront subscribers को दुकान की announcements। इन्हें
+
+00:00:07.593 --> 00:00:11.390
+customer के per order status updates से अलग समझिए। सबसे पहले इस
+
+00:00:11.390 --> 00:00:15.186
+device वाले order alerts card को देखें। Enable new order alerts browser
+
+00:00:15.186 --> 00:00:18.983
+permission माँग सकता है। आपका browser और device support जरूरी है। Permission
+
+00:00:18.983 --> 00:00:22.780
+blocked हो तो browser settings में allow करना पड़ेगा। iPhone पर web
+
+00:00:22.780 --> 00:00:26.576
+push के लिए supported home screen web app setup जरूरी हो सकता
+
+00:00:26.576 --> 00:00:30.373
+है। सिर्फ switch दिखने से हर phone की delivery verified नहीं होती।
+
+00:00:30.373 --> 00:00:34.169
+Device बदलने पर उसका enrollment अलग हो सकता है। दुकान को नया
+
+00:00:34.169 --> 00:00:37.966
+order आने पर enrolled owner या staff device को alert मिलता है।
+
+00:00:37.966 --> 00:00:41.763
+Staff permissions और store scope लागू रहता है। ग्राहक को ये owner
+
+00:00:41.763 --> 00:00:45.559
+alert नहीं जाता। Customer की order status notification उसके tracking page पर
+
+00:00:45.559 --> 00:00:49.356
+Notify me से जुड़ती है। पुराने order की subscription अपने आप अगले
+
+00:00:49.356 --> 00:00:53.153
+order को subscribe नहीं करती। नीचे Broadcast to subscribers में इसी दुकान
+
+00:00:53.153 --> 00:00:56.949
+के allowed visitors की count दिखती है। Title और message लिखिए। Optional
+
+00:00:56.949 --> 00:01:00.746
+product चुनें या इसी shop का valid page link दें। Tap करने
+
+00:01:00.746 --> 00:01:04.542
+पर उसी destination पर जाना चाहिए। Product और pasted link को सही
+
+00:01:04.542 --> 00:01:08.339
+customer destination के हिसाब से चुनें। Optional image JPEG, PNG या WebP
+
+00:01:08.339 --> 00:01:12.136
+हो सकती है, पाँच मेगाबाइट तक। Image skip होने पर दुकान की
+
+00:01:12.136 --> 00:01:15.932
+configured default notification image, cover या logo इस्तेमाल हो सकता है। Image
+
+00:01:15.932 --> 00:01:19.729
+upload पूरा होने तक इंतजार करें। Title, message, recipient scope और destination
+
+00:01:19.729 --> 00:01:23.525
+review करके ही Send notification दबाएँ। ये real outgoing send है। इस
+
+00:01:23.525 --> 00:01:27.322
+demo में button नहीं दबाया गया है। नया product publish होने या
+
+00:01:27.322 --> 00:01:31.119
+hidden item live होने पर store subscribers के launch alerts अलग flow
+
+00:01:31.119 --> 00:01:34.915
+से आते हैं। हर edit announcement नहीं है। Browser subscription record और
+
+00:01:34.915 --> 00:01:38.712
+delivered notification अलग evidence हैं; send error हो तो delivery assume न
+
+00:01:38.712 --> 00:01:42.508
+करें। अगर subscribers zero हों तो send बंद रहेगा और storefront से
+
+00:01:42.508 --> 00:01:46.305
+visitors subscribe कर सकते हैं। Permission optional रखें। Customer या staff को
+
+00:01:46.305 --> 00:01:50.102
+बिना उसकी browser approval silently enroll न करें। Test के लिए demo
+
+00:01:50.102 --> 00:01:52.000
+order और consenting device इस्तेमाल करें।
+

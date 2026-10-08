@@ -1301,3 +1301,22 @@ footer { background:#101d15; }
 .qr-frame.qr-themed-online{width:min(780px,100%);box-sizing:border-box;margin:18px auto}
 .qr-frame.qr-themed-online img{width:100%;max-width:none;height:auto}
 .table-qr-card img{width:100%;max-width:420px;height:auto}
+/* Section tutorials load one video at a time, with no autoplay or crop. */
+.admin-demo-library { padding:80px 0; background:var(--bg-soft); border-top:1px solid var(--line); }
+.admin-demo-layout { display:grid; grid-template-columns:270px minmax(0,1fr); gap:26px; align-items:start; }
+.admin-demo-nav { display:grid; gap:5px; max-height:720px; overflow-y:auto; padding:4px; }
+.admin-demo-nav button { display:grid; grid-template-columns:28px 1fr auto; gap:9px; text-align:left; padding:14px 12px; border-radius:10px; background:var(--card); color:var(--ink); border:1px solid var(--line); align-items:center; }
+.admin-demo-nav button span,.admin-demo-nav button small { font-size:11px; color:var(--muted); }
+.admin-demo-nav button strong { font-size:13px; }
+.admin-demo-nav button.active { border-color:var(--accent); background:var(--accent-soft); }
+.admin-demo-player { min-width:0; border:1px solid var(--line); border-radius:14px; overflow:hidden; background:var(--card); }
+.admin-demo-player video { display:block; width:100%; height:auto; aspect-ratio:1280/900; object-fit:contain; background:#101f17; }
+.admin-demo-description { padding:24px; }
+.admin-demo-description h3 { font-size:26px; margin:9px 0; }
+.admin-demo-description p { font-size:14px; line-height:1.7; }
+.admin-demo-note { color:var(--muted); }
+.admin-demo-description details { margin:18px 0; border-top:1px solid var(--line); padding-top:14px; }
+.admin-demo-description summary { cursor:pointer; font-weight:700; }
+.admin-demo-transcript { max-height:440px; overflow-y:auto; padding-right:12px; }
+@media(max-width:760px) { .admin-demo-library { padding:48px 0; } .admin-demo-layout { grid-template-columns:minmax(0,1fr); gap:16px; } .admin-demo-nav { display:flex; max-height:none; overflow-x:auto; padding-bottom:10px; } .admin-demo-nav button { flex:0 0 205px; } .admin-demo-description { padding:18px; } }
+.admin-demo-library { scroll-margin-top:80px; }

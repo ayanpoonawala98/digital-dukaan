@@ -1,0 +1,89 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.119
+Bulk import से CSV या Excel file के कई products एक साथ
+
+00:00:04.119 --> 00:00:08.238
+जोड़े जा सकते हैं। Owner को Products section में Import products मिलता
+
+00:00:08.238 --> 00:00:12.357
+है। Staff को permission हो तो अलग Bulk import tab मिल सकता
+
+00:00:12.357 --> 00:00:16.475
+है। Customer import deployment पर enabled हो तभी उपलब्ध है। इस live
+
+00:00:16.475 --> 00:00:20.594
+deployment में Customers menu नहीं दिख रहा, इसलिए video उसमें successful customer
+
+00:00:20.594 --> 00:00:24.713
+import का दावा नहीं करता। पहले सही दुकान चुनें। Product example CSV
+
+00:00:24.713 --> 00:00:28.832
+डाउनलोड करके headers और example row देखें। Fields में name, price, stock,
+
+00:00:28.832 --> 00:00:32.951
+category और description हैं। Blank stock unlimited है। Images, options और visibility
+
+00:00:32.951 --> 00:00:37.070
+अलग product editing में manage होते हैं। Example row को अपने data
+
+00:00:37.070 --> 00:00:41.188
+से बदलना जरूरी है। CSV या XLSX file दो मेगाबाइट के अंदर
+
+00:00:41.188 --> 00:00:45.307
+रखें। एक बार में एक से पाँच सौ rows supported हैं। Excel
+
+00:00:45.307 --> 00:00:49.426
+में first worksheet और header row इस्तेमाल होती है। Headers unique और
+
+00:00:49.426 --> 00:00:53.545
+nonempty होने चाहिए। गलत format या empty file पर error आएगा। Choose
+
+00:00:53.545 --> 00:00:57.664
+file के बाद column mapping खुलता है। आपकी file के column names
+
+00:00:57.664 --> 00:01:01.783
+अलग हो सकते हैं। हर store field को सही file column से
+
+00:01:01.783 --> 00:01:05.902
+match करें। Suggested match केवल suggestion है। Sample value पढ़कर confirm करें।
+
+00:01:05.902 --> 00:01:10.020
+Required fields missing न हों। Unmapped columns ignored रहते हैं। Validate and
+
+00:01:10.020 --> 00:01:14.139
+preview से review बनता है। इस stage पर Nothing imported yet दिखना
+
+00:01:14.139 --> 00:01:18.258
+जरूरी है। New, existing और errors की count पढ़ें। Row errors पहले
+
+00:01:18.258 --> 00:01:22.377
+ठीक करें। Preview table में action देखें। Existing records skipped होते हैं,
+
+00:01:22.377 --> 00:01:26.496
+overwritten नहीं। Mapping बदलने पर पुराने preview पर भरोसा न करें, दुबारा
+
+00:01:26.496 --> 00:01:30.615
+validate करें। केवल सही preview और zero errors पर Import these products
+
+00:01:30.615 --> 00:01:34.733
+final commit है। फिर created और skipped result आता है। Catalogue में
+
+00:01:34.733 --> 00:01:38.852
+actual records जाँचें। Customer import available होने पर contact import marketing consent
+
+00:01:38.852 --> 00:01:42.971
+नहीं बनाता। Consent अलग real evidence से record होता है। Phone list
+
+00:01:42.971 --> 00:01:47.090
+को promotional audience मानकर send न करें। इस demo में sample file
+
+00:01:47.090 --> 00:01:51.209
+और mapping समझाया गया है, import commit नहीं किया गया। Final import
+
+00:01:51.209 --> 00:01:55.328
+live data जोड़ता है। गलत column में price या stock जाने से
+
+00:01:55.328 --> 00:01:58.760
+shop गलत दिख सकती है, इसलिए preview skip मत करें।
+

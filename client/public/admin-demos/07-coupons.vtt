@@ -1,0 +1,65 @@
+WEBVTT
+
+00:00:00.000 --> 00:00:04.266
+Coupons customers को checkout पर discount code इस्तेमाल करने देते हैं। सही
+
+00:00:04.266 --> 00:00:08.533
+दुकान चुनकर Coupons खोलिए। Discount codes वाले form में code लिखिए और
+
+00:00:08.533 --> 00:00:12.799
+percentage चुनिए। Code साफ और याद रखने लायक रखें। Percentage की value
+
+00:00:12.799 --> 00:00:17.066
+दोबारा जाँचें। Create coupon save करने वाला action है; इस demo में
+
+00:00:17.066 --> 00:00:21.332
+हम उसे submit नहीं कर रहे हैं। Saved list में code, percentage
+
+00:00:21.332 --> 00:00:25.598
+और active status दिखता है। Active coupon checkout पर इस्तेमाल हो सकता
+
+00:00:25.598 --> 00:00:29.865
+है। Disable करने पर नया इस्तेमाल रुकता है। Search और active inactive
+
+00:00:29.865 --> 00:00:34.131
+filter से codes ढूँढ सकते हैं। जब offer खत्म हो, सही coupon
+
+00:00:34.131 --> 00:00:38.398
+बंद करें, product price को सिर्फ इस कारण बदलना जरूरी नहीं है।
+
+00:00:38.398 --> 00:00:42.664
+Discount item subtotal पर लगता है। Delivery charges unchanged रहते हैं। इसलिए
+
+00:00:42.664 --> 00:00:46.930
+subtotal, discount, delivery और final total अलग पढ़ें। Customer को discount बताने
+
+00:00:46.930 --> 00:00:51.197
+से पहले checkout calculation जाँचिए। Feature locked हो तो contact platform admin
+
+00:00:51.197 --> 00:00:55.463
+का message मिलता है। UI दिखना और feature enabled होना अलग है।
+
+00:00:55.463 --> 00:00:59.730
+Coupon बनाने का permission owner के पास है; staff helpers को coupon
+
+00:00:59.730 --> 00:01:03.996
+creation access नहीं दिया जाता। एक sample समझिए: items की कुल कीमत
+
+00:01:03.996 --> 00:01:08.262
+पाँच सौ रुपये और दस percent coupon है, तो item discount पचास
+
+00:01:08.262 --> 00:01:12.529
+रुपये है। Delivery fee अलग रहेगी। इस उदाहरण से actual shop में
+
+00:01:12.529 --> 00:01:16.795
+कोई नया coupon नहीं बनता। सुरक्षित flow है: code और percentage तय
+
+00:01:16.795 --> 00:01:21.061
+करें, save से पहले review करें, public checkout पर calculation test करें,
+
+00:01:21.061 --> 00:01:25.328
+फिर offer अपने chosen channel पर share करें। किसी customer को message
+
+00:01:25.328 --> 00:01:26.750
+अपने आप नहीं जाता।
+
