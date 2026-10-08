@@ -292,7 +292,7 @@ export default function ShopPage({ hostedSlug }) {
           <div className="store-banner-bottom">
             <span><MapPin size={15}/> {business.location || 'Made with care'}</span>
             <div className="store-banner-actions">
-              
+
               <button className="chip-btn" onClick={() => setQrOpen(true)}><QrCode size={16}/> {t('share')}</button>
               <button className="chip-btn" onClick={() => setWishOpen(true)}><Heart size={16}/> {t('favorites')} {wishlist.ids.length > 0 && `(${wishlist.ids.length})`}</button>
             </div>
@@ -322,6 +322,7 @@ export default function ShopPage({ hostedSlug }) {
       </div>}
       <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : t('talkKicker')}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>{t('talkTitle')} <em>{t('talkAccent')}</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : t('talkBody')}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> {t('callOwner')}</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> {t('whatsappMsg')}</a></div></div></div>
     </main>
+    <div className="container store-install-footer"><InstallApp name={business.name} t={t}/></div>
     <Footer><span>{business.name} · Powered by Digital Shop</span></Footer>
     {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span className="cart-badge">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
     {offerOpen && <OfferPopup business={business} onClose={dismissOffer}/>}
