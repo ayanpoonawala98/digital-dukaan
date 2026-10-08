@@ -1,3 +1,4 @@
+import {ensurePerformanceIndexes} from './performance-indexes.js';
 import {ensureOrderStockSchema} from './order-stock-schema.js';
 import { ensureOrderNumbers } from './order-numbers.js';
 import { sequelize } from './db.js';
@@ -70,6 +71,7 @@ export function ensureRestaurantSchema() {
     await sequelize.query('CREATE INDEX IF NOT EXISTS leads_business_created_at_idx ON leads ("businessId", "createdAt" DESC)');
     await sequelize.query('CREATE INDEX IF NOT EXISTS businesses_owner_deleted_idx ON businesses ("ownerId", "deletedAt")');
     await sequelize.query('CREATE INDEX IF NOT EXISTS products_business_active_featured_idx ON products ("businessId", active, featured DESC, "createdAt" DESC)');
+    await ensurePerformanceIndexes(sequelize);
     await ensureCrmSchema();
     await ensureOrderNumbers();
     await ensureOrderStockSchema();
