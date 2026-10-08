@@ -17,7 +17,7 @@ export function Header({ shop, business }) {
     {business ? <Link className="brand store-header-brand" to={storePath(shop || business.slug)}>{business.logoUrl ? <img className="header-store-logo" src={imageSrc(business.logoUrl)} alt=""/> : <span className="brand-mark"><Store size={22}/></span>}<span className="header-store-name">{business.name}</span></Link> : <Logo/>}
     <div className="header-controls"><ThemeToggle/><button type="button" className="header-menu-toggle" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(v => !v)}>{menuOpen ? <X size={22}/> : <Menu size={22}/>}</button></div>
     <nav id="site-menu" className={menuOpen ? 'menu-open' : ''} aria-label="Main navigation" onClick={() => setMenuOpen(false)}>
-      <Link to={shop ? storePath(shop) : '/#how-it-works'}>{shop ? 'Storefront' : 'How it works'}</Link>
+      {shop ? <Link to={storePath(shop)}>Storefront</Link> : <a href="/#how-it-works">How it works</a>}
       {shop && <Link to={`${storePath(shop)}/orders`}>My orders</Link>}
       {session
         ? <Link to={session.user.role === 'superadmin' ? '/superadmin' : '/dashboard'} className="btn btn-dark btn-small">Dashboard <ArrowUpRight size={16}/></Link>

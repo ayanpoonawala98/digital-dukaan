@@ -16,6 +16,7 @@ import { hostedStoreSlug } from './lib/store-domain.js';
 import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from './components/OrderTracking.jsx';
 const Nearby = lazy(() => import('./pages/Nearby.jsx'));
 import Motion from './components/Motion.jsx';
+import HashScroll from './components/HashScroll.jsx';
 import Toasts from './components/Toasts.jsx';
 
 function Guard({ role, children }) {
@@ -26,7 +27,7 @@ function Guard({ role, children }) {
 
 export default function App() {
   const hostedSlug = hostedStoreSlug();
-  return <ThemeProvider><AuthProvider><Toasts/><Motion/><Suspense fallback={<main className="container" role="status" aria-live="polite"><p>Loading...</p></main>}><Routes>
+  return <ThemeProvider><AuthProvider><Toasts/><Motion/><HashScroll/><Suspense fallback={<main className="container" role="status" aria-live="polite"><p>Loading...</p></main>}><Routes>
       <Route path="/offers/opt-out/:token" element={<OfferOptOut/>}/>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
