@@ -1,7 +1,7 @@
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 
-const TYPE_LABEL = { select: 'Choose from a list', text: 'Short text', number: 'Number' };
+const TYPE_LABEL = { select: 'Drop-down', text: 'Short text', number: 'Number' };
 export const missingRequired = (fields = [], answers = {}) => (fields || []).filter(f => f.required && !String(answers?.[f.id] ?? '').trim());
 export const EYEWEAR_PRESET = [
   { label: 'Lens type', type: 'select', options: 'Single vision, Blue-cut, Progressive, Photochromic', required: true },
@@ -20,7 +20,7 @@ export function CustomFieldsEditor({ value, onChange }) {
       <select aria-label="Answer type" value={f.type || 'text'} onChange={e => patch(i, { type: e.target.value })}>{Object.entries(TYPE_LABEL).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select>
       <label className="check-label cf-req"><input type="checkbox" checked={f.required === true} onChange={e => patch(i, { required: e.target.checked })}/> Required</label>
       <button type="button" className="icon-btn danger" onClick={() => onChange(fields.filter((_, n) => n !== i))} aria-label={`Remove question ${f.label || i + 1}`}><Trash2 size={15}/></button>
-      {f.type === 'select' && <input className="cf-options" aria-label="Choices" value={Array.isArray(f.options) ? f.options.join(', ') : (f.options || '')} onChange={e => patch(i, { options: e.target.value })} placeholder="Choices, separated by commas"/>}
+      {f.type === 'select' && <input className="cf-options" aria-label="Choices" value={Array.isArray(f.options) ? f.options.join(', ') : (f.options || '')} onChange={e => patch(i, { options: e.target.value })} placeholder="Drop-down choices, separated by commas"/>}
     </div>)}
     <div className="cf-actions">
       <button type="button" className="btn btn-outline btn-small" disabled={fields.length >= 12} onClick={() => onChange([...fields, { label: '', type: 'text', required: false }])}><Plus size={14}/> Add a question</button>
