@@ -332,7 +332,7 @@ r.get('/bill/:kind(lead|restaurant)/:id/:sig', wrap(async (req, res) => {
   const order = await (req.params.kind === 'lead' ? Lead : RestaurantOrder).findByPk(id);
   const shopRow = order && await Business.findByPk(order.businessId);
   if (!order || !shopRow || shopRow.deletedAt) throw bad(404, 'Bill not found');
-  streamBill(res, shopRow, order, req.params.kind);
+  await streamBill(res, shopRow, order, req.params.kind);
 }));
 
 r.get('/stores/:slug/qr', wrap(async (req, res) => {
