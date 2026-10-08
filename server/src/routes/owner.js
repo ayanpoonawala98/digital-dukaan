@@ -1,3 +1,4 @@
+import { deleteCatalogProduct } from '../delete-product.js';
 import {campaignOwnerRoutes} from '../campaigns.js';
 import { TIME_RE } from '../hours.js';
 import { Router } from 'express';
@@ -318,9 +319,8 @@ r.patch('/:storeId/products/:id', wrap(async (req, res) => {
   res.json({ product });
 }));
 r.delete('/:storeId/products/:id', wrap(async (req, res) => {
-  const product = await Product.findOne({ where: { id: numId(req.params.id, 'product ID'), businessId: bid(req) } });
-  if (!product) throw bad(404, 'Product not found');
-  await product.destroy();
+  const removed = await deleteCatalogProduct({ sequelize, Product, Lead, businessId: bid(req), productId: numId(req.params.id, 'product ID') });
+  if (!removed) throw bad(404, 'Product not found');
   res.status(204).end();
 }));
 
