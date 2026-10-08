@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import PDFDocument from 'pdfkit';
+import {loadShopLogo} from './shop-logo.js';
 import {CardSerif, CardSansBold} from './card-fonts.js';
 const secret = () => process.env.INVOICE_LINK_SECRET || process.env.JWT_SECRET || '';
 // Links signed before INVOICE_LINK_SECRET existed used JWT_SECRET; keep accepting them.
@@ -23,7 +24,7 @@ export function billModel(order, kind = 'lead') {
   const discount = Math.max(0, Number(order.discount) || 0);
   return { items, subtotal, total, discount, adjustment: total - subtotal + discount };
 }
-export function createBillDocument(shop, order, kind = 'lead', { estimate = false } = {}) {
+export function createBillDocument(shop, order, kind = 'lead', { estimate = false, logo = null } = {}) {
   const m = billModel(order, kind);
   const doc = new PDFDocument({ margin: 44, size: 'A4', bufferPages: true, info: { Title: `${estimate ? 'Order estimate' : 'Order bill'} #${order.orderNumber ?? order.id}`, Author: String(shop.name || 'Digital Shop') } });
   doc.registerFont('Body', new URL('../fonts/DejaVuSans.ttf', import.meta.url).pathname);
@@ -39,7 +40,8 @@ export function createBillDocument(shop, order, kind = 'lead', { estimate = fals
     if (continuation) { text(`${shop.name}  ·  Continued`, 44, 55, 375, 14, ink, 'Display'); line(87); return 103; }
     doc.font('Display').fontSize(25);
     const nameH = doc.heightOfString(String(shop.name || 'Shop'), { width: 330, lineGap: 3 });
-    text(shop.name || 'Shop', 44, 65, 330, 25, ink, 'Display');
+    if (logo) { try { doc.image(logo, 44, 64, { fit: [42, 42], align: 'center', valign: 'center' }); } catch {} }
+    text(shop.name || 'Shop', logo ? 99 : 44, 65, logo ? 275 : 330, 25, ink, 'Display');
     text(`#${order.orderNumber ?? order.id}`, 405, 64, 146, 22, ink, 'Strong', 'right');
     const date = new Date(order.createdAt);
     text(Number.isNaN(date.getTime()) ? 'Date not recorded' : date.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })+' IST', 377, 95, 174, 8, muted, 'Body', 'right');
@@ -82,9 +84,10 @@ export function createBillDocument(shop, order, kind = 'lead', { estimate = fals
   for (let i = 0; i < range.count; i++) { doc.switchToPage(i); line(747); text(estimate ? 'Order estimate only. This is not a tax invoice or payment receipt.' : 'Order bill only. This is not a GST tax invoice.', 44, 761, 420, 8, muted); text(`Page ${i + 1} of ${range.count}`, 466, 761, 85, 8, muted, 'Body', 'right'); text('Amounts as recorded by the shop. All times shown in IST.', 44, 778, 507, 7, muted); }
   return doc;
 }
-export function streamBill(res, shop, order, kind = 'lead', options = {}) {
+export async function streamBill(res, shop, order, kind = 'lead', options = {}) {
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Disposition', `${options.estimate ? 'attachment' : 'inline'}; filename="${options.estimate ? 'estimate' : 'bill'}-${kind === 'restaurant' ? 'R' : 'O'}${order.id}.pdf"`);
   res.setHeader('Cache-Control', 'private, max-age=300');
-  const doc = createBillDocument(shop, order, kind, options); doc.pipe(res); doc.end();
+  const logo = await loadShopLogo(shop);
+  const doc = createBillDocument(shop, order, kind, { ...options, logo }); doc.pipe(res); doc.end();
 }
