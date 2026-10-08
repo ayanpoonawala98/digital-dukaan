@@ -15,11 +15,11 @@ export const PlatformAlert = sequelize.define('PlatformAlert', {
 
 let ready;
 const ensure = () => (ready ||= PlatformAlert.sync().catch(e => { ready = null; throw e; }));
-export const DEFAULTS = Object.freeze({ emailAlerts: false, alertEmail: '', smsAlerts: false, alertPhone: '' });
+export const DEFAULTS = Object.freeze({ ownerWelcomeEmails: false, emailAlerts: false, alertEmail: '', smsAlerts: false, alertPhone: '' });
 
 export function cleanAlertSettings(raw) {
   const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  return { emailAlerts: s.emailAlerts === true, alertEmail: typeof s.alertEmail === 'string' ? s.alertEmail.trim().slice(0, 160) : '', smsAlerts: s.smsAlerts === true, alertPhone: typeof s.alertPhone === 'string' ? s.alertPhone.trim().slice(0, 20) : '' };
+  return { ownerWelcomeEmails: s.ownerWelcomeEmails === true, emailAlerts: s.emailAlerts === true, alertEmail: typeof s.alertEmail === 'string' ? s.alertEmail.trim().slice(0, 160) : '', smsAlerts: s.smsAlerts === true, alertPhone: typeof s.alertPhone === 'string' ? s.alertPhone.trim().slice(0, 20) : '' };
 }
 async function load() {
   await ensure();
@@ -39,7 +39,7 @@ export async function saveAlertKeys(input) {
   return alertState();
 }
 export async function saveAlertSettings(input = {}) {
-  for (const k of ['emailAlerts', 'smsAlerts']) if (input[k] !== undefined && typeof input[k] !== 'boolean') throw bad(400, 'Invalid alert setting');
+  for (const k of ['emailAlerts', 'smsAlerts', 'ownerWelcomeEmails']) if (input[k] !== undefined && typeof input[k] !== 'boolean') throw bad(400, 'Invalid alert setting');
   const { settings } = await load();
   const next = cleanAlertSettings({ ...settings, ...Object.fromEntries(Object.entries(input).filter(([k]) => k in DEFAULTS)) });
   if (next.alertEmail && !/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]{2,}$/.test(next.alertEmail)) throw bad(400, 'Enter a valid alert email');
@@ -47,6 +47,7 @@ export async function saveAlertSettings(input = {}) {
   if (next.emailAlerts && !next.alertEmail) throw bad(400, 'Add the alert email first');
   if (next.smsAlerts && !next.alertPhone) throw bad(400, 'Add the alert mobile number first');
   const row = await PlatformAlert.findByPk(1);
+  if(next.ownerWelcomeEmails && !resolveProviders(decryptJson(row?.payload)||{},{ }).email) throw bad(400, 'Connect a platform email provider before enabling owner welcome emails.');
   await PlatformAlert.upsert({ id: 1, payload: row?.payload || '', settings: next });
   return alertState();
 }
