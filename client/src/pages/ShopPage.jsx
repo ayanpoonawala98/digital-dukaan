@@ -306,7 +306,7 @@ export default function ShopPage({ hostedSlug }) {
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
         <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{products.length} {t('productsCount')}</span></div>
         <div className="catalog-tools">
-          <div className="filter-tabs"><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
+          <div className="filter-tabs" role="group" aria-label="Product categories"><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
           <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} aria-label={t('search')}/></label>
         </div>
         {loading

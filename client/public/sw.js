@@ -1,4 +1,4 @@
-const CACHE = 'dd-shell-v3';
+const CACHE = 'dd-shell-v4';
 const SHELL = ['/offline.html', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', event => {
   // Never let one failed asset block or crash the install.
@@ -36,7 +36,12 @@ self.addEventListener('notificationclick', event => {
     const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
     for (const client of all) {
       if (new URL(client.url).origin === self.location.origin && 'navigate' in client) {
-        try { await client.navigate(target); return await client.focus(); } catch {}
+        try {
+          const navigated = await client.navigate(target);
+          // Some mobile browsers return null when they cannot navigate this
+          // window. Do not focus an unchanged window and swallow the click.
+          if (navigated) { await navigated.focus(); return; }
+        } catch {}
       }
     }
     return clients.openWindow(target);

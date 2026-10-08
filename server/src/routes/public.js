@@ -1,3 +1,4 @@
+import { populatedCategories } from '../storefront-categories.js';
 import {shopCardPdf} from '../shop-card-pdf.js';
 import {campaignPublicRoutes} from '../campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../hours.js';
@@ -83,7 +84,8 @@ r.get('/stores/:slug', storefrontCache, wrap(async (req, res) => {
   // subscription and enquiry endpoints continue to reject it through shop().
   if (!business.active) return res.json({ paused: true, business: { name: business.name, slug: business.slug }, categories: [] });
   const categories = await Category.findAll({ where: { businessId: business.id }, order: [['name', 'ASC']] });
-  res.json({ business: publicBusiness(business), categories });
+  const visibleProducts = await Product.findAll({ where: { businessId: business.id, active: true }, attributes: ['categoryId'], group: ['categoryId'] });
+  res.json({ business: publicBusiness(business), categories: populatedCategories(categories, visibleProducts) });
 }));
 
 r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {

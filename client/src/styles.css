@@ -201,7 +201,9 @@ footer { background: #171310; color: #e8e2d4; padding: 34px 0; }
 .catalog-head h2 { font-size: clamp(28px, 3.4vw, 40px); margin-top: 10px; }
 .catalog-head > span { font-size: 12.5px; font-weight: 800; letter-spacing: .1em; color: var(--muted); }
 .catalog-tools { display: flex; justify-content: space-between; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 34px; }
-.filter-tabs { display: flex; gap: 9px; flex-wrap: wrap; }
+.filter-tabs { display: flex; gap: 9px; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; min-width: 0; flex: 1 1 360px; padding: 3px 0 9px; scrollbar-width: thin; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
+.filter-tabs button { flex: 0 0 auto; white-space: nowrap; }
+@media (max-width: 600px) { .catalog-tools .filter-tabs { flex-basis: 100%; width: 100%; } }
 .filter-tabs button { padding: 10px 19px; border-radius: 999px; font-weight: 700; font-size: 14px; background: var(--card); border: 1.5px solid var(--line); transition: all .22s var(--ease); }
 .filter-tabs button:hover { border-color: var(--accent); transform: translateY(-1px); }
 .filter-tabs button.active { background: var(--ink); color: var(--bg); border-color: var(--ink); }
