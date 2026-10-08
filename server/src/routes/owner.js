@@ -1,3 +1,5 @@
+import {updateOrderStock,RETAIL_DEDUCT,RESTAURANT_DEDUCT} from '../order-stock.js';
+import {OrderStockLedger,historicalOrder,ensureOrderStockSchema} from '../order-stock-schema.js';
 import {shopCardPdf} from '../shop-card-pdf.js';
 import { productCatalogPdf } from '../product-pdf.js';
 import { deleteCatalogProduct } from '../delete-product.js';
@@ -503,15 +505,16 @@ async function notifyOrderSubscribers(store, kind, order) {
 }
 
 r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {
-  const lead = await Lead.findOne({ where: { id: numId(req.params.leadId, 'enquiry ID'), businessId: bid(req) } });
-  if (!lead) throw bad(404, 'Enquiry not found');
   const { status, customerPhone } = req.body;
   if (status !== undefined && !flowFor(req.store.storeType).statuses.includes(status)) throw bad(400, 'Invalid status for this store type');
   if (customerPhone !== undefined && customerPhone !== '' && !validPhone(customerPhone)) throw bad(400, 'Customer WhatsApp number needs country code without +');
-  const changes = {}, statusChanged = Boolean(status) && status !== lead.status;
+  const changes = {};
   if (status) changes.status = status;
   if (customerPhone !== undefined) changes.customerPhone = customerPhone;
-  await lead.update(changes);
+  await ensureOrderStockSchema();
+  const result=await updateOrderStock({sequelize,Order:Lead,Product,Ledger:OrderStockLedger,businessId:bid(req),orderId:numId(req.params.leadId,'enquiry ID'),kind:'lead',status,changes,deductStatuses:RETAIL_DEDUCT,grandfather:order=>historicalOrder('lead',order)});
+  if(!result)throw bad(404,'Enquiry not found');
+  const {order:lead,changed:statusChanged}=result;
   if (statusChanged) await notifyOrderSubscribers(req.store, 'lead', lead);
   if (statusChanged) void sendOrderStatusWhatsApp(req.store, lead, status);
   let url = '';
@@ -763,10 +766,10 @@ r.get('/:storeId/restaurant-orders/report.csv', wrap(async (req,res) => {
 r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
   if (!['new', 'preparing', 'served', 'cancelled'].includes(req.body?.status)) throw bad(400, 'Invalid order status');
-  const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
-  if (!order) throw bad(404, 'Order not found');
-  const changed = order.status !== req.body.status;
-  await order.update({ status: req.body.status });
+  await ensureOrderStockSchema();
+  const result=await updateOrderStock({sequelize,Order:RestaurantOrder,Product,Ledger:OrderStockLedger,businessId:bid(req),orderId:numId(req.params.id),kind:'restaurant',status:req.body.status,deductStatuses:RESTAURANT_DEDUCT,grandfather:order=>historicalOrder('restaurant',order)});
+  if(!result)throw bad(404,'Order not found');
+  const {order,changed}=result;
   if (changed) await notifyOrderSubscribers(req.store, 'restaurant', order);
   if (changed) void notifyStatusChange(req.store, 'restaurant', order, { preparing: 'being prepared', served: 'ready and served. Enjoy your meal!', cancelled: 'cancelled' }[order.status]);
   res.json({ order });
