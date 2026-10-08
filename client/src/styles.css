@@ -1111,7 +1111,7 @@ footer { background:#101d15; }
 .cf-editor { border: 1px dashed rgba(128,128,128,.4); border-radius: 14px; padding: 12px 14px; margin: 6px 0; min-width: 0; }
 .cf-editor legend { font-weight: 700; padding: 0 6px; }
 .cf-help { margin: 0 0 10px; font-size: 13px; }
-.cf-row { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto auto; gap: 8px; align-items: center; margin-bottom: 10px; }
+.cf-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(132px, 1fr) auto auto; gap: 8px; align-items: center; margin-bottom: 10px; }
 .cf-row .cf-options { grid-column: 1 / -1; }
 .cf-req { margin: 0; white-space: nowrap; }
 .cf-actions { display: flex; flex-wrap: wrap; gap: 8px; }
