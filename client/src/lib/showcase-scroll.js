@@ -10,7 +10,7 @@ export function startShowcaseScroll(win,doc){
   if(stopped)return;
   const row=doc.querySelector?.('.store-banner-actions');
   const header=doc.querySelector?.('.header');
-  const top=header?.getBoundingClientRect().bottom||0;
+  const top=Math.max(0,header?.getBoundingClientRect().bottom||0);
   if(row && row.getBoundingClientRect().top<=top)return stop();
   if(last){const dt=Math.min(now-last,50);position+=dt*0.038;if(row)position=Math.min(position,win.scrollY+row.getBoundingClientRect().top-top);win.scrollTo(0,position);if(win.scrollY>=doc.documentElement.scrollHeight-win.innerHeight-1){atBottom+=dt;if(atBottom>2500)return stop();}else atBottom=0;}
   last=now;frame=win.requestAnimationFrame(tick);
