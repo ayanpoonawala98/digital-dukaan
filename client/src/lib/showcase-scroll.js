@@ -8,7 +8,11 @@ export function startShowcaseScroll(win,doc){
  events.forEach(e=>win.addEventListener(e,stop,{capture:true,passive:true}));doc.addEventListener('visibilitychange',visibility);
  function tick(now){
   if(stopped)return;
-  if(last){const dt=Math.min(now-last,50);position+=dt*0.016;win.scrollTo(0,position);if(win.scrollY>=doc.documentElement.scrollHeight-win.innerHeight-1){atBottom+=dt;if(atBottom>2500)return stop();}else atBottom=0;}
+  const row=doc.querySelector?.('.store-banner-actions');
+  const header=doc.querySelector?.('.header');
+  const top=header?.getBoundingClientRect().bottom||0;
+  if(row && row.getBoundingClientRect().top<=top)return stop();
+  if(last){const dt=Math.min(now-last,50);position+=dt*0.038;if(row)position=Math.min(position,win.scrollY+row.getBoundingClientRect().top-top);win.scrollTo(0,position);if(win.scrollY>=doc.documentElement.scrollHeight-win.innerHeight-1){atBottom+=dt;if(atBottom>2500)return stop();}else atBottom=0;}
   last=now;frame=win.requestAnimationFrame(tick);
  }
  frame=win.requestAnimationFrame(tick);return stop;
