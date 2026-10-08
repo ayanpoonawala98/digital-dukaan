@@ -1,3 +1,4 @@
+import { validatePasswordChange } from '../password-security.js';
 import { platformSales, salesCsv, CommissionRule, ensureCommissionSchema } from '../platform-sales.js';
 import { dateWindow } from '../reporting.js';
 import { Router } from 'express';
@@ -12,6 +13,18 @@ import { alertState, saveAlertKeys, saveAlertSettings, sendAlertTest } from '../
 const r = Router();
 r.use(auth, roles('superadmin'));
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
+r.post('/users/:id/password', wrap(async (req, res) => {
+  const problem = validatePasswordChange(req.body);
+  if (problem) throw bad(400, problem);
+  const admin = await User.unscoped().findByPk(req.user.id);
+  if (!await bcrypt.compare(req.body.currentPassword, admin.passwordHash)) throw bad(400, 'Your superadmin password is incorrect.');
+  const owner = await User.unscoped().findByPk(numId(req.params.id));
+  if (!owner || owner.role !== 'owner') throw bad(404, 'Store admin not found.');
+  if (req.body.ownerEmail !== owner.email) throw bad(400, 'Type the exact owner email to confirm the account.');
+  if (await bcrypt.compare(req.body.newPassword, owner.passwordHash)) throw bad(400, 'Choose a different new password.');
+  await owner.update({ passwordHash: await bcrypt.hash(req.body.newPassword, 12), passwordChangedAt: new Date() });
+  res.json({ changed: true, owner: { id: owner.id, name: owner.name, email: owner.email } });
+}));
 // Only the authenticated superadmin can create an owner account and its first store.
 r.post('/owners', wrap(async (req, res) => {
   const { name, email, password, shopName, slug, whatsapp, storeType = 'retail', tableCount = 0 } = req.body || {};
