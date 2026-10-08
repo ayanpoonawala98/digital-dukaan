@@ -18,7 +18,7 @@ export const invoiceUrl = (base, kind, id) => `${String(base).replace(/\/$/, '')
 // A single layout for customer bills and owner estimates. Stored totals stay authoritative.
 export function billModel(order, kind = 'lead') {
   const source = Array.isArray(order.items) && order.items.length ? order.items : [{ name: order.productName, qty: 1, price: order.price }];
-  const items = source.map(it => ({ name: String(it.name || 'Item'), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }));
+  const items = source.map(it => ({ name: String(it.name || 'Item') + (Array.isArray(it.answers) && it.answers.length ? '\n' + it.answers.filter(a=>a?.label && a?.value).map(a=>`${a.label}: ${a.value}`).join(' · ') : ''), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }));
   const subtotal = items.reduce((sum, it) => sum + it.qty * it.price, 0);
   const total = Number(kind === 'restaurant' ? order.total : order.price) || 0;
   const discount = Math.max(0, Number(order.discount) || 0);
