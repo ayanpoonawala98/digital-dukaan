@@ -1,4 +1,4 @@
-const CACHE = 'dd-shell-v4';
+const CACHE = 'dd-shell-v5';
 const SHELL = ['/offline.html', '/icon-192.png', '/icon-512.png'];
 self.addEventListener('install', event => {
   // Never let one failed asset block or crash the install.
@@ -24,10 +24,15 @@ self.addEventListener('fetch', event => {
     })));
   }
 });
+function pushImageUrl(value) {
+  if (typeof value !== 'string') return '';
+  if (value === '/icon-192.png' || value === '/icon-512.png') return value;
+  try { const u = new URL(value); return u.protocol === 'https:' && !u.username && !u.password ? u.href : ''; } catch { return ''; }
+}
 self.addEventListener('push', event => {
   let data = {};
   try { data = event.data ? event.data.json() : {}; } catch {}
-  event.waitUntil(self.registration.showNotification(data.title || 'Digital Shop', { body: data.body || '', icon: '/icon-192.png', badge: '/icon-192.png', ...(data.image ? { image: data.image } : {}), data: { url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/' } }));
+  event.waitUntil(self.registration.showNotification(data.title || 'Digital Shop', { body: data.body || '', icon: pushImageUrl(data.icon) || '/icon-192.png', badge: '/icon-192.png', ...(pushImageUrl(data.image) ? { image: pushImageUrl(data.image) } : {}), data: { url: typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/' } }));
 });
 self.addEventListener('notificationclick', event => {
   event.notification.close();
