@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {billModel, createBillDocument, invoiceSig, invoiceSigValid} from './invoice.js';
+const shop={name:'QA Demo Shop',location:'Mumbra, Thane',gstin:'TEST ONLY'};
+const order={id:88,orderNumber:12,createdAt:'2026-10-08T10:45:00Z',status:'confirmed',price:300,items:[{name:'Pendant',qty:2,price:150}]};
+const bytes=(o,kind='lead',opts={})=>new Promise((resolve,reject)=>{const doc=createBillDocument(shop,o,kind,opts),chunks=[];doc.on('data',b=>chunks.push(b));doc.on('end',()=>resolve(Buffer.concat(chunks)));doc.on('error',reject);doc.end();});
+test('stored total preserved, quantities and discount reconcile',()=>{assert.deepEqual(billModel({...order,price:290,discount:30}),{items:[{name:'Pendant',qty:2,price:150}],subtotal:300,total:290,discount:30,adjustment:20});});
+test('legacy single-product and restaurant totals supported',()=>{assert.equal(billModel({productName:'Legacy',price:150,items:[]}).subtotal,150);assert.equal(billModel({...order,total:325},'restaurant').total,325);});
+test('negative adjustment stays visible instead of hiding mismatch',()=>{assert.equal(billModel({...order,price:250}).adjustment,-50);});
+test('bill, estimate, restaurant and paid PDFs render',async()=>{for(const [o,k,p] of [[order,'lead',{}],[order,'lead',{estimate:true}],[{...order,total:300},'restaurant',{}],[{...order,paymentStatus:'paid'},'lead',{}]])assert.equal((await bytes(o,k,p)).subarray(0,4).toString(),'%PDF');});
+test('40 long item names and multi-page footers render safely',async()=>{const pdf=await bytes({...order,items:Array.from({length:40},(_,i)=>({name:`Item ${i+1}: `+'A longer full product description '.repeat(5),qty:2,price:150})),price:12000});assert.ok(pdf.length>10000);});
+test('signed bill rejects wrong order and altered signature',()=>{const sig=invoiceSig('lead',88);assert.ok(invoiceSigValid('lead',88,sig));assert.ok(!invoiceSigValid('lead',89,sig));assert.ok(!invoiceSigValid('lead',88,'bad'));});
