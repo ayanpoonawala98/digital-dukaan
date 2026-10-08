@@ -35,7 +35,8 @@ export async function saveAlertKeys(input) {
   const next = mergeSecrets(creds, input || {});
   let payload;
   try { payload = encryptJson(next); } catch { throw bad(500, 'Saving keys is not available on this server yet'); }
-  await PlatformAlert.upsert({ id: 1, payload, settings: (await PlatformAlert.findByPk(1))?.settings || {} });
+  const [row] = await PlatformAlert.findOrCreate({ where: { id: 1 }, defaults: { payload: '', settings: {} } });
+  await row.update({ payload }, { fields: ['payload'] });
   return alertState();
 }
 export async function saveAlertSettings(input = {}) {
@@ -48,7 +49,8 @@ export async function saveAlertSettings(input = {}) {
   if (next.smsAlerts && !next.alertPhone) throw bad(400, 'Add the alert mobile number first');
   const row = await PlatformAlert.findByPk(1);
   if(next.ownerWelcomeEmails && !resolveProviders(decryptJson(row?.payload)||{},{ }).email) throw bad(400, 'Connect a platform email provider before enabling owner welcome emails.');
-  await PlatformAlert.upsert({ id: 1, payload: row?.payload || '', settings: next });
+  const [target] = await PlatformAlert.findOrCreate({ where: { id: 1 }, defaults: { payload: '', settings: {} } });
+  await target.update({ settings: next }, { fields: ['settings'] });
   return alertState();
 }
 export async function sendAlertTest(channel, env = process.env, deps = {}) {
