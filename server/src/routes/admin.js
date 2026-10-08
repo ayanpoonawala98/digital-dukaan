@@ -1,4 +1,4 @@
-import { platformReport,sendPlatformReport } from '../platform-email-report.js';
+import { platformReport,sendPlatformReport,welcomeSample } from '../platform-email-report.js';
 import { sendOwnerInvite } from '../owner-invites.js';
 import { validatePasswordChange } from '../password-security.js';
 import { platformSales, salesCsv, CommissionRule, ensureCommissionSchema } from '../platform-sales.js';
@@ -15,6 +15,15 @@ import { alertState, saveAlertKeys, saveAlertSettings, sendAlertTest } from '../
 const r = Router();
 r.use(auth, roles('superadmin'));
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
+let welcomeSampleAt=0;
+r.get('/welcome-sample',wrap(async(req,res)=>res.json(welcomeSample(req.user))));
+r.post('/welcome-sample',wrap(async(req,res)=>{
+ const sample=welcomeSample(req.user);
+ if(req.body?.confirm!==true||req.body?.to!==sample.to||req.body?.subject!==sample.subject||req.body?.text!==sample.text)throw bad(409,'Preview and confirm this exact sample first.');
+ if(Date.now()-welcomeSampleAt<60000)throw bad(429,'Wait a minute before sending another sample.');
+ welcomeSampleAt=Date.now();
+ res.json(await sendPlatformReport(sample));
+}));
 r.get('/email-summary',wrap(async(req,res)=>res.json(await platformReport(req.user))));
 r.post('/email-summary',wrap(async(req,res)=>{
  const report=await platformReport(req.user);
