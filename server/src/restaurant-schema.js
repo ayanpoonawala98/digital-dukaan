@@ -1,3 +1,4 @@
+import {ensureOrderStockSchema} from './order-stock-schema.js';
 import { ensureOrderNumbers } from './order-numbers.js';
 import { sequelize } from './db.js';
 import { RestaurantOrder, OrderPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from './models/index.js';
@@ -70,6 +71,7 @@ export function ensureRestaurantSchema() {
     await sequelize.query('CREATE INDEX IF NOT EXISTS products_business_active_featured_idx ON products ("businessId", active, featured DESC, "createdAt" DESC)');
     await ensureCrmSchema();
     await ensureOrderNumbers();
+    await ensureOrderStockSchema();
   })().catch(e => { ready = null; throw e; });
   return ready;
 }
