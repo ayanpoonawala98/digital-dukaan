@@ -5,6 +5,7 @@ import { Header, Footer } from './chrome.jsx';
 import { ArrowRight, ShoppingBag, X } from 'lucide-react';
 import { api, inr } from '../lib/api.js';
 import Busy from './Busy.jsx';
+import {CustomFieldInputs, missingRequired} from './CustomFields.jsx';
 import { translate } from '../lib/i18n.js';
 import { saveOrder, trackingPath } from '../lib/my-orders.js';
 
@@ -25,6 +26,9 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const submit = async e => {
     e.preventDefault(); if (busy || !cart.items.length) return;
     if (business.blocksOrders) { setError('The shop is closed right now and is not taking orders.'); return; }
+    if (business.minOrder > 0 && cart.subtotal < business.minOrder) { setError(`Minimum order is ${inr(business.minOrder)}. Add more items.`); return; }
+    const unanswered = cart.items.find(i => missingRequired(i.customFields, i.answers).length);
+    if (unanswered) { setError(`Please answer the required questions for ${unanswered.name}.`); return; }
     setBusy(true); setError('');
     try {
       const result = await api(`/public/stores/${slug}/restaurant-orders`, { method: 'POST', body: {
@@ -34,7 +38,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
         customerPhone: orderType === 'dine-in' ? null : customerPhone,
         deliveryAddress: orderType === 'delivery' ? deliveryAddress : null,
         couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(),
-        items: cart.items.map(i => ({ id: i.id, qty: i.qty }))
+        items: cart.items.map(i => ({ id: i.id, qty: i.qty, answers: i.answers || {} }))
       } });
       setPlaced(result); cart.clear();
       saveOrder(slug, { kind: 'restaurant', id: result.orderId, token: result.trackingToken, total: result.total });
@@ -46,7 +50,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
       <div className="drawer-head"><h3><ShoppingBag size={20}/> Your order</h3><button className="icon-btn" onClick={onClose} aria-label="Close order form"><X size={20}/></button></div>
       {placed ? <div className="empty-state" role="status"><h3>Order #{placed.orderNumber ?? placed.orderId} received</h3><p>Items total {inr(placed.subtotal)}{placed.discount > 0 ? `, discount ${inr(placed.discount)}` : ''}. Order total {inr(placed.total)}.</p><p>The restaurant has your order. Payment and any delivery fee are arranged with the restaurant. Keep this link to check updates for 30 days. Anyone with the link can view this order.</p><Link className="btn btn-green" to={`/store/${slug}/order/${placed.orderId}#token=${encodeURIComponent(placed.trackingToken)}`}>Track this order</Link><button className="btn btn-green" onClick={onClose}>{t('back')}</button></div> : <>
         {!cart.items.length ? <div className="empty-state">Your order is empty. Add something from the menu.</div> : <>
-          <div className="drawer-items">{cart.items.map(item => <div className="cart-row" key={item.id}><strong>{item.qty} × {item.name}</strong><span>{inr(item.qty * item.price)}</span><button type="button" className="icon-btn" onClick={() => cart.setQty(item.id, 0)} aria-label={`Remove ${item.name}`}><X size={16}/></button></div>)}</div>
+          <div className="drawer-items">{cart.items.map(item => <div className="cart-row" key={item.id}><div className="cart-info"><strong>{item.qty} × {item.name}</strong><CustomFieldInputs compact fields={item.customFields} answers={item.answers} onChange={a => cart.setAnswers(item.id, a)}/></div><span>{inr(item.qty * item.price)}</span><button type="button" className="icon-btn" onClick={() => cart.setQty(item.id, 0)} aria-label={`Remove ${item.name}`}><X size={16}/></button></div>)}</div>
           <form className="restaurant-order-form" onSubmit={submit}>
             <label>{t('type')}<select value={orderType} onChange={e => setOrderType(e.target.value)}><option value="dine-in">{t('dine')}</option><option value="takeaway">{t('takeaway')}</option><option value="delivery">{t('delivery')}</option></select></label>
             {orderType === 'dine-in' ? <label>{t('table')}<select value={tableNumber} onChange={e => setTableNumber(e.target.value)} required><option value="">Choose your table</option>{Array.from({ length: business.tableCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>
@@ -56,6 +60,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             <label>Referral code <small>(optional; reward after order confirmation)</small><input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="FR..." maxLength={24}/></label>
             <label>Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="SAVE10" maxLength={24}/></label>
             <div className="drawer-totals"><div className="grand"><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div></div>
+            {business.minOrder > 0 && <p className="drawer-hint">Minimum order: {inr(business.minOrder)}</p>}
             {orderType === 'delivery' && <p className="drawer-hint">Delivery fee and payment are arranged with the restaurant. Nothing is charged here.</p>}
             {error && <p className="notice error" role="alert">{error}</p>}
             <button className="btn btn-green full" disabled={busy || business.blocksOrders}><Busy active={busy}>{busy ? 'Placing...' : t('submit')}</Busy><ArrowRight size={17}/></button>
