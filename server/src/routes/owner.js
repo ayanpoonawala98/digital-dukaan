@@ -183,6 +183,17 @@ r.patch('/:storeId/staff/:id', ownerOnly, wrap(async (req, res) => {
   res.json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:staff.active, permissions:staffPerms(staff) } });
 }));
 
+r.delete('/:storeId/staff/:id', ownerOnly, wrap(async (req, res) => {
+  const staff = await User.findOne({ where: { id:numId(req.params.id), managerId:req.user.id, staffBusinessId:bid(req), role:'staff' } });
+  if (!staff) throw bad(404, 'Staff not found');
+  // Only the helper's own login and alert devices go. Orders they typed in keep their history (createdByUserId has no foreign key).
+  await sequelize.transaction(async transaction => {
+    await OwnerPushSubscription.destroy({ where: { userId: staff.id }, transaction });
+    await staff.destroy({ transaction });
+  });
+  res.status(204).end();
+}));
+
 r.get('/:storeId/overview', wrap(async (req, res) => {
   if (req.user.role === 'staff') return res.json({ business:req.store, products:0, categories:0, leads:0, subscribers:0, topProducts:[], lowStock:[] });
   const [products, categories, leads, subscribers] = await Promise.all([
