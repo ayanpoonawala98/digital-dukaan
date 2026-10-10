@@ -1,6 +1,6 @@
 // Tables view: live table status and settled bills. Bills are append-only history (never edited or deleted).
 import { Op, DataTypes } from 'sequelize';
-import { sequelize, Product, RestaurantOrder } from '../../models/index.js';
+import { sequelize, Product, RestaurantOrder, TableRequest } from '../../models/index.js';
 import { bad } from '../../shared/utils/core.js';
 
 export const TableBill = sequelize.define('TableBill', {
@@ -53,7 +53,9 @@ export async function tablesState(store) {
   }
   const sum = list => round2(list.reduce((s, o) => s + Number(o.total || 0), 0));
   const view = t => ({ ...t, occupied: t.orders.length > 0, total: sum(t.orders), since: t.orders[0]?.createdAt || null });
-  const all = [...tables, ...Object.values(extra)].map(view);
+  const reqs = await TableRequest.findAll({ where: { businessId: store.id, status: 'open' }, attributes: ['tableNumber', 'kind'], raw: true }).catch(() => []);
+  const reqOf = n => { const k = reqs.filter(r => Number(r.tableNumber) === n).map(r => r.kind); return k.includes('bill') ? 'bill' : k.length ? 'waiter' : null; };
+  const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number) }));
   return { tableCount: count, menu, name: store.name, gstin: store.gstin || '', tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
@@ -85,6 +87,7 @@ export async function settleBill(store, body, setDone) {
   if (channel === 'table' && (!Number.isInteger(tableNumber) || tableNumber < 1 || tableNumber > 1000)) throw bad(400, 'Invalid table');
   const orderIds = [...new Set((Array.isArray(body.orderIds) ? body.orderIds : []).map(Number))];
   if (orderIds.length > 100 || orderIds.some(n => !Number.isInteger(n) || n < 1)) throw bad(400, 'Invalid orders');
+  if ((channel === 'delivery' || channel === 'takeaway') && orderIds.length !== 1) throw bad(400, 'Delivery and takeaway orders are billed one order at a time');
   const orders = orderIds.length ? await RestaurantOrder.findAll({ where: { id: { [Op.in]: orderIds }, businessId: store.id } }) : [];
   if (orders.length !== orderIds.length) throw bad(404, 'Order not found');
   for (const o of orders) {

@@ -64,3 +64,12 @@
 .tv-hist{width:100%;text-align:left;background:transparent;color:inherit;border:0;cursor:pointer}
 .tv-order small{display:block;opacity:.7;margin-top:2px}
 .tv-ch.sel{outline:2px solid #2f9e6b}
+
+.tv-dot { position: absolute; top: 10px; right: 10px; width: 14px; height: 14px; border-radius: 50%; background: #e5352b; box-shadow: 0 0 0 3px color-mix(in srgb, #e5352b 25%, transparent); animation: tvpulse 1.4s ease-in-out infinite; }
+.tv-dot.bill { background: #d97706; box-shadow: 0 0 0 3px color-mix(in srgb, #d97706 25%, transparent); }
+@keyframes tvpulse { 50% { transform: scale(1.25); } }
+.tv-pick { display: grid; gap: 6px; padding: 8px 0 4px; }
+.tv-pick small { color: var(--muted, #6b7280); }
+.tv-pick > div { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.tv-pick button { flex: none; padding: 7px 12px; border-radius: 999px; border: 1.5px solid var(--line, #d1d5db); background: transparent; color: inherit; font-weight: 600; font-size: 13px; }
+.tv-pick button.on { background: var(--ink, #111); color: #fff; border-color: var(--ink, #111); }
