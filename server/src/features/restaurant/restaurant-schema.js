@@ -55,6 +55,7 @@ export function ensureRestaurantSchema() {
     // Additive enum values for per-store-type order flows. ADD VALUE IF NOT EXISTS never rewrites data.
     for (const value of ['shipped', 'in-progress', 'completed']) await sequelize.query(`ALTER TYPE "enum_leads_status" ADD VALUE IF NOT EXISTS '${value}'`);
     await Coupon.sync(); // New table only.
+    for (const [col, type] of [['minOrder', 'double precision'], ['maxDiscount', 'double precision'], ['usageLimit', 'integer'], ['expiresOn', 'date']]) await sequelize.query(`ALTER TABLE coupons ADD COLUMN IF NOT EXISTS "${col}" ${type}`);
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "customFields" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "variants" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "addonGroups" jsonb NOT NULL DEFAULT '[]'::jsonb`);

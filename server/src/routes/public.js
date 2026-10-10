@@ -20,6 +20,7 @@ import { notifyOwnerDevices } from '../features/orders/order-push-wired.js';
 import { validateAnswers } from '../features/catalog/custom-fields.js';
 import { invoiceSigValid, streamBill } from '../features/billing/invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike, clientBase } from '../shared/utils/core.js';
+import { couponDiscount } from '../features/coupons/coupon-rules.js';
 import { orderBotEnabledFor, withOrderRef, newClaimCode } from '../features/whatsapp/whatsapp-orders.js';
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { notifyShopRequest } from '../features/platform/platform-alerts.js';
@@ -43,7 +44,10 @@ const applyCoupon = async (business, subtotal, code) => {
   if (typeof code !== 'string' || !/^[A-Z0-9-]{3,24}$/.test(code.trim().toUpperCase())) throw bad(400, 'Invalid coupon code');
   const coupon = await Coupon.findOne({ where: { businessId: business.id, code: code.trim().toUpperCase(), active: true } });
   if (!coupon) throw bad(400, 'Coupon not found or no longer active');
-  return { discount: Number((subtotal * coupon.percentOff / 100).toFixed(2)), code: coupon.code };
+  const used = coupon.usageLimit ? await Lead.count({ where: { businessId: business.id, couponCode: coupon.code, status: { [Op.ne]: 'cancelled' } } }) + await RestaurantOrder.count({ where: { businessId: business.id, couponCode: coupon.code, status: { [Op.ne]: 'cancelled' } } }) : 0;
+  const result = couponDiscount(coupon, subtotal, new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10), used);
+  if (result.error) throw bad(400, result.error);
+  return { discount: result.discount, code: coupon.code };
 };
 
 

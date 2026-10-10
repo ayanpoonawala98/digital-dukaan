@@ -36,6 +36,7 @@ import { notifyNewProduct } from '../features/notifications/new-product-push.js'
 import { flowFor, flowKey, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaurantStatusAllowed } from '../features/orders/order-flows.js';
 import { cleanVariants, cleanAddonGroups, cleanVeg, cleanTags, istDay } from '../features/restaurant/menu-options.js';
 import { featureForOwnerRoute, isLocked } from '../features/platform/feature-locks.js';
+import { cleanCouponLimits } from '../features/coupons/coupon-rules.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { validateProductRows } from '../features/catalog/product-import.js';
@@ -708,7 +709,7 @@ r.post('/:storeId/coupons', wrap(async (req, res) => {
   const code = String(req.body?.code || '').trim().toUpperCase();
   const percentOff = Number(req.body?.percentOff);
   if (!/^[A-Z0-9-]{3,24}$/.test(code) || !Number.isInteger(percentOff) || percentOff < 1 || percentOff > 90) throw bad(400, 'Code must be 3-24 letters/numbers and discount 1-90%');
-  const [coupon, created] = await Coupon.findOrCreate({ where: { businessId: bid(req), code }, defaults: { percentOff, active: true } });
+  const [coupon, created] = await Coupon.findOrCreate({ where: { businessId: bid(req), code }, defaults: { percentOff, active: true, ...cleanCouponLimits(req.body) } });
   if (!created) throw bad(409, 'Coupon code already exists');
   res.status(201).json({ coupon });
 }));
