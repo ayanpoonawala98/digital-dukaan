@@ -1,3 +1,4 @@
+import SetupLinkPanel from './SetupLinkPanel.jsx';
 import React, { useEffect, useState } from 'react';
 import { api, inr } from '../../shared/lib/api.js';
 import { Notice } from '../../shared/components/chrome.jsx';
@@ -44,6 +45,7 @@ function ClientCard({ c, token, onChanged, setMsg }) {
         <label className="wide">Notes<input value={form.notes} maxLength={500} onChange={e => setForm({ ...form, notes: e.target.value })}/></label>
         <button className="btn btn-green btn-small" disabled={!!busy}><Busy active={busy === 'save'}>{busy === 'save' ? 'Saving...' : 'Save changes'}</Busy></button>
       </form>
+      <SetupLinkPanel owner={c} token={token}/>
       <div className="client-pay">
         <h4>Payments</h4>
         <div className="client-pay-add"><input type="month" value={month} onChange={e => setMonth(e.target.value)} aria-label="Month to mark paid"/>

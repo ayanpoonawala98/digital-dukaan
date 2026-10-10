@@ -1,4 +1,5 @@
 import { validInvite } from '../features/stores/owner-invites.js';
+import { logSetupEvent } from '../features/stores/setup-links.js';
 import { passwordStamp, validatePasswordChange } from '../shared/password-security.js';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
@@ -38,6 +39,7 @@ r.post('/set-password', wrap(async (req,res) => {
  const hash=await bcrypt.hash(newPassword,12);
  const [changed]=await User.update({passwordHash:hash,passwordChangedAt:new Date(),passwordSetupHash:null,passwordSetupExpiresAt:null},{where:{id:user.id,passwordSetupHash:user.passwordSetupHash}});
  if(!changed)throw bad(400,'This setup link has already been used.');
+ await logSetupEvent(user.id,'used');
  res.json({changed:true});
 }));
 r.post('/change-password', auth, wrap(async (req, res) => {

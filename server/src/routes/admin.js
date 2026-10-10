@@ -1,6 +1,7 @@
 import {ownerList} from '../features/stores/owner-list-page.js';
 import { platformReport,sendPlatformReport,welcomeSample } from '../features/platform/platform-email-report.js';
 import { sendOwnerInvite } from '../features/stores/owner-invites.js';
+import { mintSetupLink, setupLinkStatus } from '../features/stores/setup-links.js';
 import { validatePasswordChange } from '../shared/password-security.js';
 import { platformSales, salesCsv, CommissionRule, ensureCommissionSchema } from '../features/platform/platform-sales.js';
 import { dateWindow } from '../features/platform/reporting.js';
@@ -50,7 +51,21 @@ r.post('/users/:id/welcome-email', wrap(async(req,res)=>{
  if(req.body?.ownerEmail!==user.email||req.body?.confirm!==true)throw bad(400,'Review and confirm the owner email before sending.');
  const store=await Business.findOne({where:{ownerId:user.id,deletedAt:null},order:[['createdAt','ASC']]});
  if(!store)throw bad(400,'This owner has no store.');
- res.json({welcomeEmail:await sendOwnerInvite(user,store)});
+ res.json({welcomeEmail:await sendOwnerInvite(user,store,{},undefined,req.user.id)});
+}));
+const setupLinkAt=new Map();
+const ownerFor=async id=>{const user=await User.unscoped().findByPk(numId(id));if(!user||user.role!=='owner')throw bad(404,'Store admin not found.');return user;};
+// Superadmin: status never returns the URL (only its hash is stored). Generating returns it once.
+r.get('/users/:id/setup-link',wrap(async(req,res)=>res.json(await setupLinkStatus(await ownerFor(req.params.id)))));
+r.post('/users/:id/setup-link',wrap(async(req,res)=>{
+ const user=await ownerFor(req.params.id);
+ if(req.body?.ownerEmail!==user.email||req.body?.confirm!==true)throw bad(400,'Review and confirm the owner email before generating a link.');
+ const origin=(process.env.CLIENT_URL||'').split(',')[0].trim();
+ if(!origin.startsWith('https://'))throw bad(400,'A secure website URL is needed to build the link.');
+ if(Date.now()-(setupLinkAt.get(user.id)||0)<15000)throw bad(429,'Wait a few seconds before generating another link.');
+ setupLinkAt.set(user.id,Date.now());
+ const link=await mintSetupLink(user,req.user.id,origin);
+ res.set('Cache-Control','no-store').json({url:link.url,expiresAt:link.expiresAt,...await setupLinkStatus(user)});
 }));
 // Only the authenticated superadmin can create an owner account and its first store.
 r.post('/owners', wrap(async (req, res) => {

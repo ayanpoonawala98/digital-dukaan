@@ -15,11 +15,11 @@ export const PlatformAlert = sequelize.define('PlatformAlert', {
 
 let ready;
 const ensure = () => (ready ||= PlatformAlert.sync().catch(e => { ready = null; throw e; }));
-export const DEFAULTS = Object.freeze({ ownerWelcomeEmails: false, welcomeEmailMode: 'credentials', emailAlerts: false, alertEmail: '', smsAlerts: false, alertPhone: '' });
+export const DEFAULTS = Object.freeze({ ownerWelcomeEmails: false, welcomeEmailMode: 'setup', emailAlerts: false, alertEmail: '', smsAlerts: false, alertPhone: '' });
 
 export function cleanAlertSettings(raw) {
   const s = { ...DEFAULTS, ...(raw && typeof raw === 'object' ? raw : {}) };
-  return { welcomeEmailMode: s.welcomeEmailMode === 'setup' ? 'setup' : 'credentials', ownerWelcomeEmails: s.ownerWelcomeEmails === true, emailAlerts: s.emailAlerts === true, alertEmail: typeof s.alertEmail === 'string' ? s.alertEmail.trim().slice(0, 160) : '', smsAlerts: s.smsAlerts === true, alertPhone: typeof s.alertPhone === 'string' ? s.alertPhone.trim().slice(0, 20) : '' };
+  return { welcomeEmailMode: s.welcomeEmailMode === 'credentials' ? 'credentials' : 'setup', ownerWelcomeEmails: s.ownerWelcomeEmails === true, emailAlerts: s.emailAlerts === true, alertEmail: typeof s.alertEmail === 'string' ? s.alertEmail.trim().slice(0, 160) : '', smsAlerts: s.smsAlerts === true, alertPhone: typeof s.alertPhone === 'string' ? s.alertPhone.trim().slice(0, 20) : '' };
 }
 async function load() {
   await ensure();

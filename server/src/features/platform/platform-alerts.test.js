@@ -33,7 +33,7 @@ test('platform alerts skip a channel with no destination and never throw', async
 });
 test('platform alert settings ignore unknown fields and non-booleans', () => {
   const s = cleanAlertSettings({ emailAlerts: 'yes', alertEmail: ' a@b.co ', evil: 1 });
-  assert.deepEqual(s, { welcomeEmailMode:'credentials', ownerWelcomeEmails:false, emailAlerts: false, alertEmail: 'a@b.co', smsAlerts: false, alertPhone: '' });
+  assert.deepEqual(s, { welcomeEmailMode:'setup', ownerWelcomeEmails:false, emailAlerts: false, alertEmail: 'a@b.co', smsAlerts: false, alertPhone: '' });
 });
 
 
