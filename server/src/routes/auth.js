@@ -1,13 +1,13 @@
-import { validInvite } from '../owner-invites.js';
-import { passwordStamp, validatePasswordChange } from '../password-security.js';
+import { validInvite } from '../features/stores/owner-invites.js';
+import { passwordStamp, validatePasswordChange } from '../shared/password-security.js';
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { User } from '../models/index.js';
-import { auth } from '../middleware/auth.js';
-import { bad, wrap } from '../utils/core.js';
+import { auth } from '../shared/middleware/auth.js';
+import { bad, wrap } from '../shared/utils/core.js';
 const r = Router();
-import { effective as staffPerms } from '../permissions.js';
+import { effective as staffPerms } from '../shared/permissions.js';
 const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, staffBusinessId: u.staffBusinessId || null, ...(u.role === 'staff' ? { permissions: staffPerms(u) } : {}) });
 const sign = u => jwt.sign({ sub: u.id, pwd: passwordStamp(u.passwordHash) }, process.env.JWT_SECRET, { expiresIn: '7d' });
 // Public registration is intentionally disabled. Existing clients cannot create accounts.

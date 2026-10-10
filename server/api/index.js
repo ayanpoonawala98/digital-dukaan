@@ -1,6 +1,6 @@
 import app from '../src/app.js';
-import { sequelize } from '../src/db.js';
-import { ensureRestaurantSchema } from '../src/restaurant-schema.js';
+import { sequelize } from '../src/config/db.js';
+import { ensureRestaurantSchema } from '../src/features/restaurant/restaurant-schema.js';
 
 // Never leave a rejected top-level connection promise unobserved. A cold Neon
 // connection can drop once; retry connection setup before Express sees a request.
