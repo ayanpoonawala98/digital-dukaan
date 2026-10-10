@@ -45,6 +45,7 @@ export function ensureRestaurantSchema() {
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "subtotal" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "discount" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "couponCode" varchar(24)');
+    await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "claimCode" varchar(12)');
     await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "discount" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "couponCode" varchar(24)');
     await sequelize.query("ALTER TABLE leads ADD COLUMN IF NOT EXISTS \"customerName\" varchar(100) NOT NULL DEFAULT ''");

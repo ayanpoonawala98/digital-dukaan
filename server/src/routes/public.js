@@ -20,7 +20,7 @@ import { notifyOwnerDevices } from '../features/orders/order-push-wired.js';
 import { validateAnswers } from '../features/catalog/custom-fields.js';
 import { invoiceSigValid, streamBill } from '../features/billing/invoice.js';
 import { bad, validEmail, wrap, publicImageUrl, whatsappUrl, whatsappCartUrl, escapeLike, clientBase } from '../shared/utils/core.js';
-import { orderBotEnabledFor, withOrderRef } from '../features/whatsapp/whatsapp-orders.js';
+import { orderBotEnabledFor, withOrderRef, newClaimCode } from '../features/whatsapp/whatsapp-orders.js';
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { notifyShopRequest } from '../features/platform/platform-alerts.js';
 const r = Router();
@@ -346,14 +346,14 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   if(business.minOrder>0&&subtotal<business.minOrder)throw bad(400,`Minimum order is Rs.${business.minOrder.toFixed(0)}. Add more quantity or use the cart.`);
   const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
   const lines=[{productId:product.id,name:product.name,price:product.price,qty,...(answers.length?{answers}:{})}];
-  const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: subtotal, items:lines, ...optionalContact(req.body) });
+  const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: subtotal, items:lines, claimCode: orderBotEnabledFor(business.id) ? newClaimCode() : null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   void recordCustomerOrder(business.id, lead);
   void notifyOwnerDevices(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
   const waUrl = whatsappUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, {...(typeof product.get==='function'?product.get({plain:true}):product),price:subtotal,orderQty:qty,unitPrice:product.price}, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
-  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: subtotal } });
+  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id, lead.claimCode) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: subtotal } });
 }));
 
 r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
@@ -377,7 +377,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
   const delivery = business.freeDeliveryAbove !== null && subtotal >= business.freeDeliveryAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = Number((subtotal - discount + delivery).toFixed(2));
-  const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, ...optionalContact(req.body) });
+  const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, claimCode: orderBotEnabledFor(business.id) ? newClaimCode() : null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   void recordCustomerOrder(business.id, lead);
   void notifyOwnerDevices(business, 'lead', lead);
@@ -385,7 +385,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const url = whatsappCartUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
   const finalUrl = new URL(url);
   res.set('Cache-Control', 'no-store');
-  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(finalUrl.toString(), lead.id) : finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total } });
+  res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(finalUrl.toString(), lead.id, lead.claimCode) : finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total } });
 }));
 
 r.get('/bill/:kind(lead|restaurant)/:id/:sig', wrap(async (req, res) => {

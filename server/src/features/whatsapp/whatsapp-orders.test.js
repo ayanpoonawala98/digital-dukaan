@@ -21,3 +21,25 @@ test('messages', () => {
   assert.equal(statusMessage(store, lead, 'shipped'), 'Shop: your order DD-5 is shipped');
   assert.equal(statusMessage(store, lead, 'weird'), null);
 });
+
+import { newClaimCode, parseOrderClaim, decideOrderAccess } from './whatsapp-orders.js';
+test('claim code is random, 8 chars, and carried in the order text', () => {
+  const a = newClaimCode(), b = newClaimCode();
+  assert.match(a, /^[A-HJ-NP-Z2-9]{8}$/); assert.notEqual(a, b);
+  const u = new URL(withOrderRef('https://wa.me/919999999999?text=Hi', 7, a));
+  assert.deepEqual(parseOrderClaim(u.searchParams.get('text')), { id: 7, code: a });
+  assert.deepEqual(parseOrderClaim('order ref: dd-7'), { id: 7, code: null });
+  assert.equal(parseOrderClaim('nothing'), null);
+});
+test('order details only go to the phone on the order, or to a holder of the claim code', () => {
+  const withPhone = { customerPhone: '+91 98765 43210', claimCode: 'ABCD2345' };
+  assert.equal(decideOrderAccess(withPhone, '919876543210', null), 'match');
+  assert.equal(decideOrderAccess(withPhone, '919111111111', null), 'deny');
+  assert.equal(decideOrderAccess(withPhone, '919111111111', 'ABCD2345'), 'deny'); // code never overrides a recorded phone
+  const phoneless = { customerPhone: '', claimCode: 'ABCD2345' };
+  assert.equal(decideOrderAccess(phoneless, '919111111111', null), 'deny'); // DD-id alone is not enough
+  assert.equal(decideOrderAccess(phoneless, '919111111111', 'WRONGONE'), 'deny');
+  assert.equal(decideOrderAccess(phoneless, '919111111111', 'abcd2345'), 'claim');
+  assert.equal(decideOrderAccess({ customerPhone: '', claimCode: null }, '919111111111', 'ABCD2345'), 'deny'); // used or old order
+  assert.equal(decideOrderAccess(null, '919111111111', 'ABCD2345'), 'deny');
+});

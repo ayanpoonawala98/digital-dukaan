@@ -99,6 +99,7 @@ export const Product = sequelize.define('Product', {
 }, { tableName: 'products', indexes: [{ fields: ['businessId', 'categoryId'] }] });
 
 export const Lead = sequelize.define('Lead', {
+  claimCode: { type: DataTypes.STRING(12), allowNull: true }, // one-time WhatsApp claim code for orders placed without a phone
   orderNumber: { type: DataTypes.INTEGER, allowNull: true },
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
@@ -118,7 +119,7 @@ export const Lead = sequelize.define('Lead', {
   paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
   paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
   paidAt: { type: DataTypes.DATE, allowNull: true }
-}, { tableName: 'leads', timestamps: true, updatedAt: false });
+}, { tableName: 'leads', timestamps: true, updatedAt: false, defaultScope: { attributes: { exclude: ['claimCode'] } } });
 
 User.hasMany(Business, { foreignKey: 'ownerId' });
 Business.belongsTo(User, { foreignKey: 'ownerId', as: 'owner' });
