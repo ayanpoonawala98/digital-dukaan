@@ -1,0 +1,59 @@
+/* UI polish pass (10/10 audit). Sizing and spacing only: no restyling, no logic.
+   Loaded after polish.css so these win on equal specificity. Touch targets are 44px; button rows use an 8px gap. */
+:root { --ui-tap: 44px; --ui-gap: 8px; }
+
+/* ---- Admin: row action buttons (Products, Categories, Customers, Reviews, Coupons, Staff) ---- */
+.admin-content .row-actions button,
+.admin-content .row-actions .btn,
+.admin-content .table-button,
+.admin-content td > .btn-small { min-height: var(--ui-tap); box-sizing: border-box; }
+.admin-content .row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-gap); }
+.admin-content td.row-actions { display: table-cell; }
+.admin-content td.row-actions button + button,
+.admin-content td.row-actions button + span,
+.admin-content td.row-actions span + button { margin-left: var(--ui-gap); }
+.admin-content td > .table-button + .table-button,
+.admin-content td > .table-button + button,
+.admin-content td > button + .table-button { margin-left: var(--ui-gap); }
+@media (max-width: 640px) {
+  .admin-content .row-actions > button + button,
+  .admin-content td.row-actions button + button { margin-inline-start: 0; }
+  .admin-content td.row-actions button + button { margin-left: var(--ui-gap); }
+}
+
+/* ---- Admin: accordion headers and the store-removal summary ---- */
+.admin-content .accordion-head,
+.admin-content .remove-store-panel > summary { min-height: var(--ui-tap); box-sizing: border-box; display: flex; align-items: center; }
+.admin-content .remove-store-panel > summary { cursor: pointer; gap: var(--ui-gap); }
+
+/* ---- Admin: settings step tabs and the remove-store confirm field ---- */
+.admin-content .settings-tabs button { padding: 8px 16px; min-height: var(--ui-tap); }
+.admin-content .remove-store-panel label { display: grid; gap: 12px; margin: 16px 0 12px; }
+.admin-content .remove-store-panel label > input { margin: 0; }
+.admin-content .remove-store-panel > label + .btn { margin-top: 12px; }
+.admin-content .qr-inline .btn { min-height: var(--ui-tap); }
+
+/* ---- Admin: WhatsApp "i" help icons keep their 22px look but get a 44px hit area ---- */
+button[aria-label^="How to connect"] { position: relative; }
+button[aria-label^="How to connect"]::after { content: ""; position: absolute; inset: -11px; }
+
+/* ---- Admin: restaurant order cards and table bills ---- */
+.admin-content .rorder-card a[href^="tel:"],
+.admin-content .kitchen-card a[href^="tel:"],
+.tv a[href^="tel:"] { display: inline-flex; align-items: center; min-height: var(--ui-tap); }
+.admin-content .rorder-card .btn,
+.admin-content .kitchen-card .btn,
+.tv .tv-cta .btn { min-height: var(--ui-tap); }
+.tv .tv-h .tv-cfg { min-height: var(--ui-tap); }
+
+/* ---- Desktop sidebar ---- */
+@media (min-width: 1000px) {
+  .admin-layout .sidebar nav button { min-height: 44px; padding-block: 10px; }
+  .admin-layout .sidebar nav { gap: 4px; }
+  .admin-layout .sidebar-bottom { gap: 4px; padding-top: 12px; }
+  .admin-layout .sidebar-bottom > * { min-height: 44px; padding-block: 8px; box-sizing: border-box; }
+}
+
+/* Categories list actions */
+.admin-content .category-list button { min-height: var(--ui-tap); box-sizing: border-box; }
+.admin-content .category-list > * > div:last-child:has(> button + button) { display: flex; gap: var(--ui-gap); flex-wrap: wrap; }
