@@ -28,6 +28,7 @@ import PDFDocument from 'pdfkit';
 import { whatsappCloudOwnerRoutes } from '../features/whatsapp/whatsapp-cloud.js';
 import { byoOwnerRoutes, sendOrderStatus as sendOrderStatusWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { recordCustomerOrder } from '../features/crm/customer-sync.js';
+import { customerRoutes } from '../features/crm/customer-routes.js';
 import { crmRoutes } from '../features/crm/crm.js';
 import webpush from 'web-push';
 import { notifyNewProduct } from '../features/notifications/new-product-push.js';
@@ -144,7 +145,7 @@ r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
 r.use('/:storeId/whatsapp-byo', byoOwnerRoutes);
 r.use('/:storeId/whatsapp-cloud', whatsappCloudOwnerRoutes); // owner owns connect/manage; staff may read the inbox and send reviewed replies (allow-list above)
 r.use('/:storeId/campaigns',campaignOwnerRoutes);
-r.use('/:storeId/customers', (req,res,next)=>req.user.role === 'staff' && !/^\/import\/(preview|commit)$/.test(req.path) ? res.status(403).json({error:'Staff can preview and import customers only.'}) : next(), crmRoutes);
+r.use('/:storeId/customers', customerRoutes, crmRoutes);
 
 r.delete('/:storeId', ownerOnly, wrap(async (req, res) => {
   if (req.body?.slug !== req.store.slug) throw bad(400, 'Enter the exact store link to remove it');

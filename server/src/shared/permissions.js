@@ -1,5 +1,5 @@
 // Per-staff permissions. Existing staff (permissions = null) keep the original fixed access.
-export const KEYS = ['orders_view', 'order_status', 'whatsapp', 'import', 'products', 'leads', 'coupons', 'billing'];
+export const KEYS = ['orders_view', 'order_status', 'whatsapp', 'import', 'products', 'leads', 'coupons', 'billing', 'customers'];
 export const LEGACY = ['orders_view', 'order_status', 'whatsapp', 'import', 'billing'];
 export const effective = u => Array.isArray(u?.permissions) ? KEYS.filter(k => u.permissions.includes(k)) : LEGACY;
 export const clean = v => {
@@ -25,6 +25,9 @@ export function staffAllowed(perms, method, route) {
   if (method === 'PATCH' && /^table-requests\/\d+$/.test(route)) return has('order_status');
   if (method === 'GET' && /^whatsapp-cloud\/(?:status|messages)$/.test(route)) return has('whatsapp');
   if (method === 'POST' && route === 'whatsapp-cloud/send') return has('whatsapp');
+  // Customers: view/add/edit and push to one customer. Broadcast, email/SMS, delete, backfill and consent stay owner-only.
+  if (/^customers(?:\/(?:channels|messages|\d+))?$/.test(route) && (method === 'GET' || (method === 'POST' && route === 'customers') || (method === 'PATCH' && /\d$/.test(route)))) return has('customers');
+  if (method === 'POST' && /^customers\/\d+\/push$/.test(route)) return has('customers');
   if (method === 'POST' && /^(?:products\/import|customers\/import)\/(?:preview|commit)$/.test(route)) return has('import');
   if (has('products')) {
     if (method === 'GET' && /^(?:products|categories)$/.test(route)) return true;

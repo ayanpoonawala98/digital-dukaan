@@ -20,7 +20,7 @@ test('real Postgres CRM, undo, consent, tenant boundaries and existing retail ro
  const call=async(path,method='GET',body,actor=a)=>{const r=await fetch(base+path,{method,headers:{authorization:`Bearer ${jwt.sign({sub:actor.id},process.env.JWT_SECRET)}`,'content-type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});return {status:r.status,body:await r.json()};};
  const root=`/owner/${store.id}/customers`;
  try {
-  delete process.env.CRM_ENABLED;
+  process.env.CRM_ENABLED='false';
   assert.equal((await call(root)).status,404);
   const retailBefore=(await call('/public/stores/local-test-a')).body;
   assert.equal((await call('/owner/stores')).status,200);
@@ -65,7 +65,7 @@ test('real Postgres CRM, undo, consent, tenant boundaries and existing retail ro
   const csvResponse=await fetch(base+`/owner/${store.id}/export/vyapar.csv`,{headers:{authorization:`Bearer ${jwt.sign({sub:a.id},process.env.JWT_SECRET)}`}});
   assert.equal(csvResponse.status,200);const csv=await csvResponse.text();assert.ok(csv.includes('Coupon discount (QA10)'));assert.ok(csv.includes('Delivery charge'));
   const csvTotal=csv.trim().split('\n').slice(1).reduce((sum,line)=>sum+Number(line.split(',')[8].replaceAll('"','')),0);assert.equal(csvTotal,390);
-  delete process.env.CRM_ENABLED;assert.equal((await call(root)).status,404);assert.deepEqual((await call('/public/stores/local-test-a')).body,retailBefore,'instant flag off preserves retail');
+  process.env.CRM_ENABLED='false';assert.equal((await call(root)).status,404);assert.deepEqual((await call('/public/stores/local-test-a')).body,retailBefore,'instant flag off preserves retail');
   const {purgeExpiredStore}=await import('../../shared/retention.js');
   await store.update({deletedAt:new Date('2026-01-01'),active:false});
   process.env.STORE_SUBDOMAINS_READY='false';

@@ -52,3 +52,14 @@ test('retail/service tickets need the leads permission', () => {
   assert.ok(staffAllowed(effective({ permissions: ['leads'] }), 'POST', 'leads/3/kot'));
   assert.ok(!staffAllowed(effective({ permissions: ['orders_view', 'order_status'] }), 'POST', 'leads/3/kot'));
 });
+
+test('customers permission: view/add/edit/push per customer only; everything risky stays owner-only', () => {
+  const none = ['orders_view', 'order_status', 'whatsapp', 'import', 'billing'], cust = [...none, 'customers'];
+  for (const [m, r] of [['GET', 'customers'], ['GET', 'customers/5'], ['POST', 'customers'], ['PATCH', 'customers/5'], ['POST', 'customers/5/push'], ['GET', 'customers/channels'], ['GET', 'customers/messages']]) {
+    assert.equal(staffAllowed(none, m, r), false, `${m} ${r} without key`);
+    assert.equal(staffAllowed(cust, m, r), true, `${m} ${r} with key`);
+  }
+  for (const [m, r] of [['DELETE', 'customers/5'], ['POST', 'customers/broadcast/push'], ['POST', 'customers/5/message'], ['POST', 'customers/backfill'], ['DELETE', 'customers/5/devices/2'], ['POST', 'customers/import/undo'], ['GET', 'customers/5/anything']]) assert.equal(staffAllowed(cust, m, r), false, `${m} ${r}`);
+  assert.equal(staffAllowed(['import'], 'POST', 'customers/import/preview'), true);
+  assert.equal(effective({ permissions: null }).includes('customers'), false);
+});
