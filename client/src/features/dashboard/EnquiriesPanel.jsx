@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api, download, inr } from '../../shared/lib/api.js';
+import { statusLabel } from '../../shared/lib/owner-ui.js';
 import { FilterBar, Pages } from './DataTools.jsx';
 
 const STATUSES = ['new', 'confirmed', 'packed', 'shipped', 'out-for-delivery', 'delivered', 'in-progress', 'completed', 'cancelled'];
@@ -33,7 +34,7 @@ export default function EnquiriesPanel({ token, storeId, slug, refreshKey = 0 })
       <td data-label="Phone">{l.customerPhone ? <a href={`tel:${l.customerPhone.replace(/[^+\d]/g, '')}`}>{l.customerPhone}</a> : <span className="muted">Not shared</span>}</td>
       <td data-label="Product">{l.productName}<small className="muted"> #{l.id}</small></td>
       <td data-label="Price">{inr(l.price)}</td>
-      <td data-label="Status"><span className={`status-select s-${l.status || 'new'}`}>{(l.status || 'new').replace(/-/g, ' ')}</span></td>
+      <td data-label="Status"><span className={`status-select s-${l.status || 'new'}`}>{statusLabel(l.status)}</span></td>
       <td data-label="When">{when(l.createdAt)}</td>
     </tr>)}</tbody></table></div> : <p className="muted">{loading ? 'Loading enquiries...' : filtered ? 'No enquiries match these filters.' : 'Customer requests will show here when they start a WhatsApp order.'}</p>}
     {total > pageSize && <Pages label="enquiries" size={pageSize} page={filters.page || 1} total={total} onChange={page => setFilters(f => ({ ...f, page }))}/>}

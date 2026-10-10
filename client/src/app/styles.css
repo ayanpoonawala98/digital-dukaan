@@ -1644,3 +1644,21 @@ td[data-label="Status"] .btn{vertical-align:middle}
 @media (max-width: 520px) { .rorder-list { grid-template-columns: 1fr; } .rorder-card .ro-head { margin: 0 -16px 12px; padding-left: 20px; } }
 .menu-card.sold-out .menu-img img, .mc-row.sold-out img { filter: grayscale(1) opacity(.6); }
 .menu-card.sold-out .menu-img, .menu-card.sold-out h3 a { pointer-events: auto; }
+
+/* Owner mobile navigation: bottom bar + task sheet. Desktop keeps the sidebar. */
+.mnav, .mnav-layer { display:none; }
+@media(max-width:760px) {
+  .admin-layout .sidebar nav { display:none; }
+  .admin-layout .admin-main { padding-bottom:96px; }
+  .mnav { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; position:fixed; left:0; right:0; bottom:0; z-index:60; background:#14251a; border-top:1px solid rgba(255,255,255,.14); padding:6px 6px calc(6px + env(safe-area-inset-bottom)); gap:2px; }
+  [data-theme="dark"] .mnav { background:#0d1710; }
+  .mnav button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; min-height:56px; padding:6px 2px; border-radius:12px; color:#c9d8cd; font-size:11px; font-weight:700; line-height:1.15; text-align:center; }
+  .mnav button.selected { background:rgba(54,196,135,.18); color:#e5fff0; box-shadow:inset 0 2px #4fd6a7; }
+  .mnav-layer { display:block; position:fixed; inset:0; z-index:70; background:rgba(8,14,10,.55); }
+  .mnav-sheet { position:absolute; left:0; right:0; bottom:0; background:var(--surface,#fff); color:var(--ink,#17231b); border-radius:20px 20px 0 0; padding:16px 14px calc(78px + env(safe-area-inset-bottom)); box-shadow:0 -12px 40px rgba(0,0,0,.25); max-height:75vh; overflow-y:auto; }
+  .mnav-sheet-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 4px; font-size:17px; }
+  .mnav-close { min-height:44px; padding:0 12px; font-weight:700; color:var(--accent); }
+  .mnav-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+  .mnav-grid button { display:flex; flex-direction:column; align-items:flex-start; justify-content:center; gap:8px; min-height:76px; padding:12px 14px; border:1px solid var(--line,#dfe5dc); border-radius:14px; background:var(--bg,#f6f8f3); font-weight:700; font-size:14px; text-align:left; }
+  .mnav-grid button.selected { border-color:var(--accent); background:color-mix(in srgb, var(--accent) 12%, transparent); }
+}
