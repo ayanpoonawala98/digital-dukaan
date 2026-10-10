@@ -12,7 +12,7 @@ export function previewImage(...candidates) {
     try {
       const u = new URL(value);
       if (u.protocol !== 'https:' || u.username || u.password) continue;
-      if (u.hostname === 'ik.imagekit.io' && !u.searchParams.has('tr')) u.searchParams.set('tr', 'w-1200,h-630,c-at_max,f-jpg,q-80');
+      if (u.hostname === 'ik.imagekit.io' && !u.searchParams.has('tr')) u.search = '?tr=w-1200,h-630,c-at_max,f-jpg,q-80';
       return u.href;
     } catch { /* try the next one */ }
   }

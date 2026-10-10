@@ -8,7 +8,7 @@ export function shareImage(...candidates) {
   for (const value of candidates) {
     const u = logoUrl(value);
     if (!u) continue;
-    try { const x = new URL(u); if (x.hostname === 'ik.imagekit.io' && !x.searchParams.has('tr')) x.searchParams.set('tr', 'w-1200,h-630,c-at_max,f-jpg,q-80'); return x.href; } catch { /* next */ }
+    try { const x = new URL(u); if (x.hostname === 'ik.imagekit.io' && !x.searchParams.has('tr')) x.search = '?tr=w-1200,h-630,c-at_max,f-jpg,q-80'; return x.href; } catch { /* next */ }
   }
   return ''; // no shop picture: show none rather than the platform's
 }
