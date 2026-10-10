@@ -199,7 +199,8 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
   paymentStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: '' },
   paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
   paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
-  paidAt: { type: DataTypes.DATE, allowNull: true }
+  paidAt: { type: DataTypes.DATE, allowNull: true },
+  billId: { type: DataTypes.INTEGER, allowNull: true }
 }, { tableName: 'restaurant_orders', indexes: [{ fields: ['businessId', 'createdAt'] }] });
 export const TableRequest = sequelize.define('TableRequest', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

@@ -1,3 +1,4 @@
+import { tablesState, billHistory, billsSummary, settleBill } from '../features/restaurant/table-bills.js';
 import { assertCanCreateStore } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
@@ -743,7 +744,8 @@ const salesReport = async req => {
   const [leads, orders] = await Promise.all([Lead.findAll({where,order:[['createdAt','DESC']]}),RestaurantOrder.findAll({where,order:[['createdAt','DESC']]})]);
   const movement = new Set(saleRows(orders,leads).flatMap(o=>(o.items || []).map(i=>i.name)));
   const products = isLocked(req.store,'products') ? [] : await Product.findAll({where:{businessId:bid(req),active:true}});
-  return { ...summarize(orders,leads), insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
+  const bills = req.store.storeType === 'restaurant' ? await billsSummary(req.store, req.query.from ? new Date(req.query.from) : null, req.query.to ? new Date(new Date(req.query.to).getTime() + 86400000) : null).catch(() => null) : null;
+  return { ...summarize(orders,leads), bills, insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };
 r.get('/:storeId/sales-summary', wrap(async (req,res) => res.json(await salesReport(req))));
 r.get('/:storeId/sales-summary/report.csv', wrap(async (req,res) => {
@@ -777,6 +779,21 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   res.json({ order });
 }));
 
+
+// Tables view: live status per table/channel, settle a bill (append-only history).
+const restaurantOnly = req => { if (req.store.storeType !== 'restaurant') throw bad(404, 'Tables unavailable'); };
+r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.json(await tablesState(req.store)); }));
+r.get('/:storeId/tables/history', wrap(async (req, res) => { restaurantOnly(req); res.json(await billHistory(req.store, req.query)); }));
+r.post('/:storeId/table-bills', wrap(async (req, res) => {
+  restaurantOnly(req);
+  await ensureOrderStockSchema();
+  const doneFor = o => (o.orderType === 'dine-in' ? 'served' : o.orderType === 'delivery' ? 'delivered' : 'picked-up');
+  const out = await settleBill(req.store, req.body, async o => {
+    if (RESTAURANT_DONE.includes(o.status)) return;
+    await updateOrderStock({ sequelize, Order: RestaurantOrder, Product, Ledger: OrderStockLedger, businessId: bid(req), orderId: o.id, kind: 'restaurant', status: doneFor(o), deductStatuses: RESTAURANT_DEDUCT, grandfather: order => historicalOrder('restaurant', order) });
+  });
+  res.status(201).json(out);
+}));
 // Waiter / bill requests raised from a table QR. Staff with order access can see and clear them.
 r.get('/:storeId/table-requests', wrap(async (req, res) => {
   if (req.store.storeType !== 'restaurant') throw bad(404, 'Table requests unavailable');
