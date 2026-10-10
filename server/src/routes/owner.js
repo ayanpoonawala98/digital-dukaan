@@ -33,6 +33,7 @@ import { flowFor, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaura
 import { cleanVariants, cleanAddonGroups, cleanVeg, cleanTags, istDay } from '../features/restaurant/menu-options.js';
 import { featureForOwnerRoute, isLocked } from '../features/platform/feature-locks.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
+import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { validateProductRows } from '../features/catalog/product-import.js';
 import { insights } from '../features/platform/sales-insights.js';
 import { dateWhere, dateWindow, summarize, saleRows, ordersCsv, csvCell as reportCell } from '../features/platform/reporting.js';
@@ -780,6 +781,34 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
 }));
 
 
+// Staff-created order (phone / walk-in / no QR). Lands in Kitchen exactly like a customer order (status new, same table/channel rules).
+r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
+  if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
+  await ensureTableBillSchema();
+  const { orderType, tableNumber, customerName, customerPhone, deliveryAddress } = req.body || {};
+  if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
+  const table = Number(tableNumber);
+  if (orderType === 'dine-in' && (!Number.isInteger(table) || table < 1 || table > 1000)) throw bad(400, 'Select a valid table number');
+  const name = String(customerName ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 100);
+  const phone = String(customerPhone ?? '').trim().slice(0, 20);
+  if (orderType !== 'dine-in' && !name) throw bad(400, 'Enter the customer name');
+  if (phone && !/^[+\d()\s-]{8,25}$/.test(phone)) throw bad(400, 'Phone number looks wrong');
+  if (orderType === 'delivery' && (!phone || !String(deliveryAddress ?? '').trim())) throw bad(400, 'Delivery needs a phone and an address');
+  const raw = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (raw.length < 1 || raw.length > 50) throw bad(400, 'Add at least one item');
+  const ids = [...new Set(raw.map(e => Number(e?.id)))];
+  if (raw.some(e => !Number.isInteger(Number(e?.id)) || Number(e.id) < 1 || !Number.isInteger(Number(e?.qty)) || Number(e.qty) < 1 || Number(e.qty) > 99)) throw bad(400, 'Invalid items');
+  const products = await Product.findAll({ where: { id: { [Op.in]: ids }, businessId: req.store.id, active: true } });
+  if (products.length !== ids.length) throw bad(400, 'An item is not on the menu');
+  const byId = new Map(products.map(p => [p.id, p]));
+  const merged = new Map();
+  for (const e of raw) merged.set(Number(e.id), (merged.get(Number(e.id)) || 0) + Number(e.qty));
+  const items = [...merged].map(([id, qty]) => { const p = byId.get(id); if (p.stock === 0 || (p.stock !== null && qty > p.stock)) throw bad(400, `${p.name}: not enough stock`); return buildLine(p, { id, qty }, qty); });
+  const subtotal = Number(items.reduce((a, i) => a + Number(i.price) * i.qty, 0).toFixed(2));
+  const note = cleanNote(req.body?.note, 200);
+  const order = await RestaurantOrder.create({ businessId: req.store.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: name || null, customerPhone: phone || null, deliveryAddress: orderType === 'delivery' ? String(deliveryAddress).trim().slice(0, 500) : null, items, subtotal, discount: 0, deliveryFee: 0, total: subtotal, note: note ? `[Staff] ${note}`.slice(0, 300) : '[Staff] entered by staff', status: 'new' });
+  res.status(201).json({ order });
+}));
 // Tables view: live status per table/channel, settle a bill (append-only history).
 const restaurantOnly = req => { if (req.store.storeType !== 'restaurant') throw bad(404, 'Tables unavailable'); };
 r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.json(await tablesState(req.store)); }));

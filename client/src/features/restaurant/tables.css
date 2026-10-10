@@ -74,3 +74,14 @@
 .tv-pick button { flex: none; padding: 7px 12px; border-radius: 999px; border: 1.5px solid var(--line, #d1d5db); background: transparent; color: inherit; font-weight: 600; font-size: 13px; }
 .tv-pick button.on { background: var(--ink, #111); color: #fff; border-color: var(--ink, #111); }
 .tv-pick button em{font-style:normal;font-size:11px;text-transform:capitalize;opacity:.8;margin-left:2px}
+
+.tv-addrow { display: flex; gap: 8px; flex-wrap: wrap; padding: 8px 0 2px; }
+.tv-addrow .btn { padding: 8px 12px; font-size: 13px; }
+.tv-new { max-height: 88vh; overflow: auto; display: grid; gap: 10px; text-align: left; font-family: inherit; }
+.tv-new input { width: 100%; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--line, #d1d5db); background: transparent; color: inherit; font: inherit; }
+.tv-new .tv-form { display: grid; gap: 8px; }
+.tv-menu { max-height: 34vh; overflow: auto; margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.tv-menu li { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tv-menu .n small { display: block; opacity: .7; }
+.tv-menu .q { display: inline-flex; align-items: center; gap: 8px; }
+.tv-menu .q button { width: 30px; height: 30px; border-radius: 50%; border: 1.5px solid var(--line, #d1d5db); background: transparent; color: inherit; display: grid; place-items: center; }

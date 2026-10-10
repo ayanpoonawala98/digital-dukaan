@@ -35,6 +35,41 @@ function printReceipt(bill, lines, charges, store, saved) {
   if (doc.readyState === 'complete') setTimeout(go, 150); else f.onload = () => setTimeout(go, 150);
 }
 
+
+function NewOrder({ kind, table, menu, base, token, onClose, onDone }) {
+  const [f, setF] = useState({ name: '', phone: '', address: '', note: '' });
+  const [qty, setQty] = useState({});
+  const [q, setQ] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState('');
+  const list = menu.filter(m => !q || m.name.toLowerCase().includes(q.toLowerCase()));
+  const picked = menu.filter(m => qty[m.id] > 0);
+  const total = picked.reduce((a, m) => a + m.price * qty[m.id], 0);
+  const bump = (id, d) => setQty(v => ({ ...v, [id]: Math.max(0, Math.min(99, (v[id] || 0) + d)) }));
+  const submit = async () => {
+    setBusy(true); setErr('');
+    try {
+      await api(`${base}/restaurant-orders`, { token, method: 'POST', feedback: false, body: { orderType: kind === 'table' ? 'dine-in' : kind, tableNumber: kind === 'table' ? table : undefined, customerName: f.name, customerPhone: f.phone, deliveryAddress: f.address, note: f.note, items: picked.map(m => ({ id: m.id, qty: qty[m.id] })) } });
+      onDone();
+    } catch (e) { setErr(e.message || 'Could not create the order'); setBusy(false); }
+  };
+  const title = kind === 'table' ? `New order - Table ${table}` : `New ${kind} order`;
+  return <div className="tv-modal" role="dialog" aria-label={title} onClick={onClose}><div className="tv-receipt tv-new" onClick={e => e.stopPropagation()}>
+    <h4>{title}</h4>
+    <p className="tv-note">Goes to the Kitchen like a customer order.</p>
+    {kind !== 'table' && <div className="tv-form">
+      <input placeholder="Customer name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} maxLength={100}/>
+      <input placeholder={kind === 'delivery' ? 'Phone (required)' : 'Phone (optional)'} inputMode="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} maxLength={20}/>
+      {kind === 'delivery' && <input placeholder="Delivery address" value={f.address} onChange={e => setF({ ...f, address: e.target.value })} maxLength={500}/>}
+    </div>}
+    <input className="tv-search" placeholder="Search menu" value={q} onChange={e => setQ(e.target.value)}/>
+    <ul className="tv-lines tv-menu">{list.slice(0, 80).map(m => <li key={m.id}><span className="n">{m.name}<small>{inr(m.price)}</small></span><span className="q"><button type="button" aria-label={`Remove ${m.name}`} onClick={() => bump(m.id, -1)}><Minus size={14}/></button><b>{qty[m.id] || 0}</b><button type="button" aria-label={`Add ${m.name}`} onClick={() => bump(m.id, 1)}><Plus size={14}/></button></span></li>)}</ul>
+    <input placeholder="Note for the kitchen (optional)" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} maxLength={200}/>
+    {err && <p className="notice error">{err}</p>}
+    <div className="tv-cta"><button className="btn btn-outline" onClick={onClose}>Cancel</button><button className="btn btn-green" disabled={busy || !picked.length} onClick={submit}>{busy ? 'Sending…' : `Send to kitchen · ${inr(total)}`}</button></div>
+  </div></div>;
+}
+
 function Receipt_({ bill, lines, charges, store, onClose, saved }) {
   const gst = bill.gstPct;
   return <div className="tv-modal" role="dialog" aria-label="Bill" onClick={onClose}><div className="tv-receipt" onClick={e => e.stopPropagation()}>
@@ -65,6 +100,7 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const [preview, setPreview] = useState(null);
   const [hist, setHist] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [newOrd, setNewOrd] = useState(false);
   const [cfg, setCfg] = useState(null);
   const base = `/owner/${storeId}`;
   const selRef = useRef(sel); selRef.current = sel;
@@ -88,6 +124,7 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
     try { const { bill } = await api(`${base}/table-bills`, { token, method: 'POST', body: payload(), feedback: false }); setPreview({ saved: true, bill: { ...bill, title: label(sel) }, lines: bill.lines, charges: bill.charges }); await load(); setSel(null); }
     catch (e) { setErr(e.message || 'Could not save the bill'); } finally { setBusy(false); }
   };
+  const clearTable = async () => { if (!orders.length || !window.confirm(`Cancel ${orders.length} open order${orders.length > 1 ? 's' : ''} and free this table? Use "Paid" instead if the customer paid.`)) return; setBusy(true); try { for (const o of orders) await api(`${base}/restaurant-orders/${o.id}`, { token, method: 'PATCH', body: { status: 'cancelled' }, feedback: false }); await load(); } catch (e) { setErr(e.message || 'Could not clear'); } finally { setBusy(false); } };
   const openHist = async () => { setTab('history'); setHist(null); try { const q = sel.kind === 'table' ? `channel=table&table=${sel.n}` : `channel=${sel.kind}`; setHist((await api(`${base}/tables/history?${q}`, { token, feedback: false })).bills); } catch (e) { setHist([]); setErr(e.message); } };
   const saveCount = async () => { const n = Number(cfg); if (!Number.isInteger(n) || n < 1 || n > 100) { setErr('Tables must be 1 to 100'); return; } try { await api(`${base}/business`, { token, method: 'PATCH', body: { tableCount: n }, feedback: false }); setCfg(null); await load(); } catch (e) { setErr(e.message); } };
 
@@ -98,6 +135,7 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const since = orders[0]?.createdAt;
   const Panel = sel && <aside className="tv-panel" aria-label={label(sel)}>
     <header><div><span className={`tv-chip ${occ ? 'occ' : 'vac'}`}>{sel.kind === 'table' ? (occ ? 'Occupied' : 'Vacant') : (occ ? 'Open' : 'No open orders')}</span><h3>{label(sel)}</h3>{occ && <small><Clock size={13}/> {ago(since)} · {orders.length} order{orders.length > 1 ? 's' : ''}</small>}</div><button className="tv-x" onClick={() => setSel(null)} aria-label="Close"><X size={18}/></button></header>
+    {canBill && sel.kind !== 'counter' && <div className="tv-addrow"><button type="button" className="btn btn-outline" onClick={() => setNewOrd(true)}><Plus size={15}/> New order{sel.kind === 'table' ? ` for Table ${sel.n}` : ''}</button>{sel.kind === 'table' && occ && <button type="button" className="btn btn-outline" onClick={clearTable}>Clear table (cancel orders)</button>}</div>}
     {perOrder && allOrders.length > 0 && <div className="tv-pick" role="group" aria-label="Choose order to bill"><small>Each {sel.kind} order gets its own bill</small><div>{allOrders.map(o => <button key={o.id} type="button" className={o.id === orders[0]?.id ? 'on' : ''} onClick={() => setSel({ kind: sel.kind, oid: o.id })}>#{o.orderNumber || o.id} · {inr(o.total)} · <em className={`tv-st ${o.status}`}>{o.status}</em></button>)}</div></div>}
     <div className="tv-tabs"><button className={tab === 'bill' ? 'on' : ''} onClick={() => setTab('bill')}><Receipt size={14}/> Bill</button><button className={tab === 'orders' ? 'on' : ''} onClick={() => setTab('orders')}>Orders</button><button className={tab === 'history' ? 'on' : ''} onClick={openHist}><History size={14}/> History</button></div>
     {tab === 'orders' && <div className="tv-orders">{allOrders.map(o => <div className="tv-order" key={o.id}><div><strong>Order #{o.orderNumber || o.id}</strong><span className={`tv-st ${o.status}`}>{o.status}</span></div><p>{(o.items || []).map(i => `${i.qty}× ${i.name}`).join(', ')}</p>{(o.customerName || o.deliveryAddress) && <small>{[o.customerName, o.customerPhone, o.deliveryAddress].filter(Boolean).join(' · ')}</small>}{o.note && <small>Note: {o.note}</small>}</div>)}{!orders.length && <p className="tv-empty">No open orders. Add items from the Bill tab to start a bill.</p>}</div>}
@@ -128,6 +166,7 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
       <div className="tv-grid">{data.tables.map(t => <button key={t.number} className={`tv-table ${t.occupied ? 'occ' : 'vac'} ${sel?.kind === 'table' && sel.n === t.number ? 'sel' : ''}`} onClick={() => { setSel({ kind: 'table', n: t.number }); setTab('bill'); }}><span className="no">{t.number}</span>{t.request && <i className={`tv-dot ${t.request}`} title={t.request === 'bill' ? 'Wants the bill' : 'Calling waiter'} aria-label={t.request === 'bill' ? 'Wants the bill' : 'Calling waiter'}/>}<span className="st">{t.occupied ? 'Occupied' : 'Vacant'}</span>{t.occupied ? <><b>{inr(t.total)}</b><small>{ago(t.since)}</small></> : <small>Tap to open</small>}</button>)}</div>
     </div>
     {Panel}
-    {preview && <Receipt_ {...preview} store={data} onClose={() => setPreview(null)}/>}
+    {newOrd && sel && data && <NewOrder kind={sel.kind} table={sel.n} menu={data.menu || []} base={base} token={token} onClose={() => setNewOrd(false)} onDone={() => { setNewOrd(false); load(); }}/>}
+      {preview && <Receipt_ {...preview} store={data} onClose={() => setPreview(null)}/>}
   </div>;
 }
