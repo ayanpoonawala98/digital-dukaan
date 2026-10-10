@@ -14,8 +14,8 @@ export default function MenuOptionsEditor({ draft, setDraft }) {
   const setOption = (gi, oi, patch) => setGroup(gi, { options: groups[gi].options.map((o, k) => k === oi ? { ...o, ...patch } : o) });
   return <fieldset className="menu-options-editor"><legend>{ot("Restaurant menu options")}</legend>
     <div className="form-row">
-      <label>{ot("Veg / non-veg mark")}<select value={draft.veg || ''} onChange={e => set({ veg: e.target.value })}>{VEG.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></label>
-      <div className="tag-picker"><span>{ot("Labels")}</span>{TAGS.map(([k, l]) => <label key={k} className="check-label"><input type="checkbox" checked={(draft.tags || []).includes(k)} onChange={e => set({ tags: e.target.checked ? [...(draft.tags || []), k] : (draft.tags || []).filter(t => t !== k) })}/> {l}</label>)}</div>
+      <label>{ot("Veg / non-veg mark")}<select value={draft.veg || ''} onChange={e => set({ veg: e.target.value })}>{VEG.map(([v, l]) => <option key={v} value={v}>{ot(l)}</option>)}</select></label>
+      <div className="tag-picker"><span>{ot("Labels")}</span>{TAGS.map(([k, l]) => <label key={k} className="check-label"><input type="checkbox" checked={(draft.tags || []).includes(k)} onChange={e => set({ tags: e.target.checked ? [...(draft.tags || []), k] : (draft.tags || []).filter(t => t !== k) })}/> {ot(l)}</label>)}</div>
     </div>
     <div className="opt-block"><b>{ot("Sizes / variants")}</b> <small className="muted">{ot("e.g. Half and Full. If you add any, customers must pick one and the price below is replaced by the variant price.")}</small>
       {variants.map((v, i) => <div className="opt-edit-row" key={i}><input value={v.name} maxLength={40} placeholder={ot("Name (Half)")} onChange={e => setVariant(i, { name: e.target.value })}/><input type="number" min="0" step="0.01" value={v.price} placeholder={ot("Price")} onChange={e => setVariant(i, { price: e.target.value })}/><button type="button" className="icon-btn" aria-label={ot("Remove variant")} onClick={() => set({ variants: variants.filter((_, k) => k !== i) })}><Trash2 size={15}/></button></div>)}

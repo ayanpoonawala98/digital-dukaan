@@ -41,3 +41,19 @@ test('localized validation keeps HTML constraints unchanged', () => {
   assert.match(validationMessage({rangeUnderflow:true},{min:12},'mr'), /12/);
   assert.match(validationMessage({typeMismatch:true},{type:'email'},'mr'), /ईमेल/);
 });
+
+test('explicit source keys used by owner UI all have translations', async () => {
+  const fs = await import('node:fs');
+  const path = await import('node:path');
+  const root = path.resolve(import.meta.dirname, '../..');
+  const files = [];
+  const scan = dir => { for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const file=path.join(dir,entry.name);if(entry.isDirectory())scan(file);else if(/\.jsx?$/.test(file)&&!file.endsWith('.test.js'))files.push(file);} };
+  scan(root);
+  for(const file of files){const text=fs.readFileSync(file,'utf8');for(const match of text.matchAll(/\bot\(("(?:[^"\\]|\\.)*")/g)){const key=JSON.parse(match[1]);assert.ok(ownerMessages[key], `${path.relative(root,file)}: ${key}`);}}
+});
+
+test('known action IDs and enum comparisons stay untranslated', async () => {
+  const fs = await import('node:fs');
+  const files = ['../../features/dashboard/Dashboard.jsx','../../features/restaurant/TablesView.jsx','../../features/dashboard/OfferCampaigns.jsx','../../features/dashboard/CustomerReach.jsx'];
+  for(const relative of files){const text=fs.readFileSync(new URL(relative,import.meta.url),'utf8');assert.doesNotMatch(text,/===\s*ot\(/,relative);assert.doesNotMatch(text,/(?:value|channel)=\{ot\(/,relative);assert.doesNotMatch(text,/className=\{`[^`]*statusLabel\(/,relative);}
+});

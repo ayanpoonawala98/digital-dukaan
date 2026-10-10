@@ -1,3 +1,4 @@
+import { statusLabel } from '../../shared/lib/owner-ui.js';
 import { ot } from '../../shared/lib/owner-i18n.js';
 import React, { useEffect, useState } from 'react';
 import { api } from '../../shared/lib/api.js';
@@ -15,7 +16,7 @@ function Composer({ title, children, onSend, channel, limit = 180, busy }) {
     {isEmail && <label>{ot("Subject")}<input required maxLength={150} value={form.subject} onChange={e => setForm({ ...form, subject: e.target.value })}/></label>}
     {isPush && <label>{ot("Picture")}<select value={form.image} onChange={e => setForm({ ...form, image: e.target.value })}><option value="cover">{ot("Shop cover photo")}</option><option value="none">{ot("No picture")}</option></select></label>}
     <label>{ot("Message")}<textarea required maxLength={limit} value={form.body} onChange={e => setForm({ ...form, body: e.target.value })}/></label><small className="muted">{form.body.length}/{limit}</small>
-    {!isPush && <label className="perm-check"><input type="checkbox" checked={form.confirmCosts} onChange={e => setForm({ ...form, confirmCosts: e.target.checked })}/> {ot("I understand my own")} {channel} {ot("provider may charge me for this message.")}</label>}
+    {!isPush && <label className="perm-check"><input type="checkbox" checked={form.confirmCosts} onChange={e => setForm({ ...form, confirmCosts: e.target.checked })}/> {ot("I understand my own")} {ot(channel)} {ot("provider may charge me for this message.")}</label>}
     <button className="btn btn-green" disabled={busy || (!isPush && !form.confirmCosts)}>{busy ? ot("Sending...") : ot("Send")}</button></form>;
 }
 
@@ -47,7 +48,7 @@ export function CustomerDetail({ token, storeId, id, staffMode, onClose, onChang
     <h4>{ot("Devices")}</h4>
     {devices.length ? <ul>{devices.map(d => <li key={d.id}>{d.label}{ot(", added")} {when(d.createdAt)} <button className="table-button" disabled={busy} onClick={() => removeDevice(d.id)()}>{ot("Remove")}</button></li>)}</ul> : <p className="muted">{ot("No browser has turned on notifications yet. It is saved automatically when the customer allows notifications after ordering.")}</p>}
     <h4>{ot("Order history")}</h4>
-    {orders.length ? <div className="table-wrap"><table><thead><tr><th>{ot("Order")}</th><th>{ot("Date")}</th><th>{ot("Items")}</th><th>{ot("Status")}</th><th>{ot("Total")}</th></tr></thead><tbody>{orders.map(o => <tr key={`${o.kind}-${o.id}`}><td>#{o.number}</td><td>{when(o.createdAt)}</td><td>{o.summary}</td><td>{o.status}</td><td>{money(o.total)}</td></tr>)}</tbody></table></div> : <p className="muted">{ot("No orders found for this number.")}</p>}
+    {orders.length ? <div className="table-wrap"><table><thead><tr><th>{ot("Order")}</th><th>{ot("Date")}</th><th>{ot("Items")}</th><th>{ot("Status")}</th><th>{ot("Total")}</th></tr></thead><tbody>{orders.map(o => <tr key={`${o.kind}-${o.id}`}><td>#{o.number}</td><td>{when(o.createdAt)}</td><td>{o.summary}</td><td>{statusLabel(o.status)}</td><td>{money(o.total)}</td></tr>)}</tbody></table></div> : <p className="muted">{ot("No orders found for this number.")}</p>}
     {c.notes && <><h4>{ot("Notes")}</h4><p>{c.notes}</p></>}
     {messages.length > 0 && <><h4>{ot("Messages sent")}</h4><ul>{messages.map(m => <li key={m.id}>{when(m.createdAt)} - {m.channel}: {m.title ? `${m.title} - ` : ''}{m.body} ({m.sent ? 'sent' : ot("not delivered")})</li>)}</ul></>}
   </div>;

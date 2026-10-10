@@ -196,7 +196,7 @@ function LeadRow({ lead, token, storeId, storeType, onChanged }) {
     <td data-label={ot('Total')}>{inr(lead.price)}</td>
     <td data-label={ot('When')}>{new Date(lead.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
     <td data-label={ot('Customer no.')}><input className="phone-input" value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => phone !== (lead.customerPhone || '') && save(status, false)} placeholder={ot("Customer no.")} aria-label={ot("Customer WhatsApp number")}/></td>
-    <td data-label={ot('Status')}><select className={`status-select s-${status}`} value={status} disabled={busy} onChange={e => save(e.target.value, false)}>{LEAD_STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></td>
+    <td data-label={ot('Status')}><select className={`status-select s-${status}`} value={status} disabled={busy} onChange={e => save(e.target.value, false)}>{LEAD_STATUSES.map(([v, l]) => <option key={v} value={v}>{ot(l)}</option>)}</select></td>
     <td className="row-actions" data-label={ot('Actions')}>
       <button className="table-button" disabled={busy} onClick={() => save(status, true)} title={ot("Send status update on WhatsApp")}><Busy active={busy}><Send size={14}/> {busy ? ot("Updating...") : ot("Update")}</Busy></button>
       <button className="table-button" disabled={pdfBusy} onClick={async () => { setPdfBusy(true); try { await download(`/owner/${storeId}/leads/${lead.id}/invoice`, `estimate-${lead.id}.pdf`, token); } catch (e) { setError(e.message); } finally { setPdfBusy(false); } }} title={ot("Download estimate PDF")}><Busy active={pdfBusy}><Download size={14}/> {pdfBusy ? ot("Loading...") : ot("PDF")}</Busy></button>

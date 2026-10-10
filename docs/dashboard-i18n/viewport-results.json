@@ -1,0 +1,770 @@
+[
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "overview",
+    "errors": [],
+    "overflow": false,
+    "heading": "आपकी दुकान एक नज़र में।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "products",
+    "errors": [],
+    "overflow": false,
+    "heading": "आपके उत्पाद।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "categories",
+    "errors": [],
+    "overflow": false,
+    "heading": "श्रेणियाँ।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "leads",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp ऑर्डर।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "customers",
+    "errors": [],
+    "overflow": false,
+    "heading": "आपके ग्राहक।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "reviews",
+    "errors": [],
+    "overflow": false,
+    "heading": "समीक्षाएँ।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "sales",
+    "errors": [],
+    "overflow": false,
+    "heading": "बिक्री और पूछताछ।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "coupons",
+    "errors": [],
+    "overflow": false,
+    "heading": "कूपन।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "staff",
+    "errors": [],
+    "overflow": false,
+    "heading": "कर्मचारी खाते।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "notifications",
+    "errors": [],
+    "overflow": false,
+    "heading": "सूचनाएँ।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "campaigns",
+    "errors": [],
+    "overflow": false,
+    "heading": "ईमेल और SMS ऑफ़र।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "broadcast",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp प्रसारण।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "whatsapp-cloud",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp जोड़ें।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "settings",
+    "errors": [],
+    "overflow": false,
+    "heading": "दुकान की सेटिंग।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "tables",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल।"
+  },
+  {
+    "lang": "hi",
+    "width": 390,
+    "tab": "restaurant",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल ऑर्डर।"
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "overview",
+    "errors": [],
+    "overflow": false,
+    "heading": "तुमचे दुकान एका नजरेत."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "products",
+    "errors": [],
+    "overflow": false,
+    "heading": "तुमची उत्पादने."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "categories",
+    "errors": [],
+    "overflow": false,
+    "heading": "श्रेणी."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "leads",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp ऑर्डर."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "customers",
+    "errors": [],
+    "overflow": false,
+    "heading": "तुमचे ग्राहक."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "reviews",
+    "errors": [],
+    "overflow": false,
+    "heading": "अभिप्राय."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "sales",
+    "errors": [],
+    "overflow": false,
+    "heading": "विक्री आणि चौकशी."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "coupons",
+    "errors": [],
+    "overflow": false,
+    "heading": "कूपन."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "staff",
+    "errors": [],
+    "overflow": false,
+    "heading": "कर्मचारी खाती."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "notifications",
+    "errors": [],
+    "overflow": false,
+    "heading": "सूचना."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "campaigns",
+    "errors": [],
+    "overflow": false,
+    "heading": "ईमेल व SMS ऑफर."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "broadcast",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp प्रसारण."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "whatsapp-cloud",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp जोडणी."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "settings",
+    "errors": [],
+    "overflow": false,
+    "heading": "दुकानाच्या सेटिंग."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "tables",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल."
+  },
+  {
+    "lang": "mr",
+    "width": 390,
+    "tab": "restaurant",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल ऑर्डर."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "overview",
+    "errors": [],
+    "overflow": false,
+    "heading": "Your shop at a glance."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "products",
+    "errors": [],
+    "overflow": false,
+    "heading": "Your products."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "categories",
+    "errors": [],
+    "overflow": false,
+    "heading": "Categories."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "leads",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp orders."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "customers",
+    "errors": [],
+    "overflow": false,
+    "heading": "Your customers."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "reviews",
+    "errors": [],
+    "overflow": false,
+    "heading": "Reviews."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "sales",
+    "errors": [],
+    "overflow": false,
+    "heading": "Sales and enquiries."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "coupons",
+    "errors": [],
+    "overflow": false,
+    "heading": "Coupons."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "staff",
+    "errors": [],
+    "overflow": false,
+    "heading": "Staff accounts."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "notifications",
+    "errors": [],
+    "overflow": false,
+    "heading": "Notifications."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "campaigns",
+    "errors": [],
+    "overflow": false,
+    "heading": "Email & SMS offers."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "broadcast",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp broadcast."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "whatsapp-cloud",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp integration."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "settings",
+    "errors": [],
+    "overflow": false,
+    "heading": "Shop settings."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "tables",
+    "errors": [],
+    "overflow": false,
+    "heading": "Tables."
+  },
+  {
+    "lang": "en",
+    "width": 390,
+    "tab": "restaurant",
+    "errors": [],
+    "overflow": false,
+    "heading": "Table orders."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "overview",
+    "errors": [],
+    "overflow": false,
+    "heading": "तुमचे दुकान एका नजरेत."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "products",
+    "errors": [],
+    "overflow": false,
+    "heading": "तुमची उत्पादने."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "categories",
+    "errors": [],
+    "overflow": false,
+    "heading": "श्रेणी."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "leads",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp ऑर्डर."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "customers",
+    "errors": [],
+    "overflow": false,
+    "heading": "तुमचे ग्राहक."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "reviews",
+    "errors": [],
+    "overflow": false,
+    "heading": "अभिप्राय."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "sales",
+    "errors": [],
+    "overflow": false,
+    "heading": "विक्री आणि चौकशी."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "coupons",
+    "errors": [],
+    "overflow": false,
+    "heading": "कूपन."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "staff",
+    "errors": [],
+    "overflow": false,
+    "heading": "कर्मचारी खाती."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "notifications",
+    "errors": [],
+    "overflow": false,
+    "heading": "सूचना."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "campaigns",
+    "errors": [],
+    "overflow": false,
+    "heading": "ईमेल व SMS ऑफर."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "broadcast",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp प्रसारण."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "whatsapp-cloud",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp जोडणी."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "settings",
+    "errors": [],
+    "overflow": false,
+    "heading": "दुकानाच्या सेटिंग."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "tables",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल."
+  },
+  {
+    "lang": "mr",
+    "width": 1280,
+    "tab": "restaurant",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल ऑर्डर."
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "overview",
+    "errors": [],
+    "overflow": false,
+    "heading": "आपकी दुकान एक नज़र में।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "products",
+    "errors": [],
+    "overflow": false,
+    "heading": "आपके उत्पाद।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "categories",
+    "errors": [],
+    "overflow": false,
+    "heading": "श्रेणियाँ।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "leads",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp ऑर्डर।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "customers",
+    "errors": [],
+    "overflow": false,
+    "heading": "आपके ग्राहक।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "reviews",
+    "errors": [],
+    "overflow": false,
+    "heading": "समीक्षाएँ।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "sales",
+    "errors": [],
+    "overflow": false,
+    "heading": "बिक्री और पूछताछ।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "coupons",
+    "errors": [],
+    "overflow": false,
+    "heading": "कूपन।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "staff",
+    "errors": [],
+    "overflow": false,
+    "heading": "कर्मचारी खाते।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "notifications",
+    "errors": [],
+    "overflow": false,
+    "heading": "सूचनाएँ।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "campaigns",
+    "errors": [],
+    "overflow": false,
+    "heading": "ईमेल और SMS ऑफ़र।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "broadcast",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp प्रसारण।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "whatsapp-cloud",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp जोड़ें।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "settings",
+    "errors": [],
+    "overflow": false,
+    "heading": "दुकान की सेटिंग।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "tables",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल।"
+  },
+  {
+    "lang": "hi",
+    "width": 1280,
+    "tab": "restaurant",
+    "errors": [],
+    "overflow": false,
+    "heading": "टेबल ऑर्डर।"
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "overview",
+    "errors": [],
+    "overflow": false,
+    "heading": "Your shop at a glance."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "products",
+    "errors": [],
+    "overflow": false,
+    "heading": "Your products."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "categories",
+    "errors": [],
+    "overflow": false,
+    "heading": "Categories."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "leads",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp orders."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "customers",
+    "errors": [],
+    "overflow": false,
+    "heading": "Your customers."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "reviews",
+    "errors": [],
+    "overflow": false,
+    "heading": "Reviews."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "sales",
+    "errors": [],
+    "overflow": false,
+    "heading": "Sales and enquiries."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "coupons",
+    "errors": [],
+    "overflow": false,
+    "heading": "Coupons."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "staff",
+    "errors": [],
+    "overflow": false,
+    "heading": "Staff accounts."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "notifications",
+    "errors": [],
+    "overflow": false,
+    "heading": "Notifications."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "campaigns",
+    "errors": [],
+    "overflow": false,
+    "heading": "Email & SMS offers."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "broadcast",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp broadcast."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "whatsapp-cloud",
+    "errors": [],
+    "overflow": false,
+    "heading": "WhatsApp integration."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "settings",
+    "errors": [],
+    "overflow": false,
+    "heading": "Shop settings."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "tables",
+    "errors": [],
+    "overflow": false,
+    "heading": "Tables."
+  },
+  {
+    "lang": "en",
+    "width": 1280,
+    "tab": "restaurant",
+    "errors": [],
+    "overflow": false,
+    "heading": "Table orders."
+  }
+]

@@ -74,7 +74,7 @@ function Weekdays({ weekday, peak }) {
 }
 const statusParts = obj => Object.entries(obj || {}).map(([k, v], i) => ({ label: ot(label(k)), value: v, color: STATUS_COLOR[k] || PALETTE[i % PALETTE.length] })).sort((a, b) => b.value - a.value);
 const sparkOf = (series, key) => series.slice(-14).map(s => s[key]);
-const Note = ({ r }) => <p className="muted sd-note">{r.caveat}</p>;
+const Note = ({ r }) => <p className="muted sd-note">{ot(r.caveat)}</p>;
 
 export default function SalesAnalytics({ report, products = [], storeType = 'retail' }) {
   const r = report || {}, ins = r.insights, days = r.daily || [];
@@ -103,7 +103,7 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
         <Panel title={ot("Busiest hours")} sub={ot("When customers reach out")}><Hours hourly={ins.hourly} peakHour={ins.peakHour}/></Panel>
         <Panel title={ot("Busiest days")} sub={ot("Across the selected range")}><Weekdays weekday={ins.weekday} peak={ins.peakWeekday}/></Panel>
       </div>
-      {!!ins.coupons?.length && <Panel title={ot("Coupons in use")}><HBars color={PALETTE[2]} rows={ins.coupons.map(x => ({ label: x.code, value: x.uses, sub: `${inr(x.discount)} discount` }))} fmt={v => `${v} uses`}/></Panel>}
+      {!!ins.coupons?.length && <Panel title={ot("Coupons in use")}><HBars color={PALETTE[2]} rows={ins.coupons.map(x => ({ label: x.code, value: x.uses, sub: ot('{v0} discount',{v0:inr(x.discount)}) }))} fmt={v => ot('{v0} uses',{v0:v})}/></Panel>}
       <section className="dashboard-panel"><h3>{ot("How to read this")}</h3><p className="muted">{ot("Customers order on WhatsApp or in the shop, so payments are not recorded here and")} {noun} {ot("are never counted as sales. Track each request and its status under Orders.")}</p></section>
     </div>;
   }
@@ -130,14 +130,14 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
       <Panel title={ot("Order types")} sub={ot("Dine-in, takeaway and delivery")}><Donut parts={statusParts(ins.orderTypes).map((p, i) => ({ ...p, color: PALETTE[i % PALETTE.length] }))} centerLabel={ot("orders")}/></Panel>
     </div>
     <div className="sd-grid-3">
-      <Panel title={ot("Best sellers")} sub={ot("Units across all orders that were not cancelled")}><HBars rows={(ins.topDishes || []).map(p => ({ label: p.name, value: p.units, sub: inr(p.value) }))} fmt={v => `${v} sold`}/></Panel>
+      <Panel title={ot("Best sellers")} sub={ot("Units across all orders that were not cancelled")}><HBars rows={(ins.topDishes || []).map(p => ({ label: p.name, value: p.units, sub: inr(p.value) }))} fmt={v => ot('{v0} sold',{v0:v})}/></Panel>
       <Panel title={ot("Rush hours")} sub={ot("When orders come in")}><Hours hourly={ins.hourly} peakHour={ins.peakHour}/></Panel>
       <Panel title={ot("Busiest days")} sub={ot("Across the selected range")}><Weekdays weekday={ins.weekday} peak={ins.peakWeekday}/></Panel>
     </div>
     <div className="sd-grid-3">
       <Panel title={ot("Order status")} sub={ot("Where every order stands")}><Donut parts={statusParts(ins.orderStatus)} centerLabel={ot("orders")}/></Panel>
-      <Panel title={ot("Busiest tables")} sub={ot("Dine-in orders per table")}><HBars color={PALETTE[3]} rows={(ins.tables || []).map(t => ({ label: `Table ${t.table}`, value: t.orders, sub: inr(t.value) }))} fmt={v => `${v} orders`}/></Panel>
-      <Panel title={ot("Customers")} sub={ot("Who is coming back")}><div className="sd-people"><div><b>{ins.customers?.identified || 0}</b><span>{ot("with a phone number")}</span></div><div><b>{ins.customers?.repeat || 0}</b><span>{ot("ordered more than once")}</span></div></div>{!!ins.coupons?.length && <><h4 className="sd-h4">{ot("Coupons in use")}</h4><HBars color={PALETTE[2]} rows={ins.coupons.map(x => ({ label: x.code, value: x.uses, sub: `${inr(x.discount)} off` }))} fmt={v => `${v} uses`}/></>}</Panel>
+      <Panel title={ot("Busiest tables")} sub={ot("Dine-in orders per table")}><HBars color={PALETTE[3]} rows={(ins.tables || []).map(t => ({ label: ot('Table {v0}',{v0:t.table}), value: t.orders, sub: inr(t.value) }))} fmt={v => ot('{v0} orders',{v0:v})}/></Panel>
+      <Panel title={ot("Customers")} sub={ot("Who is coming back")}><div className="sd-people"><div><b>{ins.customers?.identified || 0}</b><span>{ot("with a phone number")}</span></div><div><b>{ins.customers?.repeat || 0}</b><span>{ot("ordered more than once")}</span></div></div>{!!ins.coupons?.length && <><h4 className="sd-h4">{ot("Coupons in use")}</h4><HBars color={PALETTE[2]} rows={ins.coupons.map(x => ({ label: x.code, value: x.uses, sub: ot('{v0} off',{v0:inr(x.discount)}) }))} fmt={v => ot('{v0} uses',{v0:v})}/></>}</Panel>
     </div>
     <Panel title={ot("Best sellers table")} sub={ot("Units in served orders. Item value is before order discounts and delivery.")}><div className="table-wrap"><table><thead><tr><th>{ot("Rank")}</th><th>{ot("Item")}</th><th>{ot("Units")}</th><th>{ot("Item value")}</th></tr></thead><tbody>{(r.topProducts || []).map((p, i) => <tr key={p.name}><td><span className="rank-pill">{i + 1}</span></td><td>{p.name}</td><td>{p.quantity}</td><td>{inr(p.itemValue)}</td></tr>)}</tbody></table></div>{!r.topProducts?.length && <p>{ot("No served items recorded yet.")}</p>}</Panel>
     <Panel title={ot("Stock needing attention")} sub={ot("Stocked items with no units in served orders in this date range. This is a no-recorded-movement list, not proof of unsold stock.")}><div className="table-wrap"><table><thead><tr><th>{ot("Item")}</th><th>{ot("Stock")}</th><th>{ot("Listed price")}</th></tr></thead><tbody>{(r.noMovement || []).map(p => <tr key={p.id}><td>{p.name}</td><td>{p.stock}</td><td>{inr(p.price)}</td></tr>)}</tbody></table></div>{!r.noMovement?.length && <p>{ot("No stocked items without recorded movement.")}</p>}</Panel>

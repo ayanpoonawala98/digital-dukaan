@@ -5472,6 +5472,74 @@ export const ownerMessages = {
     "hi": "शेफ़ का खास",
     "mr": "शेफचे खास"
   },
+  "Not shown": {
+    "hi": "नहीं दिखाएँ",
+    "mr": "दाखवू नका"
+  },
+  "Veg": {
+    "hi": "शाकाहारी",
+    "mr": "शाकाहारी"
+  },
+  "Non-veg": {
+    "hi": "मांसाहारी",
+    "mr": "मांसाहारी"
+  },
+  "Egg": {
+    "hi": "अंडा",
+    "mr": "अंडे"
+  },
+  "Customer saved": {
+    "hi": "ग्राहक सहेजा",
+    "mr": "ग्राहक जतन केला"
+  },
+  "Customer removed from the active list. Consent and opt-out history are retained.": {
+    "hi": "ग्राहक चालू सूची से हटाया। सहमति और वापस लेने का इतिहास रखा है।",
+    "mr": "ग्राहक सक्रिय यादीतून काढला. संमती आणि मागे घेण्याचा इतिहास ठेवला आहे."
+  },
+  "Found {found} people in {scanned} past orders; added {created} new.": {
+    "hi": "{scanned} पुराने ऑर्डर में {found} लोग मिले; {created} नए जोड़े।",
+    "mr": "{scanned} जुन्या ऑर्डरमध्ये {found} लोक सापडले; {created} नवीन जोडले."
+  },
+  "Imported {created}; skipped {skipped} existing customers. Consent was not inferred.": {
+    "hi": "{created} आयात किए; {skipped} मौजूदा ग्राहक छोड़े। सहमति नहीं मानी गई।",
+    "mr": "{created} आयात केले; {skipped} सध्याचे ग्राहक वगळले. संमती गृहीत धरली नाही."
+  },
+  "Removed {removed}; retained {retained} edited customers.": {
+    "hi": "{removed} हटाए; {retained} बदले हुए ग्राहक रखे।",
+    "mr": "{removed} काढले; {retained} बदललेले ग्राहक ठेवले."
+  },
+  "Totals use order-created dates in IST. Served restaurant orders and retail orders marked Delivered are recorded totals, not proof of payment. Other WhatsApp enquiries are requests, not sales.": {
+    "hi": "कुल राशि में IST की ऑर्डर बनने की तारीख ली जाती है। परोसे रेस्तराँ ऑर्डर और पहुँचाए खुदरा ऑर्डर की राशि दर्ज है, भुगतान का प्रमाण नहीं। अन्य WhatsApp पूछताछ अनुरोध हैं, बिक्री नहीं।",
+    "mr": "एकूण रकमेसाठी IST मधील ऑर्डर तयार होण्याची तारीख घेतली जाते. वाढलेल्या रेस्टॉरंट ऑर्डर आणि पोहोचवलेल्या किरकोळ ऑर्डरची रक्कम नोंदलेली आहे, पेमेंटचा पुरावा नाही. इतर WhatsApp चौकशी या विनंत्या आहेत, विक्री नाही."
+  },
+  "email": {
+    "hi": "ईमेल",
+    "mr": "ईमेल"
+  },
+  "sms": {
+    "hi": "SMS",
+    "mr": "SMS"
+  },
+  "push": {
+    "hi": "पुश सूचना",
+    "mr": "पुश सूचना"
+  },
+  "Sending": {
+    "hi": "भेज रहे हैं",
+    "mr": "पाठवत आहे"
+  },
+  "Failed": {
+    "hi": "असफल",
+    "mr": "अयशस्वी"
+  },
+  "Draft": {
+    "hi": "मसौदा",
+    "mr": "मसुदा"
+  },
+  "Sent": {
+    "hi": "भेजा गया",
+    "mr": "पाठवले"
+  },
   "SMS": {
     "hi": "SMS",
     "mr": "SMS"
