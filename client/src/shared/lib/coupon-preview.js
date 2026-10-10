@@ -1,3 +1,4 @@
+import { ot } from './owner-i18n.js';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { cleanCode, validCodeShape } from './coupon-math.js';
@@ -11,7 +12,7 @@ export function useCouponPreview(slug, code, subtotal) {
     let live = true; setState(s => ({ ...s, checking: true, error: '' }));
     const t = setTimeout(async () => {
       try { const r = await api(`/public/stores/${slug}/coupon-preview`, { method: 'POST', body: { couponCode: c, subtotal }, feedback: false }); if (live) setState({ discount: Number(r.discount) || 0, error: '', checking: false, code: r.code || c }); }
-      catch (e) { if (live) setState({ discount: 0, error: e.message || 'Could not check this coupon', checking: false, code: '' }); }
+      catch (e) { if (live) setState({ discount: 0, error: ot(e.message || 'Could not check this coupon'), checking: false, code: '' }); }
     }, 600);
     return () => { live = false; clearTimeout(t); };
   }, [slug, code, subtotal]);

@@ -1,3 +1,4 @@
+import { ot } from '../shared/lib/owner-i18n.js';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Moon, Sun } from 'lucide-react';
 
@@ -18,5 +19,5 @@ export function ThemeProvider({ children }) {
 
 export function ThemeToggle({ className = '', showLabel = false }) {
   const { theme, toggle } = useTheme();
-  return <button className={`theme-toggle ${className}`} onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}{showLabel && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}</button>;
+  return <button className={`theme-toggle ${className}`} onClick={toggle} aria-label={ot(theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode')}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}{showLabel && <span>{ot(theme === 'dark' ? 'Light mode' : 'Dark mode')}</span>}</button>;
 }

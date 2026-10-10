@@ -1,3 +1,4 @@
+import { ot } from '../../shared/lib/owner-i18n.js';
 import React, { useEffect, useState } from 'react';
 import { api, download, inr } from '../../shared/lib/api.js';
 import { statusLabel } from '../../shared/lib/owner-ui.js';
@@ -26,17 +27,17 @@ export default function EnquiriesPanel({ token, storeId, slug, refreshKey = 0, t
   const exportCsv = async () => { setExporting(true); try { const p = query(); p.delete('page'); await download(`/owner/${storeId}/leads/report.csv?${p}`, `enquiries-${slug || 'store'}.csv`, token); } catch (e) { setError(e.message); } finally { setExporting(false); } };
   const filtered = filters.q || filters.from || filters.to || (filters.status && filters.status !== 'all');
   return <div className="dashboard-panel enquiries-panel">
-    <div className="enquiries-head"><h3>{title}</h3><span className="muted">{total} {filtered ? 'matching' : 'total'}</span></div>
-    <FilterBar value={{ ...filters, q: typed }} onChange={onFilters} dates statuses={STATUSES} searchPlaceholder="Customer, phone, product or #id..." onReport={exportCsv} reportBusy={exporting}/>
-    {error && <p className="notice error">{error}</p>}
-    {rows.length ? <div className={`table-wrap enquiry-table${loading ? ' is-loading' : ''}`}><table><thead><tr><th>Customer</th><th>Phone</th><th>Product</th><th>Price</th><th>Status</th><th>When</th></tr></thead><tbody>{rows.map(l => <tr key={l.id}>
-      <td data-label="Customer">{l.customerName || <span className="muted">Not shared</span>}</td>
-      <td data-label="Phone">{l.customerPhone ? <a href={`tel:${l.customerPhone.replace(/[^+\d]/g, '')}`}>{l.customerPhone}</a> : <span className="muted">Not shared</span>}</td>
-      <td data-label="Product">{l.productName}<small className="muted"> #{l.id}</small></td>
-      <td data-label="Price">{inr(l.price)}</td>
-      <td data-label="Status"><span className={`status-select s-${l.status || 'new'}`}>{statusLabel(l.status)}</span></td>
-      <td data-label="When">{when(l.createdAt)}</td>
-    </tr>)}</tbody></table></div> : <p className="muted">{loading ? 'Loading enquiries...' : filtered ? 'No enquiries match these filters.' : 'Customer requests will show here when they start a WhatsApp order.'}</p>}
-    {total > pageSize && <Pages label="enquiries" size={pageSize} page={filters.page || 1} total={total} onChange={page => setFilters(f => ({ ...f, page }))}/>}
+    <div className="enquiries-head"><h3>{title}</h3><span className="muted">{total} {ot(filtered ? 'matching' : 'total')}</span></div>
+    <FilterBar value={{ ...filters, q: typed }} onChange={onFilters} dates statuses={STATUSES} searchPlaceholder={ot("Customer, phone, product or #id...")} onReport={exportCsv} reportBusy={exporting}/>
+    {error && <p className="notice error">{ot(error)}</p>}
+    {rows.length ? <div className={`table-wrap enquiry-table${loading ? ' is-loading' : ''}`}><table><thead><tr><th>{ot("Customer")}</th><th>{ot("Phone")}</th><th>{ot("Product")}</th><th>{ot("Price")}</th><th>{ot("Status")}</th><th>{ot("When")}</th></tr></thead><tbody>{rows.map(l => <tr key={l.id}>
+      <td data-label={ot('Customer')}>{l.customerName || <span className="muted">{ot("Not shared")}</span>}</td>
+      <td data-label={ot('Phone')}>{l.customerPhone ? <a href={`tel:${l.customerPhone.replace(/[^+\d]/g, '')}`}>{l.customerPhone}</a> : <span className="muted">{ot("Not shared")}</span>}</td>
+      <td data-label={ot('Product')}>{l.productName}<small className="muted"> #{l.id}</small></td>
+      <td data-label={ot('Price')}>{inr(l.price)}</td>
+      <td data-label={ot('Status')}><span className={`status-select s-${l.status || 'new'}`}>{statusLabel(l.status)}</span></td>
+      <td data-label={ot('When')}>{when(l.createdAt)}</td>
+    </tr>)}</tbody></table></div> : <p className="muted">{loading ? ot("Loading enquiries...") : filtered ? ot("No enquiries match these filters.") : ot("Customer requests will show here when they start a WhatsApp order.")}</p>}
+    {total > pageSize && <Pages label={ot("enquiries")} size={pageSize} page={filters.page || 1} total={total} onChange={page => setFilters(f => ({ ...f, page }))}/>}
   </div>;
 }

@@ -1834,3 +1834,16 @@ div.row-actions { display: flex; flex-wrap: wrap; gap: var(--gap-1); }
 .wa-steps li>.btn{margin-top:var(--gap-2,8px)}
 .wa-steps li b{font-weight:600}
 .wa-choice-later{margin:0 0 var(--gap-3,12px)}
+/* Locally served: no third-party font request for owner Hindi/Marathi. */
+@font-face { font-family:'Noto Sans Devanagari'; font-style:normal; font-weight:400; font-display:swap; src:url('/fonts/noto-devanagari-400.ttf') format('truetype'); }
+@font-face { font-family:'Noto Sans Devanagari'; font-style:normal; font-weight:500; font-display:swap; src:url('/fonts/noto-devanagari-500.ttf') format('truetype'); }
+@font-face { font-family:'Noto Sans Devanagari'; font-style:normal; font-weight:600; font-display:swap; src:url('/fonts/noto-devanagari-600.ttf') format('truetype'); }
+@font-face { font-family:'Noto Sans Devanagari'; font-style:normal; font-weight:700; font-display:swap; src:url('/fonts/noto-devanagari-700.ttf') format('truetype'); }
+[data-owner-language="hi"], [data-owner-language="mr"] { --font-body:'Noto Sans Devanagari','DM Sans',sans-serif; --font-display:'Noto Sans Devanagari','Manrope',sans-serif; }
+[data-owner-language="hi"] .admin-layout, [data-owner-language="mr"] .admin-layout { line-height:1.65; }
+[data-owner-language="hi"] .kicker, [data-owner-language="mr"] .kicker { letter-spacing:0; }
+.owner-language { flex-direction:row; align-items:center; gap:8px; font-size:12px; margin-left:auto; }
+.owner-language select { width:auto; min-width:96px; padding:7px 9px; font-size:13px; }
+.admin-top { flex-wrap:wrap; gap:12px; }
+.admin-profile { min-width:0; }
+@media(max-width:600px) { .owner-language { flex:1 0 100%; justify-content:flex-end; order:3; } .mnav span { white-space:normal; line-height:1.45; } .mnav-sheet-head strong { line-height:1.5; } }
