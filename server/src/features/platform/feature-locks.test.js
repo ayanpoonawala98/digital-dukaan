@@ -26,7 +26,6 @@ test('route mapping covers every dashboard feature and skips essentials', () => 
   assert.equal(featureForOwnerRoute('GET', '/customers'), 'customers');
   assert.equal(featureForOwnerRoute('GET', '/sales-summary'), 'sales');
   assert.equal(featureForOwnerRoute('POST', '/coupons'), 'coupons');
-  assert.equal(featureForOwnerRoute('POST', '/referrals/2/redeem'), 'referrals');
   assert.equal(featureForOwnerRoute('GET', '/staff'), 'staff');
   assert.equal(featureForOwnerRoute('PATCH', '/restaurant-orders/4'), 'restaurant');
   assert.equal(featureForOwnerRoute('POST', '/push-broadcast'), 'notifications');

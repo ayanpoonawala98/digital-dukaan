@@ -56,14 +56,6 @@
     "liveRecording": true
   },
   {
-    "id": "08-referrals",
-    "title": "Referrals",
-    "description": "Verify linked orders and track manual rewards",
-    "duration": "1:31",
-    "transcript": "Referrals दो customers के reward का manual ledger है। ये automatic checkout discount नहीं है। दोनों sides दस percent के लिए तभी eligible होते हैं जब linked order दुकान verify करती है।\n\nReferral links form में referrer का phone country code के साथ लिखें। Create referral link से code बनता है। इस tutorial में कोई real phone डालकर नया link नहीं बनाया गया है। Saved list में code और pending या confirmed status दिखता है। Copy link से वही दुकान का referral link मिलता है। उसे किसके साथ share करना है, ये आप तय करते हैं।\n\nClick होने या WhatsApp enquiry आने से reward अपने आप नहीं मिलता। Pending referral को verify करते समय order type, confirmed order number और referred friend का phone मिलाना होता है। सही order और phone match होने पर Confirm reward से entitlement record होता है।\n\nConfirmed entry में referrer और friend का reward अलग दिखता है। दोनों का status pending या used हो सकता है। Discount खुद सही transaction में apply करें और सिर्फ इस्तेमाल होने पर Mark used करें। एक reward को दो बार इस्तेमाल न करें। Mark used actual ledger change है, demo button नहीं।\n\nSearch और status filter से code या entry ढूँढें। गलत phone, unconfirmed order या सिर्फ link click पर reward confirm न करें। अगर customer identity unclear है, पहले उससे verify करें।\n\nइस feature का मतलब wallet credit या automatic cash payout नहीं है। ये दुकान के दस percent reward rules का record है। Customer को ऐसा promise मत करें जो यहाँ automatic नहीं होता।\n\nसही process है: referral link बनाइए, linked order verify कीजिए, identity और phone match कीजिए, reward record कीजिए, discount देते समय एक बार used mark कीजिए। Tutorial में कोई reward create, confirm या redeem नहीं हुआ है।",
-    "liveRecording": true
-  },
-  {
     "id": "09-staff",
     "title": "Staff access",
     "description": "Accounts, permissions and disabling access",

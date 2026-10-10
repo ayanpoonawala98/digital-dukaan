@@ -35,7 +35,7 @@ import { notifyNewProduct } from '../features/notifications/new-product-push.js'
 import { flowFor, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaurantStatusAllowed } from '../features/orders/order-flows.js';
 import { cleanVariants, cleanAddonGroups, cleanVeg, cleanTags, istDay } from '../features/restaurant/menu-options.js';
 import { featureForOwnerRoute, isLocked } from '../features/platform/feature-locks.js';
-import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
+import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { validateProductRows } from '../features/catalog/product-import.js';
 import { insights } from '../features/platform/sales-insights.js';
@@ -696,40 +696,6 @@ r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
     }
   }));
   res.json({ sent, gone, total: subs.length });
-}));
-
-r.get('/:storeId/referrals', ownerOnly, wrap(async(req,res)=>res.json(await ownerList(Referral,'referrals',req,{businessId:bid(req)},['code','referrerPhone','referredPhone']))));
-r.post('/:storeId/referrals', ownerOnly, wrap(async (req, res) => {
-  const phone = String(req.body?.referrerPhone || '').trim();
-  if (!validPhone(phone)) throw bad(400, 'Referrer phone needs a country code');
-  const code = `FR${randomUUID().replace(/-/g, '').slice(0, 10).toUpperCase()}`;
-  const referral = await Referral.create({ businessId: bid(req), code, referrerPhone:phone, status:'pending' });
-  res.status(201).json({ referral, shareUrl:`${process.env.STORE_SUBDOMAINS_READY === 'true' ? 'https://' + storeDomain(req.store.slug) : clientBase() + '/store/' + req.store.slug}?ref=${code}` });
-}));
-r.post('/:storeId/referrals/:id/confirm', ownerOnly, wrap(async (req, res) => {
-  const referral = await Referral.findOne({ where:{ id:numId(req.params.id), businessId:bid(req), status:'pending' } });
-  if (!referral) throw bad(404, 'Pending referral not found');
-  const referredPhone = String(req.body?.referredPhone || '').trim(), orderKind = req.body?.orderKind, orderId = numId(req.body?.orderId);
-  if (!validPhone(referredPhone) || referredPhone === referral.referrerPhone) throw bad(400, 'Enter the distinct referred customer phone');
-  if (!['retail','restaurant'].includes(orderKind)) throw bad(400, 'Choose a valid order type');
-  const Order = orderKind === 'retail' ? Lead : RestaurantOrder;
-  const order = await Order.findOne({ where:{ id:orderId, businessId:bid(req), referralCode:referral.code } });
-  if (!order || !(orderKind === 'retail' ? ['confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed'].includes(order.status) : RESTAURANT_DEDUCT.includes(order.status))) throw bad(400, 'Find a confirmed order linked to this referral first');
-  if (!order.customerPhone || String(order.customerPhone).replace(/\D/g, '') !== referredPhone) throw bad(400, 'A matching customer phone must be attached to the confirmed order');
-  const [changed] = await Referral.update({ status:'confirmed', referredPhone, orderId, orderKind }, { where:{ id:referral.id, businessId:bid(req), status:'pending' } });
-  if (!changed) throw bad(409, 'Referral was already confirmed');
-  res.json({ ok:true });
-}));
-
-r.post('/:storeId/referrals/:id/redeem', ownerOnly, wrap(async (req, res) => {
-  const referral = await Referral.findOne({ where:{ id:numId(req.params.id), businessId:bid(req), status:'confirmed' } });
-  if (!referral) throw bad(404, 'Confirmed referral not found');
-  const side = req.body?.side;
-  if (!['referrer','referred'].includes(side)) throw bad(400, 'Select referrer or referred');
-  const field = side === 'referrer' ? 'referrerRewardUsed' : 'referredRewardUsed';
-  const [changed] = await Referral.update({ [field]:true }, { where:{ id:referral.id, businessId:bid(req), status:'confirmed', [field]:false } });
-  if (!changed) throw bad(409, 'Reward already marked used');
-  res.json({ ok:true });
 }));
 
 r.get('/:storeId/coupons', wrap(async(req,res)=>res.json(await ownerList(Coupon,'coupons',req,{businessId:bid(req)},['code']))));

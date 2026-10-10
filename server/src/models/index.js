@@ -112,7 +112,6 @@ export const Lead = sequelize.define('Lead', {
   source: { type: DataTypes.STRING(80), defaultValue: '' },
   discount: { type: DataTypes.FLOAT, defaultValue: 0 },
   couponCode: { type: DataTypes.STRING(24), allowNull: true },
-  referralCode: { type: DataTypes.STRING(24), allowNull: true },
   paymentStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: '' },
   paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
   paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
@@ -192,7 +191,6 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
   subtotal: { type: DataTypes.FLOAT, defaultValue: 0 },
   discount: { type: DataTypes.FLOAT, defaultValue: 0 },
   couponCode: { type: DataTypes.STRING(24), allowNull: true },
-  referralCode: { type: DataTypes.STRING(24), allowNull: true },
   total: { type: DataTypes.FLOAT, allowNull: false },
   status: { type: DataTypes.STRING(20), defaultValue: 'new', allowNull: false },
   deliveryFee: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
@@ -228,20 +226,6 @@ Business.hasMany(Coupon, { foreignKey: 'businessId' });
 Coupon.belongsTo(Business, { foreignKey: 'businessId' });
 
 // Codes are owner-created and attached to a real customer phone by staff confirmation.
-export const Referral = sequelize.define('Referral', {
-  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
-  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
-  code: { type: DataTypes.STRING(24), allowNull: false },
-  referrerPhone: { type: DataTypes.STRING(20), allowNull: false },
-  referredPhone: { type: DataTypes.STRING(20), allowNull: true },
-  orderId: { type: DataTypes.INTEGER, allowNull: true },
-  orderKind: { type: DataTypes.STRING(20), allowNull: true },
-  referrerRewardUsed: { type: DataTypes.BOOLEAN, defaultValue: false },
-  referredRewardUsed: { type: DataTypes.BOOLEAN, defaultValue: false },
-  status: { type: DataTypes.STRING(20), defaultValue: 'pending' }
-}, { tableName: 'referrals', indexes: [{ unique: true, fields: ['businessId', 'code'] }] });
-Business.hasMany(Referral, { foreignKey: 'businessId' });
-Referral.belongsTo(Business, { foreignKey: 'businessId' });
 
 // Per-store provider credentials. Kept in their own table (never on Business) so no store/overview/public response can ever carry them.
 export const NotifySecret = sequelize.define('NotifySecret', {
