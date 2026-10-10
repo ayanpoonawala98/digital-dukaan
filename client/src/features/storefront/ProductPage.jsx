@@ -16,6 +16,7 @@ import { useCart, useWishlist } from './shop.js';
 import { Footer, Header } from '../../shared/components/chrome.jsx';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
+import { useSeo } from '../../shared/lib/seo.js';
 
 function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [contact, setContact] = useContact();
@@ -40,7 +41,7 @@ export default function ProductPage({ hostedSlug }) {
   const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [sheet, setSheet] = useState(false), [qty, setQtyState] = useState(1), [answers, setAnswers] = useState({});
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
-  useEffect(() => { if (data?.business && data?.product) document.title = `${data.product.name} - ${data.business.name}`; return () => { document.title = 'Digital Shop - Your shop, one link away'; }; }, [data]);
+  useSeo({ title: data?.product ? `${data.product.name} - ${data.business.name}` : undefined, description: data?.product ? String(data.product.description || `${data.product.name} from ${data.business.name}. Order on WhatsApp.`).replace(/\s+/g, ' ').slice(0, 300) : undefined, path: hostedSlug || !data?.product ? undefined : `/store/${slug}/product/${id}` });
   if (error) return <><Header/><div className="container empty-state page-fade">{error}</div></>;
   if (!data) return <BrandLoader label="Loading product"/>;
   const { business, product } = data;

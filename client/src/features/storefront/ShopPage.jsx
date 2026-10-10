@@ -26,6 +26,7 @@ import { Footer, Header } from '../../shared/components/chrome.jsx';
 import LoadSkeleton from '../../shared/components/LoadSkeleton.jsx';
 import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import OfferPopup from './OfferPopup.jsx';
+import { useSeo } from '../../shared/lib/seo.js';
 
 function useShop(slug) {
   const [shop, setShop] = useState(null), [error, setError] = useFeedbackState('');
@@ -333,7 +334,7 @@ export default function ShopPage({ hostedSlug }) {
   useEffect(() => { if (!shop?.business?.offerPopupActive || !shop.business.offerPopupText) return; const key = `dd-offer-seen-${slug}`; try { if (sessionStorage.getItem(key)) return; } catch {} const timer = setTimeout(() => setOfferOpen(true), 1100); return () => clearTimeout(timer); }, [shop, slug]);
   const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}`, 'yes'); } catch {} setOfferOpen(false); };
 
-  useEffect(() => { if (shop?.business?.name) document.title = shop.business.name; return () => { document.title = 'Digital Shop - Your shop, one link away'; }; }, [shop?.business?.name]);
+  useSeo({ title: shop?.business?.name || undefined, description: shop?.business?.description ? String(shop.business.description).replace(/\s+/g, ' ').slice(0, 300) : shop?.business?.name ? `Explore ${shop.business.name} and order on WhatsApp.` : undefined, path: hostedSlug || !shop?.business?.name ? undefined : `/store/${slug}`, noindex: Boolean(shop?.paused) });
   if (error) return <><Header/><div className="container empty-state page-fade"><h2>Shop not found</h2><p>{error}</p><Link to="/">Back home</Link></div></>;
   if (!shop) return <><Header/><BrandLoader label="Loading shop"/></>;
   if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} is temporarily closed</h1><p>This shop is paused right now. Please check back later.</p><Link className="btn btn-green" to="/">Back home</Link></main><Footer/></>;

@@ -10,7 +10,8 @@ test('store preview replaces all generic branding, escapes owner text and preser
  assert.match(html,/og:image" content="https:\/\/ik.imagekit.io\/demo\/logo.png/);
  assert.equal((html.match(/property="og:image"/g)||[]).length,1);
  assert.match(html,/og:url" content="https:\/\/digitalshop.website\/store\/ashiya/);
- assert.doesNotMatch(html,/digital-dukaan-hero|application\/ld\+json|og:image:width/);
+ assert.doesNotMatch(html,/digital-dukaan-hero|og:image:width/);
+ assert.equal((html.match(/application\/ld\+json/g)||[]).length,1);assert.match(html,/"@type":"LocalBusiness"/);assert.doesNotMatch(html,/<shop>/);
  assert.match(html,/<div id="root"><\/div>/);assert.match(html,/src="\/src\/app\/main.jsx"/);assert.match(html,/fonts.googleapis/);
 });
 test('no-logo and paused stores do not inherit platform image',()=>{
@@ -25,9 +26,21 @@ test('handler fetches only exact public storefront routes and handles errors wit
  const context={next:async()=>new Response(base,{headers:{'content-type':'text/html','etag':'old','content-length':'99'}})};
  const result=await handler(new Request('https://digitalshop.website/store/ashiya?ref=123'),context);
  assert.equal(calls,1);assert.equal(result.headers.get('etag'),null);assert.match(await result.text(),/og:title/);
- for(const path of ['/dashboard','/store/ashiya/order/1','/store/ashiya/product/2','/store/x/unknown']) assert.equal(await handler(new Request('https://digitalshop.website'+path),context),undefined);
+ for(const path of ['/dashboard','/store/ashiya/order/1','/store/x/unknown','/store/ashiya/product/abc']) assert.equal(await handler(new Request('https://digitalshop.website'+path),context),undefined);
  assert.equal(calls,1);
  global.fetch=async()=>new Response('',{status:404});assert.equal((await handler(new Request('https://digitalshop.website/store/missing'),context)).status,404);
  global.fetch=async()=>{throw Error('offline')};assert.equal(await handler(new Request('https://digitalshop.website/store/ashiya'),context),undefined);
+ }finally{global.fetch=original;}
+});
+
+test('product pages get Product + breadcrumb schema and sold-out availability',async()=>{
+ const original=global.fetch;let called='';
+ try{
+ global.fetch=async u=>{called=String(u);return Response.json({business,product:{id:7,name:'Chair </script>',price:10,stock:0,imageUrl:'https://ik.imagekit.io/x.jpg',variants:[{name:'S',price:8}]}});};
+ const context={next:async()=>new Response(base,{headers:{'content-type':'text/html'}})};
+ const r=await handler(new Request('https://digitalshop.website/store/ashiya/product/7'),context),t=await r.text();
+ assert.match(called,/stores\/ashiya\/products\/7$/);assert.match(t,/"@type":"Product"/);assert.match(t,/OutOfStock/);assert.match(t,/"price":"8.00"/);assert.match(t,/BreadcrumbList/);
+ assert.equal((t.match(/<\/script>/g)||[]).length,(base.match(/<\/script>/g)||[]).length-1+2);
+ assert.match(t,/<link rel="canonical" href="https:\/\/digitalshop.website\/store\/ashiya\/product\/7"/);
  }finally{global.fetch=original;}
 });

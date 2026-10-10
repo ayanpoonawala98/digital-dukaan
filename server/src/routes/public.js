@@ -85,6 +85,11 @@ r.get('/sitemap-stores', wrap(async (req, res) => {
   res.json({ slugs: stores.map(store => store.slug) });
 }));
 
+r.get('/sitemap-products', wrap(async (req, res) => {
+  const rows = await Product.findAll({ where: { active: true }, attributes: ['id'], include: [{ model: Business, attributes: ['slug'], where: { active: true, deletedAt: null }, required: true }], order: [['id', 'ASC']], limit: 20000 });
+  res.set('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=300');
+  res.json({ products: rows.map(p => ({ id: p.id, slug: p.Business.slug })) });
+}));
 r.get('/stores/:slug', storefrontCache, wrap(async (req, res) => {
   const business = await Business.findOne({ where: { slug: req.params.slug } });
   if (!business || business.deletedAt) throw bad(404, 'Shop not found');

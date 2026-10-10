@@ -4,8 +4,10 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { api } from '../../shared/lib/api.js';
 import { Logo, Notice } from '../../shared/components/chrome.jsx';
+import { useSeo } from '../../shared/lib/seo.js';
 
 export default function ShopRequest() {
+  useSeo({ title: 'Start your shop on Digital Shop - free online store for local businesses', description: 'Request your Digital Shop: a beautiful online store for your kirana, restaurant or service business, with orders straight to WhatsApp.', path: '/signup' });
   const [form, setForm] = useState({ name: '', email: '', phone: '', shopName: '', message: '' });
   const [error, setError] = useFeedbackState(''), [sent, setSent] = useState(false), [busy, setBusy] = useState(false);
   const submit = async e => {

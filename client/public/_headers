@@ -5,6 +5,22 @@
   Permissions-Policy: camera=(self), microphone=(), geolocation=(self), payment=()
   Strict-Transport-Security: max-age=31536000
   Content-Security-Policy-Report-Only: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https:; media-src 'self' blob: https:; connect-src 'self' https://api.digitalshop.website https://nominatim.openstreetmap.org https://ik.imagekit.io; worker-src 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'; form-action 'self'
+/dashboard
+  X-Robots-Tag: noindex, nofollow
+/superadmin
+  X-Robots-Tag: noindex, nofollow
+/login
+  X-Robots-Tag: noindex, nofollow
+/set-password
+  X-Robots-Tag: noindex, nofollow
+/offers/*
+  X-Robots-Tag: noindex, nofollow
+/store/*/order/*
+  X-Robots-Tag: noindex, nofollow
+/store/*/orders
+  X-Robots-Tag: noindex, nofollow
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
 /manifest.webmanifest
   Content-Type: application/manifest+json; charset=utf-8
   Cache-Control: public, max-age=0, must-revalidate

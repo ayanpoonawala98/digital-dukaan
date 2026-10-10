@@ -19,7 +19,7 @@ export default function Landing() {
         <div className="hero-foot anim-up" style={{ animationDelay: '320ms' }}><span className="hero-rule" aria-hidden="true"/><span>For the stores we know by name.<br/>And the people behind their counters.</span></div>
       </div>
       <div className="hero-art anim-scale" style={{ animationDelay: '180ms' }}>
-        <img className="hero-photo" src="https://ik.imagekit.io/digitaldukaanayan/digital-dukaan/branding/digital-dukaan-hero_Z71uTHmDJ.jpg" alt="A local shopkeeper at his counter"/>
+        <img className="hero-photo" src="https://ik.imagekit.io/digitaldukaanayan/digital-dukaan/branding/digital-dukaan-hero_Z71uTHmDJ.jpg?tr=w-1120,q-80,f-auto" alt="A local shopkeeper at his counter" width="1672" height="941" fetchPriority="high" decoding="async"/>
         <div className="hero-image-caption"><span>THE PEOPLE BEHIND THE SHOP</span><strong>Every storefront starts with someone.</strong></div>
         <span className="hero-photo-index" aria-hidden="true">01 / LOCAL</span>
       </div>

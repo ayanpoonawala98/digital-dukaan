@@ -7,6 +7,7 @@ import { Header } from '../../shared/components/chrome.jsx';
 import { api, inr } from '../../shared/lib/api.js';
 import { flowFor, statusLabel } from '../restaurant/order-flows.js';
 import { currentBrowserSubscription, loadSavedOrders, onOrdersChanged, pushSupported, subscribeBrowser, trackingPath } from './my-orders.js';
+import { useSeo } from '../../shared/lib/seo.js';
 
 function StatusSteps({ kind, storeType, status, orderType }) {
   const flow = flowFor(kind, storeType, orderType);
@@ -101,6 +102,7 @@ function usePoll(load, active, ms = 30000) {
 }
 
 export function OrderTracking({ kind = 'restaurant' }) {
+  useSeo({ title: 'Track your order - Digital Shop', noindex: true });
   const { slug, id } = useParams();
   const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null), [copied, setCopied] = useState(false);
   const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || '';
@@ -137,9 +139,10 @@ export function OrderTracking({ kind = 'restaurant' }) {
 }
 
 export function MyOrdersPage() {
+  useSeo({ title: 'My orders - Digital Shop', noindex: true });
   const { slug } = useParams();
   const [saved, setSaved] = useState(() => loadSavedOrders(slug)), [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null);
-  useEffect(() => { document.title = 'My orders - Digital Shop'; setSaved(loadSavedOrders(slug)); return onOrdersChanged(() => setSaved(loadSavedOrders(slug))); }, [slug]);
+  useEffect(() => { setSaved(loadSavedOrders(slug)); return onOrdersChanged(() => setSaved(loadSavedOrders(slug))); }, [slug]);
   const load = useCallback(async () => {
     try {
       const sub = await currentBrowserSubscription();
