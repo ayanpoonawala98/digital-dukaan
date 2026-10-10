@@ -1,3 +1,4 @@
+import { st } from '../../shared/lib/storefront-i18n.js';
 import React, { useEffect, useState } from 'react';
 import { LayoutGrid, BookOpen } from 'lucide-react';
 
@@ -10,17 +11,17 @@ export function useMenuView(slug) {
 }
 
 export function MenuViewSwitch({ view, onChange }) {
-  return <div className="view-switch" role="group" aria-label="Menu layout" data-view={view}>
+  return <div className="view-switch" role="group" aria-label={st("Menu layout")} data-view={view}>
     <span className="view-switch-thumb" aria-hidden="true"/>
-    <button type="button" className={view === 'catalog' ? 'on' : ''} aria-pressed={view === 'catalog'} onClick={() => onChange('catalog')}><LayoutGrid size={16}/><span>Cards</span></button>
-    <button type="button" className={view === 'menu' ? 'on' : ''} aria-pressed={view === 'menu'} onClick={() => onChange('menu')}><BookOpen size={16}/><span>Menu</span></button>
+    <button type="button" className={view === 'catalog' ? 'on' : ''} aria-pressed={view === 'catalog'} onClick={() => onChange('catalog')}><LayoutGrid size={16}/><span>{st("Cards")}</span></button>
+    <button type="button" className={view === 'menu' ? 'on' : ''} aria-pressed={view === 'menu'} onClick={() => onChange('menu')}><BookOpen size={16}/><span>{st("Menu")}</span></button>
   </div>;
 }
 
 export function groupByCategory(products) {
   const groups = [], index = new Map();
   for (const p of products) {
-    const name = p.category?.name || 'More';
+    const name = p.category?.name || st('More');
     if (!index.has(name)) { index.set(name, groups.length); groups.push({ name, items: [] }); }
     groups[index.get(name)].items.push(p);
   }

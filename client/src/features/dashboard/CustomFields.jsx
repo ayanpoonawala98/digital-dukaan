@@ -1,4 +1,4 @@
-import { ot } from '../../shared/lib/owner-i18n.js';
+import { pt as ot } from '../../shared/lib/presentation-i18n.js';
 import React from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 

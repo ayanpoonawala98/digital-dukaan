@@ -1,3 +1,4 @@
+import { StorefrontLocale } from '../shared/components/StorefrontLanguage.jsx';
 import BrandLoader from '../shared/components/BrandLoader.jsx';
 import React, { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './auth.jsx';
@@ -30,7 +31,7 @@ function Guard({ role, children }) {
 
 export default function App() {
   const hostedSlug = hostedStoreSlug();
-  return <ThemeProvider><AuthProvider><Toasts/><Motion/><HashScroll/><AppBoundary><Suspense fallback={<BrandLoader full label="Loading"/>}><Routes>
+  return <ThemeProvider><AuthProvider><StorefrontLocale><Toasts/><Motion/><HashScroll/><AppBoundary><Suspense fallback={<BrandLoader full label="Loading"/>}><Routes>
       <Route path="/offers/opt-out/:token" element={<OfferOptOut/>}/>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
@@ -46,5 +47,5 @@ export default function App() {
     <Route path="/dashboard" element={<Guard role="owner"><Dashboard/></Guard>}/>
     <Route path="/superadmin" element={<Guard role="superadmin"><SuperAdmin/></Guard>}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
-  </Routes></Suspense></AppBoundary></AuthProvider></ThemeProvider>;
+  </Routes></Suspense></AppBoundary></StorefrontLocale></AuthProvider></ThemeProvider>;
 }

@@ -1,4 +1,4 @@
-import { ot } from './owner-i18n.js';
+import { pt as ot } from './presentation-i18n.js';
 import { useEffect, useState } from 'react';
 import { api } from './api.js';
 import { cleanCode, validCodeShape } from './coupon-math.js';

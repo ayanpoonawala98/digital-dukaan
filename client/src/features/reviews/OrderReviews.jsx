@@ -1,4 +1,4 @@
-import { ot } from '../../shared/lib/owner-i18n.js';
+import { pt as ot } from '../../shared/lib/presentation-i18n.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../../shared/lib/api.js';
 import { StarInput } from './Stars.jsx';

@@ -1,0 +1,43 @@
+import http from 'node:http';import fs from 'node:fs';import path from 'node:path';
+const business={id:1,name:'Demo Shop',slug:'demo-shop',active:true,storeType:'retail',accentColor:'green',whatsapp:'919999999999',description:'Customer supplied description',address:'Test address',customFields:[],shopOpen:true,featureLocks:{},notificationSettings:{}};
+const restaurant={...business,id:2,name:'Demo Restaurant',slug:'demo-restaurant',storeType:'restaurant',tableCount:3};
+const product={id:1,name:'Customer Rice',price:199,stock:10,active:true,category:1,categoryName:'Customer Category',kind:'product',imageUrls:[],customFields:[],variants:[],addonGroups:[]};
+const providers={email:{configured:false,label:'Resend'},sms:{configured:false,label:'Fast2SMS'}};
+const server=http.createServer((req,res)=>{let p=new URL(req.url,'http://localhost').pathname;if(p.startsWith('/api/')){console.log(p);const b=p.includes('/2/')?restaurant:business;let data={};
+if(p.startsWith('/api/public/stores/')) {
+ const isRestaurant=p.includes('demo-restaurant');const shop={...(isRestaurant?restaurant:business),isOpen:true,blocksOrders:false,location:'Customer location',minOrder:0,deliveryCharge:30,freeDeliveryAbove:500,openingHours:'9am-10pm'};
+ const item={...product,category:{id:1,name:'Customer Category',slug:'customer-category'},description:'Customer product description',createdAt:'2026-10-01',ratingAvg:4,ratingCount:1,variants:isRestaurant?[{name:'Customer size',price:199}]:[],addonGroups:isRestaurant?[{id:'extra',name:'Customer add-ons',max:1,required:false,options:[{name:'Customer cheese',price:20}]}]:[]};
+ const order={id:1,orderNumber:101,status:isRestaurant?'served':'confirmed',orderType:'dine-in',tableNumber:1,items:[{...item,qty:1}],total:199,createdAt:'2026-10-10T12:00:00Z'};
+ if(p.endsWith('/coupon-preview'))data={discount:10,code:'SAVE10'};
+ else if(/\/products\/1\/reviews$/.test(p))data={summary:{avg:4,count:1},reviews:[{id:1,rating:4,text:'Customer review text',name:'Customer reviewer',createdAt:order.createdAt}],nextCursor:null};
+ else if(/\/(restaurant-orders|lead-orders)\/1\/reviews$/.test(p))data={items:[{productId:1,name:item.name,review:null}]};
+ else if(/\/(restaurant-orders|lead-orders)\/1$/.test(p))data={store:shop,restaurant:shop,order};
+ else if(p.endsWith('/my-orders'))data={store:shop,orders:[{...order,kind:isRestaurant?'restaurant':'lead',path:'/store/'+shop.slug+'/order/'+(isRestaurant?'':'lead/')+'1#token=mock'}]};
+ else if(p.endsWith('/products/1'))data={business:shop,product:item};
+ else if(p.endsWith('/products'))data={products:[item],total:1,page:1};
+ else if(p.endsWith('/restaurant-orders'))data={orderId:1,orderNumber:101,trackingToken:'mock',subtotal:199,total:199,estimateMinutes:20};
+ else data={business:shop,categories:[item.category]};
+}
+else if(p==='/api/owner/stores')data={stores:[business,restaurant]};
+else if(p==='/api/owner/deleted-stores')data={stores:[]};
+else if(p==='/api/owner/plan')data={plan:'Standard',monthlyFee:500,status:'trial',tone:'info',text:'Free trial: 20 days left (ends 2026-10-31).'};
+else if(p.endsWith('/overview'))data={business:b,products:1,categories:1,leads:0,subscribers:0,lowStock:[],recentLeads:[],recentOrders:[]};
+else if(p.endsWith('/products'))data={products:[product],total:1,page:1};
+else if(p.endsWith('/categories'))data={categories:[{id:1,name:'Customer Category',slug:'customer-category'}],total:1,page:1};
+else if(p.endsWith('/leads'))data={leads:[],total:0,page:1};
+else if(p.endsWith('/restaurant-orders'))data={orders:[],total:0,page:1};
+else if(p.endsWith('/customers'))data={customers:[],total:0,page:1};
+else if(p.endsWith('/reviews'))data={reviews:[],total:0};
+else if(p.endsWith('/coupons'))data={coupons:[],total:0,page:1};
+else if(p.endsWith('/staff'))data={staff:[],total:0,page:1};
+else if(p.endsWith('/sales-summary'))data={whatsappEnquiries:0,enquiryValue:0,recordedTotal:0,retailDelivered:0,topProducts:[],noMovement:[],daily:[],insights:{seriesDays:30,series:[],week:{last7:{},prev7:{}},fulfilment:{},customers:{},hourly:Array(24).fill(0),weekday:Array(7).fill(0),peakHour:null,peakWeekday:null,leadStatus:{},orderStatus:{},orderTypes:{},tables:[]}};
+else if(p.includes('/campaigns'))data={providers,contacts:[],campaigns:[],batchLimit:10};
+else if(p.includes('/notifications'))data={providers,settings:{},keys:{emailMode:'',smsMode:'',resend:{},smtp:{},emailHttp:{},fast2sms:{},smsHttp:{}},channels:{},email:providers.email,sms:providers.sms};
+else if(p.includes('/payments'))data={razorpay:{configured:false,enabled:false}};
+else if(p.includes('/tables/day-summary'))data={count:0,total:0,byMode:{}};
+else if(p.includes('/tables'))data={tables:[1,2,3].map(n=>({number:n,status:'vacant',orders:[],total:0})),orders:[],bills:[],business:b,menu:[product],channels:{delivery:{open:0,total:0,orders:[]},takeaway:{open:0,total:0,orders:[]},counter:{open:0,total:0,orders:[]}},tableCount:3,store:b};
+else if(p.includes('/restaurant-overview'))data={today:{},tables:[],openOrders:[],recentOrders:[]};
+else if(p.includes('/whatsapp-cloud'))data={enabled:false,configured:false,connected:false,provider:'none',conversations:[],messages:[],settings:{}};
+else if(p.includes('/push'))data={enabled:false};
+res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(data));return;}
+const file=path.join(process.cwd(),'client/dist',p==='/'?'index.html':p);const actual=fs.existsSync(file)&&fs.statSync(file).isFile()?file:path.join(process.cwd(),'client/dist/index.html');const ext=path.extname(actual);res.writeHead(200,{'Content-Type':{'.html':'text/html','.js':'text/javascript','.css':'text/css','.ttf':'font/ttf','.json':'application/json','.png':'image/png','.svg':'image/svg+xml'}[ext]||'application/octet-stream'});fs.createReadStream(actual).pipe(res)});server.listen(4173,'127.0.0.1');

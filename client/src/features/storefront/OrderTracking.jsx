@@ -1,3 +1,5 @@
+import { useStorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
+import { st } from '../../shared/lib/storefront-i18n.js';
 import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import { notify } from '../notifications/notifications.js';
 import { useFeedbackState } from '../../shared/components/Toasts.jsx';
@@ -11,10 +13,10 @@ import { useSeo } from '../../shared/lib/seo.js';
 
 function StatusSteps({ kind, storeType, status, orderType }) {
   const flow = flowFor(kind, storeType, orderType);
-  if (status === 'cancelled') return <p className="notice error" role="status">Cancelled</p>;
+  if (status === 'cancelled') return <p className="notice error" role="status">{st("Cancelled")}</p>;
   const at = flow.steps.findIndex(([k]) => k === status);
-  return <div className="order-progress"><div className="order-current"><span className="order-live-dot"/><span>Current status</span><strong>{statusLabel(flow, status)}</strong><small>{at >= 0 ? `Step ${at + 1} of ${flow.steps.length}` : 'Status updated'}</small></div>
-    <ol className="order-stepper" aria-label="Order progress">{flow.steps.map(([s, label], i) => <li key={s} className={i < at ? 'complete' : i === at ? 'active' : 'upcoming'} aria-current={i === at ? 'step' : undefined}><span className="step-mark" aria-hidden="true">{i < at ? '✓' : i + 1}</span><span className="step-label">{label}<small>{i < at ? 'Done' : i === at ? 'Now' : 'Next'}</small></span></li>)}</ol>
+  return <div className="order-progress"><div className="order-current"><span className="order-live-dot"/><span>{st("Current status")}</span><strong>{st(statusLabel(flow, status))}</strong><small>{at >= 0 ? st("Step {v0} of {v1}", {v0:at + 1,v1:flow.steps.length}) : st("Status updated")}</small></div>
+    <ol className="order-stepper" aria-label={st("Order progress")}>{flow.steps.map(([s, label], i) => <li key={s} className={i < at ? 'complete' : i === at ? 'active' : 'upcoming'} aria-current={i === at ? 'step' : undefined}><span className="step-mark" aria-hidden="true">{i < at ? '✓' : i + 1}</span><span className="step-label">{st(label)}<small>{i < at ? st("Done") : i === at ? st("Now") : st("Next")}</small></span></li>)}</ol>
   </div>;
 }
 
@@ -25,10 +27,10 @@ function OrderBody({ order }) {
       return <div className="track-item" key={i}>
         <div className="track-item-main"><strong>{item.qty} × {item.name}</strong><span className="track-item-price">{inr(Number(item.price) * item.qty)}</span></div>
         {opts && <small className="track-item-opts">{opts}</small>}
-        {item.note && <small className="track-item-note">Note: {item.note}</small>}
+        {item.note && <small className="track-item-note">{st("Note:")} {item.note}</small>}
       </div>;
     })}</div>
-    <div className="drawer-totals">{Number(order.discount) > 0 && <div><span>Discount</span><b>-{inr(order.discount)}</b></div>}<div className="grand"><span>Total</span><b>{inr(order.total)}</b></div></div></>;
+    <div className="drawer-totals">{Number(order.discount) > 0 && <div><span>{st("Discount")}</span><b>-{inr(order.discount)}</b></div>}<div className="grand"><span>{st("Total")}</span><b>{inr(order.total)}</b></div></div></>;
 }
 
 // Registers every saved order of this browser under its push subscription (the customer's identity).
@@ -66,7 +68,7 @@ function PushControl({ slug, orders, onChange }) {
       await api(`/public/stores/${encodeURIComponent(slug)}/my-orders/push-subscription`, { method: 'POST', body: { endpoint: sub.endpoint, keys: sub.keys, orders: orders.map(o => ({ kind: o.kind, id: o.id, token: o.token })) } });
       try { localStorage.setItem(`dd-push-on-${slug}`, sub.endpoint); } catch {}
       setState('on'); onChange?.();
-    } catch (e) { setState(Notification.permission === 'denied' ? 'denied' : 'idle'); if (Notification.permission !== 'denied') setErr(pushErrorMessage(e)); }
+    } catch (e) { setState(Notification.permission === 'denied' ? 'denied' : 'idle'); if (Notification.permission !== 'denied') setErr(st(pushErrorMessage(e))); }
   };
   const off = async () => {
     setErr(''); setState('busy');
@@ -78,10 +80,10 @@ function PushControl({ slug, orders, onChange }) {
     } catch (e) { setState('on'); setErr(e.message); }
   };
   return <div className="push-prompt push-prompt-inline anim-up">{state === 'denied'
-    ? <div className="push-text"><strong>Notifications are blocked.</strong><span>Enable them for this site in your browser settings to get order updates.</span></div>
+    ? <div className="push-text"><strong>{st("Notifications are blocked.")}</strong><span>{st("Enable them for this site in your browser settings to get order updates.")}</span></div>
     : state === 'on'
-      ? <><div className="push-text"><strong>Order notifications on</strong><span>You will get a browser notification when the store updates an order.</span></div><button className="btn-ghost" onClick={off}>Turn off</button></>
-      : <><div className="push-text"><strong>Get order updates</strong><span>One tap, no login. Notifications only cover your orders.</span></div><button className="btn btn-green btn-small" onClick={on} disabled={state === 'busy' || !orders.length}>{state === 'busy' ? 'Turning on...' : 'Notify me'}</button></>}
+      ? <><div className="push-text"><strong>{st("Order notifications on")}</strong><span>{st("You will get a browser notification when the store updates an order.")}</span></div><button className="btn-ghost" onClick={off}>{st("Turn off")}</button></>
+      : <><div className="push-text"><strong>{st("Get order updates")}</strong><span>{st("One tap, no login. Notifications only cover your orders.")}</span></div><button className="btn btn-green btn-small" onClick={on} disabled={state === 'busy' || !orders.length}>{state === 'busy' ? st("Turning on...") : st("Notify me")}</button></>}
   </div>;
 }
 
@@ -103,17 +105,18 @@ function usePoll(load, active, ms = 30000) {
 
 import OrderReviews from '../reviews/OrderReviews.jsx';
 export function OrderTracking({ kind = 'restaurant' }) {
-  useSeo({ title: 'Track your order - Digital Shop', noindex: true });
+  useStorefrontLanguage();
+  useSeo({ title: st('Track your order - Digital Shop'), noindex: true });
   const { slug, id } = useParams();
   const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null), [copied, setCopied] = useState(false);
   const token = new URLSearchParams(window.location.hash.slice(1)).get('token') || '';
   useEffect(() => {
-    document.title = 'Track your order - Digital Shop';
+    document.title = st('Track your order - Digital Shop');
     const meta = document.createElement('meta'); meta.name = 'referrer'; meta.content = 'no-referrer'; document.head.appendChild(meta);
     return () => meta.remove();
   }, []);
   const load = useCallback(async () => {
-    if (!token) { setError('Open the private tracking link from your order confirmation, or use My Orders on the store page.'); return false; }
+    if (!token) { setError(st("Open the private tracking link from your order confirmation, or use My Orders on the store page.")); return false; }
     try {
       const result = await api(`/public/stores/${encodeURIComponent(slug)}/${kind === 'lead' ? 'lead-orders' : 'restaurant-orders'}/${id}`, { token });
       setData(result); setError(''); setUpdated(new Date());
@@ -121,27 +124,28 @@ export function OrderTracking({ kind = 'restaurant' }) {
     } catch (e) { setError(e.message); return false; }
   }, [slug, id, kind, token]);
   usePoll(load, true);
-  const copy = async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } };
+  const copy = async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', st("Link copied.")); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', st("Could not copy the link. Please copy it manually.")); } };
   const saved = [{ kind, id: Number(id), token }];
   const flow = flowFor(kind, data?.store?.storeType, data?.order?.orderType);
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
-    <span className="kicker">YOUR ORDER</span><h1>Order #{data?.order?.orderNumber ?? id}</h1>
-    {error && <p className="notice error" role="alert">{error}</p>}{!data && !error && <BrandLoader compact label="Loading your order"/>}
+    <span className="kicker">{st("YOUR ORDER")}</span><h1>{st("Order #")}{data?.order?.orderNumber ?? id}</h1>
+    {error && <p className="notice error" role="alert">{st(error)}</p>}{!data && !error && <BrandLoader compact label={st("Loading your order")}/>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
-      <div role="status" aria-live="polite"><h3>{statusLabel(flow, data.order.status)}</h3><p>{flow.note[data.order.status] || ''}</p></div>
-      <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={data.order.orderType}/>
-      {kind === 'restaurant' && <p>{data.order.orderType}{data.order.tableNumber ? ` · Table ${data.order.tableNumber}` : ''}</p>}
+      <div role="status" aria-live="polite"><h3>{st(statusLabel(flow, data.order.status))}</h3><p>{st(flow.note[data.order.status] || '')}</p></div>
+      <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={st(data.order.orderType)}/>
+      {kind === 'restaurant' && <p>{st(data.order.orderType)}{data.order.tableNumber ? st(" · Table {v0}", {v0:data.order.tableNumber}) : ''}</p>}
       <OrderBody order={data.order}/>
       {token && flow.done.includes(data.order.status) && <OrderReviews slug={slug} kind={kind} id={id} token={token}/>}
       <PushControl slug={slug} orders={token ? [...saved, ...loadSavedOrders(slug).filter(o => !(o.kind === kind && o.id === Number(id)))] : []}/>
-      <p><small>Last checked: {updated ? updated.toLocaleTimeString('en-IN') : '-'} · updates automatically while open</small></p>
-      <div className="tracking-actions"><button className="btn btn-outline btn-small" onClick={load}>Refresh</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? 'Copied' : 'Copy tracking link'}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>My orders</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Back to store</Link></div>
+      <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString('en-IN') : '-'} {st("· updates automatically while open")}</small></p>
+      <div className="tracking-actions"><button className="btn btn-outline btn-small" onClick={load}>{st("Refresh")}</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? st("Copied") : st("Copy tracking link")}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>{st("My orders")}</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Back to store")}</Link></div>
     </section>}
   </main></>;
 }
 
 export function MyOrdersPage() {
-  useSeo({ title: 'My orders - Digital Shop', noindex: true });
+  useStorefrontLanguage();
+  useSeo({ title: st('My orders - Digital Shop'), noindex: true });
   const { slug } = useParams();
   const [saved, setSaved] = useState(() => loadSavedOrders(slug)), [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [updated, setUpdated] = useState(null);
   useEffect(() => { setSaved(loadSavedOrders(slug)); return onOrdersChanged(() => setSaved(loadSavedOrders(slug))); }, [slug]);
@@ -156,21 +160,21 @@ export function MyOrdersPage() {
   usePoll(load, true);
   const orders = data?.orders || [];
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
-    <span className="kicker">{data?.store?.name || 'MY ORDERS'}</span><h1>My orders</h1>
-    <p>Orders placed from this browser. No login needed. Status updates appear here automatically.</p>
-    {error && <p className="notice error" role="alert">{error}</p>}
-    {!data && !error && <BrandLoader compact label="Loading your orders"/>}
-    {data && !orders.length && <div className="empty-state"><h3>No orders yet</h3><p>Orders you place on this store from this browser will show up here.</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Browse the store</Link></div>}
+    <span className="kicker">{data?.store?.name || st("MY ORDERS")}</span><h1>{st("My orders")}</h1>
+    <p>{st("Orders placed from this browser. No login needed. Status updates appear here automatically.")}</p>
+    {error && <p className="notice error" role="alert">{st(error)}</p>}
+    {!data && !error && <BrandLoader compact label={st("Loading your orders")}/>}
+    {data && !orders.length && <div className="empty-state"><h3>{st("No orders yet")}</h3><p>{st("Orders you place on this store from this browser will show up here.")}</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Browse the store")}</Link></div>}
     {orders.map(o => { const flow = flowFor(o.kind, data.store?.storeType, o.orderType); return <section className="dashboard-panel" key={`${o.kind}-${o.id}`} style={{ marginBottom: 16 }}>
-      <h3>Order #{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>
-      <div role="status" aria-live="polite"><strong>{statusLabel(flow, o.status)}</strong></div>
+      <h3>{st("Order #")}{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>
+      <div role="status" aria-live="polite"><strong>{st(statusLabel(flow, o.status))}</strong></div>
       <StatusSteps kind={o.kind} storeType={data.store?.storeType} status={o.status} orderType={o.orderType}/>
       <OrderBody order={o}/>
-      {o.path && <Link className="btn btn-outline btn-small" to={o.path}>Open tracking page</Link>}
+      {o.path && <Link className="btn btn-outline btn-small" to={o.path}>{st("Open tracking page")}</Link>}
     </section>; })}
     <PushControl slug={slug} orders={saved} onChange={load}/>
-    <p><small>Last checked: {updated ? updated.toLocaleTimeString('en-IN') : '-'} · Orders are tied to this browser's notification setting; they do not follow you to another phone.</small></p>
-    <Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Back to store</Link>
+    <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString('en-IN') : '-'} {st("· Orders are tied to this browser's notification setting; they do not follow you to another phone.")}</small></p>
+    <Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Back to store")}</Link>
   </main></>;
 }
 export const RestaurantOrderTracking = () => <OrderTracking kind="restaurant"/>;

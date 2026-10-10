@@ -14,7 +14,8 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCircle, Download, Minus, Package, Plus, QrCode, Search, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react';
 import { api, imageSrc, inr } from '../../shared/lib/api.js';
 import { storeLink, storePath } from './store-domain.js';
-import { translate } from '../../shared/lib/i18n.js';
+import { st, setStorefrontLanguage } from '../../shared/lib/storefront-i18n.js';
+import { useStorefrontLanguage, StorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
 import { useCouponPreview, totalAfterCoupon } from '../../shared/lib/coupon-preview.js';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
@@ -89,14 +90,14 @@ function PushPrompt({ slug, business, blocked = false }) {
       setError(err.message || 'Could not enable notifications. Try again.');
     }
   };
-  return <div className="store-notify-widget">{!open ? <button type="button" className={`notify-fab ${state === 'on' ? 'enabled' : ''}`} onClick={() => { rememberPushInvite('manual'); setOpen(true); }} aria-label={state === 'on' ? 'Shop notifications enabled' : 'Open shop notifications'}><Bell size={22}/>{state === 'on' && <span className="notify-fab-check">✓</span>}</button> : <section className="push-prompt storefront-notify-popup" role="dialog" aria-label="Shop notifications">
-    <button type="button" className="notify-close" onClick={dismiss} aria-label="Close notification popup" disabled={state === 'busy'}><X size={18}/></button>
-    <Bell size={20}/><div className="push-text"><strong>{state === 'on' ? 'Shop notifications on' : 'Stay updated with this shop'}</strong>
-    <span>{state === 'unsupported' ? 'Open in Chrome on Android, or add this shop to your iPhone home screen and open the app, to enable notifications.' : state === 'denied' ? 'Notifications are blocked. Allow them for this site in your browser settings, then reload.' : state === 'on' ? `Offers and new arrivals from ${business.name} will appear as browser notifications.` : `Get offers and new arrivals from ${business.name}.`}</span>
-    {error && <span role="alert">{error}</span>}</div>
-    <button type="button" className="btn btn-green btn-small" onClick={subscribe} disabled={['loading','busy','unsupported','denied','on'].includes(state)}>{state === 'on' ? 'Notifications on' : state === 'busy' ? 'Turning on...' : state === 'loading' ? 'Checking...' : state === 'denied' ? 'Blocked in browser' : state === 'unsupported' ? 'Browser not supported' : 'Notify me'}</button>
-    <button type="button" className="notify-later" onClick={dismiss} disabled={state === 'busy'}>Not now</button>
-    <small className="notify-privacy">Optional. You can use the bell anytime. We will not ask again on every visit.</small>
+  return <div className="store-notify-widget">{!open ? <button type="button" className={`notify-fab ${state === 'on' ? 'enabled' : ''}`} onClick={() => { rememberPushInvite('manual'); setOpen(true); }} aria-label={state === 'on' ? st("Shop notifications enabled") : st("Open shop notifications")}><Bell size={22}/>{state === 'on' && <span className="notify-fab-check">✓</span>}</button> : <section className="push-prompt storefront-notify-popup" role="dialog" aria-label={st("Shop notifications")}>
+    <button type="button" className="notify-close" onClick={dismiss} aria-label={st("Close notification popup")} disabled={state === 'busy'}><X size={18}/></button>
+    <Bell size={20}/><div className="push-text"><strong>{state === 'on' ? st("Shop notifications on") : st("Stay updated with this shop")}</strong>
+    <span>{state === 'unsupported' ? st("Open in Chrome on Android, or add this shop to your iPhone home screen and open the app, to enable notifications.") : state === 'denied' ? st("Notifications are blocked. Allow them for this site in your browser settings, then reload.") : state === 'on' ? st("Offers and new arrivals from {v0} will appear as browser notifications.", {v0:business.name}) : st("Get offers and new arrivals from {v0}.", {v0:business.name})}</span>
+    {error && <span role="alert">{st(error)}</span>}</div>
+    <button type="button" className="btn btn-green btn-small" onClick={subscribe} disabled={['loading','busy','unsupported','denied','on'].includes(state)}>{state === 'on' ? st("Notifications on") : state === 'busy' ? st("Turning on...") : state === 'loading' ? st("Checking...") : state === 'denied' ? st("Blocked in browser") : state === 'unsupported' ? st("Browser not supported") : st("Notify me")}</button>
+    <button type="button" className="notify-later" onClick={dismiss} disabled={state === 'busy'}>{st("Not now")}</button>
+    <small className="notify-privacy">{st("Optional. You can use the bell anytime. We will not ask again on every visit.")}</small>
   </section>}</div>;
 }
 
@@ -121,7 +122,7 @@ function InstallApp({ name, t = k => k }) {
     finally { setBusy(false); }
   };
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
-  return <div className="install-app"><button type="button" className="chip-btn" disabled={busy} onClick={install} aria-expanded={instructions}><Download size={16}/>{busy ? 'Opening install...' : t('install')}</button>{instructions && <div className="install-guide" role="status"><strong>Put {name} on your home screen</strong><span>{ios ? 'In Safari, tap Share, then Add to Home Screen.' : 'In your browser menu, choose Install app or Add to Home screen.'}</span><button type="button" onClick={() => setInstructions(false)} aria-label="Close install instructions"><X size={15}/></button></div>}</div>;
+  return <div className="install-app"><button type="button" className="chip-btn" disabled={busy} onClick={install} aria-expanded={instructions}><Download size={16}/>{busy ? st("Opening install...") : t('install')}</button>{instructions && <div className="install-guide" role="status"><strong>{st("Put {name} on your home screen",{name})}</strong><span>{ios ? st("In Safari, tap Share, then Add to Home Screen.") : st("In your browser menu, choose Install app or Add to Home screen.")}</span><button type="button" onClick={() => setInstructions(false)} aria-label={st("Close install instructions")}><X size={15}/></button></div>}</div>;
 }
 
 function QrModal({ slug, business, onClose }) {
@@ -132,21 +133,21 @@ function QrModal({ slug, business, onClose }) {
   const save=async format=>{setDownloading(format);try{await downloadShopCard(slug,format);}catch{}finally{setDownloading('');}};
   return <div className="modal-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <div className="modal qr-modal anim-pop">
-      <button className="modal-close" onClick={onClose} aria-label="Close"><X/></button>
-      <span className="kicker">SHARE THIS SHOP</span>
-      <h2>Scan to open {business.name}</h2>
-      <div className="qr-frame qr-themed-online"><img src={qrUrl} alt={`QR code for ${business.name}`}/></div>
+      <button className="modal-close" onClick={onClose} aria-label={st("Close")}><X/></button>
+      <span className="kicker">{st("SHARE THIS SHOP")}</span>
+      <h2>{st("Scan to open")} {business.name}</h2>
+      <div className="qr-frame qr-themed-online"><img src={qrUrl} alt={st("QR code for {name}",{name:business.name})}/></div>
       <div className="url-pill">{shopLink}</div>
       <div className="qr-actions">
-        <button className="btn btn-green" disabled={!!downloading} onClick={()=>save('png')}>{downloading==='png'?'Preparing...':'Download image'}</button><button className="btn btn-outline" disabled={!!downloading} onClick={()=>save('pdf')}>{downloading==='pdf'?'Preparing...':'Download PDF'}</button>
-        <button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(shopLink); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } }}>{copied ? 'Copied!' : 'Copy link'}</button>
+        <button className="btn btn-green" disabled={!!downloading} onClick={()=>save('png')}>{downloading==='png'?st("Preparing..."):st("Download image")}</button><button className="btn btn-outline" disabled={!!downloading} onClick={()=>save('pdf')}>{downloading==='pdf'?st("Preparing..."):st("Download PDF")}</button>
+        <button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(shopLink); notify('success', st("Link copied.")); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', st("Could not copy the link. Please copy it manually.")); } }}>{copied ? st("Copied!") : st("Copy link")}</button>
       </div>
     </div>
   </div>;
 }
 
 function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
-  const t = key => translate(lang, key);
+  const t = st;
   const [contact, setContact] = useContact();
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [couponCode, setCouponCode] = useState('');
   const freeAbove = business.freeDeliveryAbove;
@@ -169,31 +170,31 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   if (!open) return null;
   return <div className="drawer-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <aside className="drawer anim-slide">
-      <div className="drawer-head"><h3><ShoppingBag size={20}/> {t('cartTitle')} {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}</h3><button className="icon-btn" onClick={onClose} aria-label="Close cart"><X size={20}/></button></div>
-      {!business.isOpen && <p className="notice warn"><Clock size={15}/> {business.blocksOrders ? 'The shop is closed right now and is not taking orders.' : 'The shop is closed right now. You can still send your order - it will be confirmed when the shop opens.'}</p>}
+      <div className="drawer-head"><h3><ShoppingBag size={20}/> {t('cartTitle')} {cart.count > 0 && <span className="cart-badge">{cart.count}</span>}</h3><button className="icon-btn" onClick={onClose} aria-label={st("Close cart")}><X size={20}/></button></div>
+      {!business.isOpen && <p className="notice warn"><Clock size={15}/> {business.blocksOrders ? st("The shop is closed right now and is not taking orders.") : st("The shop is closed right now. You can still send your order - it will be confirmed when the shop opens.")}</p>}
       {!cart.items.length ? <div className="empty-state"><ShoppingBag size={36}/><h3>{t('cartEmpty')}</h3><p>{t('cartEmptyHint')}</p><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>{t('myOrders')}</Link></div> : <>
         <div className="drawer-items">
           {cart.items.map(item => <div className="cart-row" key={item.id}>
             <div className="cart-thumb">{item.imageUrl ? <img src={imageSrc(item.imageUrl)} alt=""/> : <Package size={20}/>}</div>
             <div className="cart-info"><strong>{item.name}</strong><span>{inr(item.price)}</span><CustomFieldInputs compact fields={item.customFields} answers={item.answers} onChange={a => cart.setAnswers(item.id, a)}/></div>
             <div className="qty-stepper">
-              <button onClick={() => cart.setQty(item.id, item.qty - 1)} aria-label="Decrease"><Minus size={14}/></button>
+              <button onClick={() => cart.setQty(item.id, item.qty - 1)} aria-label={st("Decrease")}><Minus size={14}/></button>
               <span>{item.qty}</span>
-              <button onClick={() => cart.setQty(item.id, item.qty + 1)} disabled={item.stock !== null && item.stock !== undefined && item.qty >= item.stock} aria-label="Increase"><Plus size={14}/></button>
+              <button onClick={() => cart.setQty(item.id, item.qty + 1)} disabled={item.stock !== null && item.stock !== undefined && item.qty >= item.stock} aria-label={st("Increase")}><Plus size={14}/></button>
             </div>
-            <button className="icon-btn danger" onClick={() => cart.setQty(item.id, 0)} aria-label={`Remove ${item.name}`}><Trash2 size={16}/></button>
+            <button className="icon-btn danger" onClick={() => cart.setQty(item.id, 0)} aria-label={st("Remove {v0}", {v0:item.name})}><Trash2 size={16}/></button>
           </div>)}
         </div>
         <ContactFields contact={contact} onChange={setContact}/>
-        <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
-        {couponCode && (cpv.error ? <p className="notice warn" role="status">{cpv.error}</p> : cpv.checking ? <p className="drawer-hint">Checking coupon...</p> : cpv.code ? <p className="drawer-hint">Coupon {cpv.code} applied. The shop confirms it again when you order.</p> : <p className="drawer-hint">The shop verifies the code before opening WhatsApp.</p>)}
-        {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}
-        {error && <p className="notice error">{error}</p>}
+        <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder={'SAVE10'}/></label>
+        {couponCode && (cpv.error ? <p className="notice warn" role="status">{st(cpv.error)}</p> : cpv.checking ? <p className="drawer-hint">{st("Checking coupon...")}</p> : cpv.code ? <p className="drawer-hint">{st("Coupon")} {cpv.code} {st("applied. The shop confirms it again when you order.")}</p> : <p className="drawer-hint">{st("The shop verifies the code before opening WhatsApp.")}</p>)}
+        {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">{st("Minimum order is {total}. Add {remaining} more.",{total:inr(business.minOrder),remaining:inr(business.minOrder-cart.subtotal)})}</p>}
+        {error && <p className="notice error">{st(error)}</p>}
         <div className="drawer-foot">
         <div className="drawer-totals">
           <div><span>{t('subtotal')}</span><b>{inr(cart.subtotal)}</b></div>
-          {cpv.discount > 0 && <div><span>Coupon {cpv.code}</span><b>-{inr(cpv.discount)}</b></div>}
-          <div><span>{t('deliveryLbl')} {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
+          {cpv.discount > 0 && <div><span>{st("Coupon")} {cpv.code}</span><b>-{inr(cpv.discount)}</b></div>}
+          <div><span>{t('deliveryLbl')} {freeAbove ? st("(free above {v0})", {v0:inr(freeAbove)}) : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
           <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
         </div>
         <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered) || business.blocksOrders} onClick={checkout}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
@@ -210,12 +211,12 @@ function WishlistDrawer({ slug, wishlist, open, onClose }) {
   if (!open) return null;
   return <div className="drawer-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <aside className="drawer anim-slide">
-      <div className="drawer-head"><h3><Heart size={20}/> Saved favorites</h3><button className="icon-btn" onClick={onClose} aria-label="Close wishlist"><X size={20}/></button></div>
-      {!products.length ? <div className="empty-state"><Heart size={36}/><h3>No favorites yet</h3><p>Tap the heart on any product to save it here.</p></div>
+      <div className="drawer-head"><h3><Heart size={20}/> {st("Saved favorites")}</h3><button className="icon-btn" onClick={onClose} aria-label={st("Close wishlist")}><X size={20}/></button></div>
+      {!products.length ? <div className="empty-state"><Heart size={36}/><h3>{st("No favorites yet")}</h3><p>{st("Tap the heart on any product to save it here.")}</p></div>
         : <div className="drawer-items">{products.map(p => <Link to={storePath(slug, p.id)} className="cart-row" key={p.id} onClick={onClose}>
           <div className="cart-thumb">{p.imageUrl ? <img src={imageSrc(p.imageUrl)} alt=""/> : <Package size={20}/>}</div>
           <div className="cart-info"><strong>{p.name}</strong><span>{inr(p.price)}</span></div>
-          <button className="icon-btn danger" onClick={e => { e.preventDefault(); wishlist.toggle(p.id); }} aria-label="Remove from favorites"><X size={16}/></button>
+          <button className="icon-btn danger" onClick={e => { e.preventDefault(); wishlist.toggle(p.id); }} aria-label={st("Remove from favorites")}><X size={16}/></button>
         </Link>)}</div>}
     </aside>
   </div>;
@@ -242,21 +243,21 @@ function ProductCard({ product, slug, wishlist, cart, index, t }) {
       {product.imageUrl ? <img src={storeImage(imageSrc(product.imageUrl), 720)} alt={product.name} loading="lazy"/> : <span><Package size={40}/></span>}
       {product.featured && <span className="chip chip-star"><Star size={12}/> {t('bestseller')}</span>}
       {!product.featured && Date.now() - new Date(product.createdAt).getTime() < 30 * 86400000 && <span className="chip chip-new">{t('fresh')}</span>}
-      {product.kind === 'service' && <span className="chip chip-service">{product.duration || 'Service'}</span>}
+      {product.kind === 'service' && <span className="chip chip-service">{product.duration || st("Service")}</span>}
       {product.kind !== 'service' && out && <span className="chip chip-out">{t('outOfStock')}</span>}
       {product.kind !== 'service' && low && <span className="chip chip-low">{t('onlyLeft').replace('{n}', product.stock)}</span>}
       <span className="view-tag">{t('view')} <ArrowUpRight size={14}/></span>
     </Link>
-    <button className={`heart-btn ${wishlist.has(product.id) ? 'active' : ''}`} onClick={() => wishlist.toggle(product.id)} aria-label="Save to favorites"><Heart size={17}/></button>
+    <button className={`heart-btn ${wishlist.has(product.id) ? 'active' : ''}`} onClick={() => wishlist.toggle(product.id)} aria-label={st("Save to favorites")}><Heart size={17}/></button>
     <div className="product-meta">
-      <span>{product.category?.name || 'PRODUCT'}</span>
+      <span>{product.category?.name || st("PRODUCT")}</span>
       <h3><Link to={storePath(slug, product.id)}>{product.name}</Link></h3>
       {product.ratingCount > 0 && <Stars value={product.ratingAvg} count={product.ratingCount}/>}
       <div className="product-bottom">
         <b>{inr(product.price)}</b>
         <div className="product-actions">
-          {(!out || product.kind === 'service') && <button className="icon-btn cart-add" onClick={e => { animateToCart(e.currentTarget); cart.add(product); }} aria-label={`Add ${product.name} to cart`}><ShoppingBag size={16}/></button>}
-          <Link className="round-arrow" aria-label={`View ${product.name}`} to={storePath(slug, product.id)}><ArrowUpRight size={19}/></Link>
+          {(!out || product.kind === 'service') && <button className="icon-btn cart-add" onClick={e => { animateToCart(e.currentTarget); cart.add(product); }} aria-label={st("Add {name} to cart",{name:product.name})}><ShoppingBag size={16}/></button>}
+          <Link className="round-arrow" aria-label={st("View {name}",{name:product.name})} to={storePath(slug, product.id)}><ArrowUpRight size={19}/></Link>
         </div>
       </div>
     </div>
@@ -274,13 +275,13 @@ function RestaurantCard({ product, slug, cart, index, blocked }) {
     <div className="menu-card-text">
       <div className="menu-card-title"><VegDot veg={product.veg}/><h3><Link to={storePath(slug, product.id)}>{product.name}</Link></h3></div>
       <TagChips tags={[...(product.tags || []), ...(product.featured && !(product.tags || []).includes('bestseller') ? ['bestseller'] : [])]}/>
-      <b className="menu-price">{(product.variants || []).length ? 'From ' : ''}{inr(from)}</b>
+      <b className="menu-price">{(product.variants || []).length ? st("From ") : ''}{inr(from)}</b>
       {product.description && <p className="menu-desc">{product.description}</p>}
-      {hasOptions && !out && <small className="muted">Customisable</small>}
+      {hasOptions && !out && <small className="muted">{st("Customisable")}</small>}
     </div>
     <div className="menu-card-media">
       <Link to={storePath(slug, product.id)} className="menu-img">{product.imageUrl ? <img src={storeImage(imageSrc(product.imageUrl), 480)} alt={product.name} loading="lazy"/> : <span><Package size={32}/></span>}</Link>
-      {out ? <span className="menu-out">Sold out today</span> : <button className="menu-add" disabled={blocked} onClick={add} aria-label={`Add ${product.name}`}>{inCart > 0 ? `ADD · ${inCart}` : 'ADD'}<Plus size={14}/></button>}
+      {out ? <span className="menu-out">{st("Sold out today")}</span> : <button className="menu-add" disabled={blocked} onClick={add} aria-label={st("Add {name}",{name:product.name})}>{inCart > 0 ? st("ADD · {v0}", {v0:inCart}) : st("ADD")}<Plus size={14}/></button>}
     </div>
     {sheet && <MenuItemSheet product={product} onClose={() => setSheet(false)} onAdd={(qty, config) => { cart.add(product, qty, undefined, config); setSheet(false); }}/>}
   </article>;
@@ -295,8 +296,8 @@ function MenuRow({ product, slug, cart, blocked }) {
   const add = e => { if (hasOptions) setSheet(true); else { animateToCart(e.currentTarget); cart.add(product); } };
   return <li className={`mc-row ${out ? 'sold-out' : ''}`}>
     <div className="mc-body">
-      <div className="mc-line"><span className="mc-name"><VegDot veg={product.veg}/><Link to={storePath(slug, product.id)}>{product.name}</Link></span><i className="mc-dots" aria-hidden="true"/><b className="mc-price">{(product.variants || []).length ? 'From ' : ''}{inr(from)}</b>
-        {out ? <span className="mc-out">Sold out</span> : <button className="mc-add" disabled={blocked} onClick={add} aria-label={`Add ${product.name}`}>{inCart > 0 ? <>{inCart}<Plus size={13}/></> : <>Add<Plus size={13}/></>}</button>}</div>
+      <div className="mc-line"><span className="mc-name"><VegDot veg={product.veg}/><Link to={storePath(slug, product.id)}>{product.name}</Link></span><i className="mc-dots" aria-hidden="true"/><b className="mc-price">{(product.variants || []).length ? st("From ") : ''}{inr(from)}</b>
+        {out ? <span className="mc-out">{st("Sold out")}</span> : <button className="mc-add" disabled={blocked} onClick={add} aria-label={st("Add {name}",{name:product.name})}>{inCart > 0 ? <>{inCart}<Plus size={13}/></> : <>{st("Add")}<Plus size={13}/></>}</button>}</div>
       <TagChips tags={[...(product.tags || []), ...(product.featured && !(product.tags || []).includes('bestseller') ? ['bestseller'] : [])]}/>
     </div>
     {sheet && <MenuItemSheet product={product} onClose={() => setSheet(false)} onAdd={(qty, config) => { cart.add(product, qty, undefined, config); setSheet(false); }}/>}
@@ -315,9 +316,9 @@ function TableBar({ slug, business }) {
   const [sent, setSent] = useState(''), [err, setErr] = useState('');
   if (!Number.isInteger(n) || n < 1 || n > business.tableCount) return null;
   const ask = async kind => { setErr(''); try { await api(`/public/stores/${slug}/table-requests`, { method: 'POST', body: { tableNumber: n, kind } }); setSent(kind); setTimeout(() => setSent(''), 6000); } catch (e) { setErr(e.message); } };
-  return <div className="table-bar container" role="region" aria-label="Your table"><strong>Table {n}</strong><span>
-    <button className="btn btn-outline btn-small" onClick={() => ask('waiter')} disabled={business.blocksOrders}><Bell size={14}/> {sent === 'waiter' ? 'Waiter called' : 'Call waiter'}</button>
-    <button className="btn btn-outline btn-small" onClick={() => ask('bill')} disabled={business.blocksOrders}><Clock size={14}/> {sent === 'bill' ? 'Bill requested' : 'Ask for bill'}</button></span>{err && <small className="error-text" role="alert">{err}</small>}</div>;
+  return <div className="table-bar container" role="region" aria-label={st("Your table")}><strong>{st("Table")} {n}</strong><span>
+    <button className="btn btn-outline btn-small" onClick={() => ask('waiter')} disabled={business.blocksOrders}><Bell size={14}/> {sent === 'waiter' ? st("Waiter called") : st("Call waiter")}</button>
+    <button className="btn btn-outline btn-small" onClick={() => ask('bill')} disabled={business.blocksOrders}><Clock size={14}/> {sent === 'bill' ? st("Bill requested") : st("Ask for bill")}</button></span>{err && <small className="error-text" role="alert">{st(err)}</small>}</div>;
 }
 
 function StoreClosed() { return <ShoppingBag size={42} aria-hidden="true"/>; }
@@ -330,9 +331,9 @@ export default function ShopPage({ hostedSlug }) {
   useShowcaseScroll(slug, Boolean(shop?.business && !shop.paused));
   const [search, setSearch] = useState(''), [category, setCategory] = useState(''), [menuView, setMenuView] = useMenuView(slug);
   const {products,loading,loadingMore,total,hasMore,pageError,loadMore,sentinel} = useProductPages(slug,search,category,shop?.paused);
-  const [lang, setLang] = useState(() => { try { return localStorage.getItem('dd-language') || 'en'; } catch { return 'en'; } });
-  const t = key => translate(lang, key);
-  const setLanguage = next => { setLang(next); try { localStorage.setItem('dd-language', next); } catch {} };
+  const lang = useStorefrontLanguage();
+  const t = st;
+  const setLanguage = setStorefrontLanguage;
   const [offerOpen, setOfferOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false), [wishOpen, setWishOpen] = useState(false), [qrOpen, setQrOpen] = useState(false);
   const cart = useCart(slug), wishlist = useWishlist(slug), orders = useOrders(slug);
@@ -341,9 +342,9 @@ export default function ShopPage({ hostedSlug }) {
   const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}`, 'yes'); } catch {} setOfferOpen(false); };
 
   useSeo({ title: shop?.business?.name || undefined, description: shop?.business?.description ? String(shop.business.description).replace(/\s+/g, ' ').slice(0, 300) : shop?.business?.name ? `Explore ${shop.business.name} and order on WhatsApp.` : undefined, path: hostedSlug || !shop?.business?.name ? undefined : `/store/${slug}`, noindex: Boolean(shop?.paused) });
-  if (error) return <><Header/><div className="container empty-state page-fade"><h2>Shop not found</h2><p>{error}</p><Link to="/">Back home</Link></div></>;
-  if (!shop) return <><Header/><BrandLoader label="Loading shop"/></>;
-  if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} is temporarily closed</h1><p>This shop is paused right now. Please check back later.</p><Link className="btn btn-green" to="/">Back home</Link></main><Footer/></>;
+  if (error) return <><Header/><div className="container empty-state page-fade"><h2>{st("Shop not found")}</h2><p>{st(error)}</p><Link to="/">{st("Back home")}</Link></div></>;
+  if (!shop) return <><Header/><BrandLoader label={st("Loading shop")}/></>;
+  if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} {st("is temporarily closed")}</h1><p>{st("This shop is paused right now. Please check back later.")}</p><Link className="btn btn-green" to="/">{st("Back home")}</Link></main><Footer/></>;
   const { business, categories } = shop;
   return <div className="shop-root page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
     <Header shop={slug} business={business}/>
@@ -353,13 +354,13 @@ export default function ShopPage({ hostedSlug }) {
       <div className="store-banner" style={business.coverUrl ? { backgroundImage: `linear-gradient(rgba(20,18,14,.55), rgba(20,18,14,.72)), url(${storeImage(imageSrc(business.coverUrl), 1440)})` } : undefined}>
         <div className="container">
           <div className="store-identity">
-            {business.logoUrl && <img className="store-logo" src={storeImage(imageSrc(business.logoUrl), 192)} alt={`${business.name} logo`}/>}
-            <span className={`open-pill ${business.isOpen ? 'open' : 'closed'}`}><Clock size={14}/> {business.isOpen ? 'Open now' : 'Closed'}{hoursLabel(business) ? ` · ${hoursLabel(business)}` : ''}</span>
+            {business.logoUrl && <img className="store-logo" src={storeImage(imageSrc(business.logoUrl), 192)} alt={st("{name} logo",{name:business.name})}/>}
+            <span className={`open-pill ${business.isOpen ? 'open' : 'closed'}`}><Clock size={14}/> {business.isOpen ? st("Open now") : st("Closed")}{hoursLabel(business) ? ` · ${hoursLabel(business)}` : ''}</span>
           </div>
           <h1>{business.name}<span>.</span></h1>
           <p>{business.description || t('tagline')}</p>
           <div className="store-banner-bottom">
-            <span><MapPin size={15}/> {business.location || 'Made with care'}</span>
+            <span><MapPin size={15}/> {business.location || st("Made with care")}</span>
             <div className="store-banner-actions">
 
               <button className="chip-btn" onClick={() => setQrOpen(true)}><QrCode size={16}/> {t('share')}</button>
@@ -370,10 +371,10 @@ export default function ShopPage({ hostedSlug }) {
       </div>
       <PushPrompt key={slug} slug={slug} business={business} blocked={offerOpen || cartOpen || wishOpen || qrOpen}/>
       {business.storeType === 'restaurant' && <TableBar slug={slug} business={business}/>}
-      <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
-        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div>{business.storeType === 'restaurant' ? <MenuViewSwitch view={menuView} onChange={setMenuView}/> : <span>{total} {t('productsCount')}</span>}</div>
+      <div className="container catalog"><StorefrontLanguage/>
+        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? st("THE MENU") : st("CURATED FOR YOU")}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div>{business.storeType === 'restaurant' ? <MenuViewSwitch view={menuView} onChange={setMenuView}/> : <span>{total} {t('productsCount')}</span>}</div>
         <div className="catalog-tools">
-          <div className="filter-tabs" role="group" aria-label="Product categories"><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
+          <div className="filter-tabs" role="group" aria-label={st("Product categories")}><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
           <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} aria-label={t('search')}/></label>
         </div>
         {loading
@@ -383,20 +384,20 @@ export default function ShopPage({ hostedSlug }) {
               ? <MenuSections products={products} slug={slug} cart={cart} blocked={business.blocksOrders}/>
               : <div className={business.storeType === 'restaurant' ? 'menu-list' : 'product-grid'}>{products.map((p, i) => business.storeType === 'restaurant' ? <RestaurantCard key={p.id} product={p} slug={slug} cart={cart} index={i} blocked={business.blocksOrders}/> : <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
             : <div className="empty-state"><Package size={38}/><h3>{t('empty')}</h3><p>{t('emptyHint')}</p></div>}
-        {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{pageError}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading more...' : pageError ? 'Retry loading products' : 'Load 10 more'}</button><small>{products.length} of {total} products</small></div>}
+        {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{st(pageError)}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? st("Loading more...") : pageError ? st("Retry loading products") : st("Load 10 more")}</button><small>{products.length} {st("of")} {total} {st("products")}</small></div>}
       </div>
       {business.storeType !== 'restaurant' && orders.orders.length > 0 && <div className="container order-history">
-        <div className="catalog-head"><div><span className="kicker">YOUR HISTORY</span><h2>Order again<span className="accent-dot">.</span></h2></div></div>
+        <div className="catalog-head"><div><span className="kicker">{st("YOUR HISTORY")}</span><h2>{st("Order again")}<span className="accent-dot">.</span></h2></div></div>
         <div className="order-history-list">{orders.orders.map((order, i) => <div className="order-card" key={i}>
-          <div><strong>{order.items.reduce((s, x) => s + x.qty, 0)} items · {inr(order.total)}</strong><small>{new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {order.items.slice(0, 3).map(x => x.name).join(', ')}{order.items.length > 3 ? '…' : ''}</small></div>
-          <button className="btn btn-outline btn-small" onClick={() => { order.items.forEach(item => cart.add(item, item.qty)); setCartOpen(true); }}>Repeat order</button>
+          <div><strong>{order.items.reduce((s, x) => s + x.qty, 0)} {st("items ·")} {inr(order.total)}</strong><small>{new Date(order.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {order.items.slice(0, 3).map(x => x.name).join(', ')}{order.items.length > 3 ? '…' : ''}</small></div>
+          <button className="btn btn-outline btn-small" onClick={() => { order.items.forEach(item => cart.add(item, item.qty)); setCartOpen(true); }}>{st("Repeat order")}</button>
         </div>)}</div>
       </div>}
-      <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? 'FRESHLY MADE FOR YOU ✳' : t('talkKicker')}</span><h2>{business.storeType === 'restaurant' ? 'Hungry? Order from the menu.' : <>{t('talkTitle')} <em>{t('talkAccent')}</em></>}</h2><p>{business.storeType === 'restaurant' ? 'Dine in, take away, or order delivery. Your order goes straight to the restaurant.' : t('talkBody')}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> {t('callOwner')}</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> {t('whatsappMsg')}</a></div></div></div>
+      <div className="store-end"><div className="container"><span>{business.storeType === 'restaurant' ? st("FRESHLY MADE FOR YOU ✳") : t('talkKicker')}</span><h2>{business.storeType === 'restaurant' ? st("Hungry? Order from the menu.") : <>{t('talkTitle')} <em>{t('talkAccent')}</em></>}</h2><p>{business.storeType === 'restaurant' ? st("Dine in, take away, or order delivery. Your order goes straight to the restaurant.") : t('talkBody')}</p><div className="store-contact-actions"><a className="btn btn-green" href={`tel:+${business.whatsapp}`}><Phone size={17}/> {t('callOwner')}</a><a className="btn btn-outline" href={`https://wa.me/${business.whatsapp}?text=${encodeURIComponent(`Hi ${business.name}, I have a question about your shop.`)}`} target="_blank" rel="noreferrer"><MessageCircle size={17}/> {t('whatsappMsg')}</a></div></div></div>
     </main>
     <div className="container store-install-footer"><InstallApp name={business.name} t={t}/></div>
-    <Footer><span>{business.name} · Powered by Digital Shop</span></Footer>
-    {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span key={cart.count} className="cart-badge cart-bump">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
+    <Footer><span>{business.name} {st("· Powered by Digital Shop")}</span></Footer>
+    {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label={st("Open cart")}><ShoppingBag size={22}/><span key={cart.count} className="cart-badge cart-bump">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
     {offerOpen && <OfferPopup business={business} onClose={dismissOffer}/>}
     {business.storeType === 'restaurant' ? <RestaurantCheckout slug={slug} business={business} cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/> : <CartDrawer slug={slug} business={business} cart={cart} orders={orders} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/>}
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>

@@ -1847,3 +1847,11 @@ div.row-actions { display: flex; flex-wrap: wrap; gap: var(--gap-1); }
 .admin-top { flex-wrap:wrap; gap:12px; }
 .admin-profile { min-width:0; }
 @media(max-width:600px) { .owner-language { flex:1 0 100%; justify-content:flex-end; order:3; } .mnav span { white-space:normal; line-height:1.45; } .mnav-sheet-head strong { line-height:1.5; } }
+/* Match the locally served Devanagari family across every shopper route and portal. */
+[data-storefront-language="hi"], [data-storefront-language="mr"] { --font-body:'Noto Sans Devanagari','DM Sans',sans-serif; --font-display:'Noto Sans Devanagari','Manrope',sans-serif; }
+[data-storefront-language="hi"] body, [data-storefront-language="mr"] body { line-height:1.65; }
+[data-storefront-language="hi"] .kicker, [data-storefront-language="mr"] .kicker { letter-spacing:0; }
+.header-controls .language-select { display:flex; align-items:center; gap:6px; margin:0; font-size:12px; }
+.header-controls .language-select span { display:none; }
+.header-controls .language-select select { width:auto; max-width:108px; padding:7px 8px; }
+@media(max-width:600px) { .header-controls { gap:6px; } .header-controls .language-select select { max-width:90px; } }

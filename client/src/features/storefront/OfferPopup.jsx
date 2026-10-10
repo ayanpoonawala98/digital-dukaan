@@ -1,3 +1,4 @@
+import { pt } from '../../shared/lib/presentation-i18n.js';
 import React, { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { ArrowUpRight, X } from 'lucide-react';
@@ -22,18 +23,18 @@ export default function OfferPopup({ business, onClose, preview = false, accentC
     return () => { document.removeEventListener('keydown', onKey); previous?.focus?.(); };
   }, [onClose]);
   return createPortal(<div className="modal-overlay offer-modal-layer" style={storeThemeStyle(accentColor || business.accentColor, document.documentElement.dataset.theme === 'dark')} onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-    <div className="modal offer-popup anim-pop" role="dialog" aria-modal="true" aria-label={`Offer from ${business.name}`} aria-labelledby="offer-title" aria-describedby="offer-body">
-      <button ref={closeRef} className="modal-close" onClick={onClose} aria-label="Close offer"><X/></button>
-      {business.offerPopupImageUrl && <img src={imageSrc(business.offerPopupImageUrl)} alt="Store offer"/>}
-      <span className="kicker">{preview ? 'PREVIEW · ' : ''}A NOTE FROM {business.name.toUpperCase()}</span>
+    <div className="modal offer-popup anim-pop" role="dialog" aria-modal="true" aria-label={pt("Offer from {v0}",{v0:business.name})} aria-labelledby="offer-title" aria-describedby="offer-body">
+      <button ref={closeRef} className="modal-close" onClick={onClose} aria-label={pt("Close offer")}><X/></button>
+      {business.offerPopupImageUrl && <img src={imageSrc(business.offerPopupImageUrl)} alt={pt("Store offer")}/>}
+      <span className="kicker">{preview ? pt("PREVIEW · ") : ''}{pt("A NOTE FROM {v0}",{v0:business.name.toUpperCase()})}</span>
       <h2 id="offer-title">{business.offerPopupTitle || business.name}</h2>
-      <p id="offer-body">{business.offerPopupText || (preview ? 'Your offer message will appear here. Add a message in Shop settings before publishing.' : '')}</p>
+      <p id="offer-body">{business.offerPopupText || (preview ? pt("Your offer message will appear here. Add a message in Shop settings before publishing.") : '')}</p>
       <div className="offer-popup-actions">
         {business.offerPopupCtaText && (business.offerPopupCtaUrl || '').startsWith('https://')
           ? preview ? <button className="btn btn-green" onClick={onClose}>{business.offerPopupCtaText} <ArrowUpRight size={17}/></button>
             : <a className="btn btn-green" href={business.offerPopupCtaUrl} target="_blank" rel="noopener noreferrer" onClick={onClose}>{business.offerPopupCtaText} <ArrowUpRight size={17}/></a>
-          : <button className="btn btn-green" onClick={onClose}>Explore the shop</button>}
-        <button className="btn btn-ghost" onClick={onClose}>Not now</button>
+          : <button className="btn btn-green" onClick={onClose}>{pt("Explore the shop")}</button>}
+        <button className="btn btn-ghost" onClick={onClose}>{pt("Not now")}</button>
       </div>
     </div>
   </div>, document.body);

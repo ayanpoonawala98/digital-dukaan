@@ -1,4 +1,4 @@
-import { ot } from '../../shared/lib/owner-i18n.js';
+import { pt as ot } from '../../shared/lib/presentation-i18n.js';
 import React from 'react';
 const VEG = { veg: ['#0a8f3c', 'Vegetarian'], nonveg: ['#b3261e', 'Non-vegetarian'], egg: ['#d98a00', 'Contains egg'] };
 export function VegDot({ veg }) {

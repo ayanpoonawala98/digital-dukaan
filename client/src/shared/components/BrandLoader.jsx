@@ -1,4 +1,4 @@
-import { ot } from '../lib/owner-i18n.js';
+import { pt as ot } from '../lib/presentation-i18n.js';
 import React from 'react';
 
 // App-wide loader: the Digital Shop bag mark with soft ripples and a bouncing dot row.
