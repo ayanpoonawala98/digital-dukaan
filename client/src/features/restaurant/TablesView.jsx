@@ -11,6 +11,19 @@ const when = d => new Date(d).toLocaleString('en-IN', { day: 'numeric', month: '
 const CH = { delivery: ['Delivery', Bike], takeaway: ['Takeaway', ShoppingBag], counter: ['Counter sale', Store] };
 const label = s => (s.kind === 'table' ? `Table ${s.n}` : CH[s.kind][0]);
 const opt = l => [lineText(l), l.note && `Note: ${l.note}`].filter(Boolean).join(' ');
+const paidText = b => Array.isArray(b.payments) && b.payments.length > 1 ? 'Paid: ' + b.payments.map(p => `${String(p.mode).toUpperCase()} ${inr(p.amount)}`).join(', ') : `Paid by ${String(b.paymentMode === 'split' ? 'split' : b.paymentMode).toUpperCase()}`;
+const billText = (bill, lines, charges, store) => {
+  const rows = [store.name, `${bill.title} - Bill #${bill.billNo}`, new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), ''];
+  for (const l of lines) rows.push(`${l.qty} x ${l.name}${opt(l) ? ' ' + opt(l) : ''} - ${inr(l.qty * l.price)}`);
+  rows.push('', `Subtotal: ${inr(bill.subtotal)}`);
+  for (const c of charges) rows.push(`${c.label}: ${inr(c.amount)}`);
+  if (bill.discount > 0) rows.push(`Discount: -${inr(bill.discount)}`);
+  if (bill.gstPct > 0) rows.push(`CGST ${bill.gstPct / 2}%: ${inr(bill.cgst)}${bill.gstMode === 'inclusive' ? ' (incl.)' : ''}`, `SGST ${bill.gstPct / 2}%: ${inr(bill.sgst)}${bill.gstMode === 'inclusive' ? ' (incl.)' : ''}`);
+  rows.push(`Total: ${inr(bill.total)}`, paidText(bill));
+  if (store.gstin) rows.push(`GSTIN ${store.gstin}`);
+  rows.push('', 'Thank you, visit again!');
+  return rows.join('\n');
+};
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Prints through an isolated iframe holding only the receipt, so mobile browsers never print the app page (which came out blank).
 function printReceipt(bill, lines, charges, store, saved) {
@@ -19,7 +32,7 @@ function printReceipt(bill, lines, charges, store, saved) {
     + lines.map(l => row(`${l.qty} x ${l.name}`, inr(l.qty * l.price)) + (opt(l) ? `<div class="o">${esc(opt(l))}</div>` : '')).join('') + '<hr>' + row('Subtotal', inr(bill.subtotal))
     + charges.map(c => row(c.label, inr(c.amount))).join('') + (bill.discount > 0 ? row('Discount', '-' + inr(bill.discount)) : '')
     + (gst > 0 ? row(`CGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.cgst)) + row(`SGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.sgst)) : '') + '<hr>' + row('TOTAL', inr(bill.total), 'big')
-    + (saved ? `<p class="c">Paid by ${esc(String(bill.paymentMode).toUpperCase())}</p>` : '') + `<p class="c">${store.gstin ? 'GSTIN ' + esc(store.gstin) + '<br>' : ''}Thank you, visit again!</p>`;
+    + (saved ? `<p class="c">${paidText(bill)}</p>` : '') + `<p class="c">${store.gstin ? 'GSTIN ' + esc(store.gstin) + '<br>' : ''}Thank you, visit again!</p>`;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:13px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:16px;text-align:center;margin:0 0 4px}.c{text-align:center;margin:4px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.r{display:flex;justify-content:space-between;gap:8px}.r span:first-child{flex:1;min-width:0;word-break:break-word}.big{font-size:16px;font-weight:700}.o{padding-left:10px;font-size:11px}</style></head><body>${body}</body></html>`;
   const f = document.createElement('iframe');
   f.setAttribute('aria-hidden', 'true');
@@ -78,9 +91,9 @@ function Receipt_({ bill, lines, charges, store, onClose, saved }) {
     {bill.discount > 0 && <div className="r"><span>Discount</span><span>-{inr(bill.discount)}</span></div>}
     {gst > 0 && <><div className="r"><span>CGST {gst / 2}%{incl ? ' (incl.)' : ''}</span><span>{inr(bill.cgst)}</span></div><div className="r"><span>SGST {gst / 2}%{incl ? ' (incl.)' : ''}</span><span>{inr(bill.sgst)}</span></div></>}<hr/>
     <div className="r big"><span>TOTAL</span><span>{inr(bill.total)}</span></div>
-    {saved && <p className="c">Paid by {bill.paymentMode.toUpperCase()}</p>}
+    {saved && <p className="c">{paidText(bill)}</p>}
     <p className="c">{store.gstin ? `GSTIN ${store.gstin} · ` : ''}Thank you, visit again!</p>
-    <div className="tv-cta no-print"><button className="btn btn-outline" onClick={onClose}>Close</button><button className="btn btn-green" onClick={() => printReceipt(bill, lines, charges, store, saved)}><Printer size={16}/> Print (80mm)</button></div>
+    <div className="tv-cta no-print"><button className="btn btn-outline" onClick={onClose}>Close</button>{saved && <a className="btn btn-outline" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(billText(bill, lines, charges, store))}`}>Share on WhatsApp</a>}<button className="btn btn-green" onClick={() => printReceipt(bill, lines, charges, store, saved)}><Printer size={16}/> {saved ? 'Reprint (80mm)' : 'Print (80mm)'}</button></div>
   </div></div>;
 }
 
@@ -93,6 +106,9 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const [gst, setGst] = useState(() => Number(localStorage.getItem(`dd-gst-${storeId}`) ?? 5));
   const [pick, setPick] = useState('');
   const [pay, setPay] = useState('cash');
+  const [split, setSplit] = useState(false);
+  const [parts, setParts] = useState({ cash: '', upi: '', card: '' });
+  const [day, setDay] = useState(null);
   const [form, setForm] = useState(null);
   const [preview, setPreview] = useState(null);
   const [hist, setHist] = useState(null);
@@ -104,9 +120,9 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const base = `/owner/${storeId}`;
   const selRef = useRef(sel); selRef.current = sel;
 
-  const load = useCallback(async () => { try { setData(await api(`${base}/tables`, { token, feedback: false })); setErr(''); } catch (e) { setErr(e.message || 'Could not load tables'); } }, [base, token]);
+  const load = useCallback(async () => { try { setData(await api(`${base}/tables`, { token, feedback: false })); api(`${base}/tables/day-summary`, { token, feedback: false }).then(setDay).catch(() => {}); setErr(''); } catch (e) { setErr(e.message || 'Could not load tables'); } }, [base, token]);
   useEffect(() => { load(); const t = setInterval(() => { if (!document.hidden) load(); }, 15000); return () => clearInterval(t); }, [load]);
-  useEffect(() => { setEdit({ qty: {}, added: [], charges: [], disc: { type: 'flat', value: '' } }); setForm(null); setPick(''); setHist(null); }, [sel?.kind, sel?.n, sel?.oid]);
+  useEffect(() => { setEdit({ qty: {}, added: [], charges: [], disc: { type: 'flat', value: '' } }); setForm(null); setPick(''); setHist(null); setSplit(false); setParts({ cash: '', upi: '', card: '' }); }, [sel?.kind, sel?.n, sel?.oid]);
 
   const allOrders = useMemo(() => { if (!data || !sel) return []; return sel.kind === 'table' ? (data.tables.find(t => t.number === sel.n)?.orders || []) : (data.channels[sel.kind]?.orders || []); }, [data, sel]);
   const perOrder = sel?.kind === 'delivery' || sel?.kind === 'takeaway';
@@ -114,6 +130,8 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const baseLines = useMemo(() => orders.flatMap(o => (o.items || []).map((it, idx) => ({ key: `${o.id}|${idx}`, orderId: o.id, itemIdx: idx, productId: it.productId || null, name: it.name, variant: it.variant, addons: it.addons, note: it.note, price: Number(it.price), qty: Number(it.qty) }))), [orders]);
   const lines = useMemo(() => [...baseLines.map(l => ({ ...l, qty: edit.qty[l.key] ?? l.qty })), ...edit.added.map(a => ({ key: 'p' + a.key, productId: a.productId, name: a.name, variant: a.variant, price: a.price, qty: a.qty, addedKey: a.key }))].filter(l => l.qty > 0), [baseLines, edit]);
   const gv = gstView(data, gst);
+  const partList = ['cash', 'upi', 'card'].map(k => ({ mode: k, amount: Math.round(Number(parts[k] || 0) * 100) / 100 })).filter(p => p.amount > 0);
+  const partSum = Math.round(partList.reduce((a, p) => a + p.amount, 0) * 100) / 100;
   const m = billMoney(lines, edit.charges, edit.disc, gv);
   const setQty = (l, d) => { if (l.orderId) setEdit(e => ({ ...e, qty: { ...e.qty, [l.key]: Math.max(0, l.qty + d) } })); else setEdit(e => ({ ...e, added: e.added.map(a => a.key === l.addedKey ? { ...a, qty: Math.max(0, a.qty + d) } : a) })); };
   const addItem = val => {
@@ -122,10 +140,12 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
     const key = `${p.id}|${v ? v.name : ''}`, price = Number(v ? v.price : p.price);
     setEdit(e => e.added.some(a => a.key === key) ? { ...e, added: e.added.map(a => a.key === key ? { ...a, qty: a.qty + 1 } : a) } : { ...e, added: [...e.added, { key, productId: p.id, variant: v ? v.name : undefined, name: p.name, price, qty: 1 }] }); setPick('');
   };
-  const payload = () => ({ channel: sel.kind, tableNumber: sel.kind === 'table' ? sel.n : undefined, orderIds: orders.map(o => o.id), lines: lines.map(l => l.orderId ? { orderId: l.orderId, itemIdx: l.itemIdx, name: l.name, qty: l.qty, productId: l.productId } : { productId: l.productId, variant: l.variant, qty: l.qty }), charges: edit.charges.map(c => ({ label: c.label, amount: Number(c.amount) })), discount: { type: edit.disc.type, value: Number(edit.disc.value || 0) }, gstPct: gv.rate, paymentMode: pay });
-  const draftBill = () => ({ title: label(sel), subtotal: m.sub, discount: m.d, gstPct: gv.rate, gstMode: gv.mode, cgst: m.half, sgst: m.half, total: m.total, paymentMode: pay });
+  const payload = () => ({ channel: sel.kind, tableNumber: sel.kind === 'table' ? sel.n : undefined, orderIds: orders.map(o => o.id), lines: lines.map(l => l.orderId ? { orderId: l.orderId, itemIdx: l.itemIdx, name: l.name, qty: l.qty, productId: l.productId } : { productId: l.productId, variant: l.variant, qty: l.qty }), charges: edit.charges.map(c => ({ label: c.label, amount: Number(c.amount) })), discount: { type: edit.disc.type, value: Number(edit.disc.value || 0) }, gstPct: gv.rate, ...(split ? { payments: partList } : { paymentMode: pay }) });
+  const draftBill = () => ({ title: label(sel), subtotal: m.sub, discount: m.d, gstPct: gv.rate, gstMode: gv.mode, cgst: m.half, sgst: m.half, total: m.total, paymentMode: split ? 'split' : pay, payments: split ? partList : [] });
   const settle = async () => {
-    if (busy || !lines.length) return; setBusy(true); setErr('');
+    if (busy || !lines.length) return;
+    if (split && Math.abs(partSum - m.total) > 0.005) { setErr(`Payments add up to ${inr(partSum)} but the total is ${inr(m.total)}`); return; }
+    setBusy(true); setErr('');
     try { const { bill } = await api(`${base}/table-bills`, { token, method: 'POST', body: payload(), feedback: false }); setPreview({ saved: true, bill: { ...bill, title: label(sel) }, lines: bill.lines, charges: bill.charges }); await load(); setSel(null); }
     catch (e) { setErr(e.message || 'Could not save the bill'); } finally { setBusy(false); }
   };
@@ -156,15 +176,16 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
         {form?.k === 'disc' && <form className="tv-form" onSubmit={e => { e.preventDefault(); const a = Number(form.v); setEdit(x => ({ ...x, disc: { type: form.type, value: a > 0 ? a : '' } })); setForm(null); }}><select aria-label="Discount type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><option value="pct">%</option><option value="flat">₹</option></select><input aria-label="Discount" type="number" min="0" step="0.01" inputMode="decimal" autoFocus value={form.v} onChange={e => setForm({ ...form, v: e.target.value })}/><button className="btn btn-green btn-small">Apply</button><button type="button" className="tv-x" onClick={() => setForm(null)} aria-label="Cancel"><X size={16}/></button></form>}
       </div>
       <div className="tv-sum"><div><span>Subtotal</span><b>{inr(m.sub)}</b></div>{(m.ch > 0 || m.d > 0) && <div><span>Charges − discount</span><b>{m.ch - m.d < 0 ? '− ' + inr(m.d - m.ch) : inr(m.ch - m.d)}</b></div>}{gv.rate > 0 && <><div><span>CGST {gv.rate / 2}%{gv.mode === 'inclusive' ? ' (incl.)' : ''}</span><b>{inr(m.half)}</b></div><div><span>SGST {gv.rate / 2}%{gv.mode === 'inclusive' ? ' (incl.)' : ''}</span><b>{inr(m.half)}</b></div></>}<div className="t"><span>Total</span><b>{inr(m.total)}</b></div></div>
-      <div className="tv-gst">{gv.fixed ? <span>{gv.rate ? `GST ${gv.rate}% ${gv.mode}` : 'GST off'}</span> : <>GST <select value={gst} onChange={e => { setGst(+e.target.value); localStorage.setItem(`dd-gst-${storeId}`, e.target.value); }}>{[0, 5, 12, 18, 28].map(g => <option key={g} value={g}>{g}%</option>)}</select></>}{canBill && <span className="tv-pay" role="group" aria-label="Payment mode">{['cash', 'upi', 'card'].map(p => <button key={p} type="button" className={pay === p ? 'on' : ''} onClick={() => setPay(p)}>{p.toUpperCase()}</button>)}</span>}</div>
+      <div className="tv-gst">{gv.fixed ? <span>{gv.rate ? `GST ${gv.rate}% ${gv.mode}` : 'GST off'}</span> : <>GST <select value={gst} onChange={e => { setGst(+e.target.value); localStorage.setItem(`dd-gst-${storeId}`, e.target.value); }}>{[0, 5, 12, 18, 28].map(g => <option key={g} value={g}>{g}%</option>)}</select></>}{canBill && !split && <span className="tv-pay" role="group" aria-label="Payment mode">{['cash', 'upi', 'card'].map(p => <button key={p} type="button" className={pay === p ? 'on' : ''} onClick={() => setPay(p)}>{p.toUpperCase()}</button>)}</span>}{canBill && <button type="button" className="tv-link" onClick={() => setSplit(v => !v)}>{split ? 'Single payment' : 'Split payment'}</button>}</div>
+      {canBill && split && <div className="tv-split" role="group" aria-label="Split payment">{['cash', 'upi', 'card'].map(k => <label key={k}>{k.toUpperCase()}<input type="number" min="0" step="0.01" inputMode="decimal" placeholder="₹0" value={parts[k]} onChange={e => setParts({ ...parts, [k]: e.target.value })}/><button type="button" className="tv-link" onClick={() => setParts({ ...parts, [k]: String(Math.max(0, Math.round((m.total - (partSum - Number(parts[k] || 0))) * 100) / 100)) })}>Rest</button></label>)}<small className={Math.abs(partSum - m.total) > 0.005 ? 'neg' : ''}>{Math.abs(partSum - m.total) > 0.005 ? `${inr(Math.abs(m.total - partSum))} ${partSum < m.total ? 'left to collect' : 'too much'}` : 'Matches the total'}</small></div>}
       {err && <p className="notice error">{err}</p>}
-      <div className="tv-cta"><button className="btn btn-outline" disabled={!lines.length} onClick={() => setPreview({ saved: false, bill: draftBill(), lines, charges: edit.charges.map(c => ({ label: c.label, amount: c.amount })) })}><Printer size={16}/> Print bill</button>{canBill && <button className="btn btn-green" disabled={busy || !lines.length} onClick={settle}><CircleCheck size={16}/> {busy ? 'Saving…' : sel.kind === 'table' ? 'Paid · vacate table' : 'Paid · close bill'}</button>}</div>
+      <div className="tv-cta"><button className="btn btn-outline" disabled={!lines.length} onClick={() => setPreview({ saved: false, bill: draftBill(), lines, charges: edit.charges.map(c => ({ label: c.label, amount: c.amount })) })}><Printer size={16}/> Print bill</button>{canBill && <button className="btn btn-green" disabled={busy || !lines.length || (split && Math.abs(partSum - m.total) > 0.005)} onClick={settle}><CircleCheck size={16}/> {busy ? 'Saving…' : sel.kind === 'table' ? 'Paid · vacate table' : 'Paid · close bill'}</button>}</div>
     </div>}
   </aside>;
   return <div className={`tv ${sel ? 'has-sel' : ''}`}>
     <div className="tv-main">
       {err && !sel && <p className="notice error">{err}</p>}
-      <div className="tv-stats"><div><b>{occupied}</b><span>Occupied</span></div><div><b>{data.tables.length - occupied}</b><span>Vacant</span></div><div><b>{inr(running)}</b><span>Running bills</span></div><div className="tv-legend"><i className="g"/> Vacant <i className="r"/> Occupied</div></div>
+      <div className="tv-stats"><div><b>{occupied}</b><span>Occupied</span></div><div><b>{data.tables.length - occupied}</b><span>Vacant</span></div><div><b>{inr(running)}</b><span>Running bills</span></div>{day && day.count > 0 && <div className="tv-day"><b>{inr(day.total)}</b><span>Today · {day.count} bills · Cash {inr(day.byMode?.cash)} · UPI {inr(day.byMode?.upi)} · Card {inr(day.byMode?.card)}</span></div>}<div className="tv-legend"><i className="g"/> Vacant <i className="r"/> Occupied</div></div>
       <h4 className="tv-h">Order channels</h4>
       <div className="tv-channels">{Object.entries(CH).map(([k, [n, Icon]]) => { const c = data.channels[k]; return <button key={k} className={`tv-ch ${sel?.kind === k ? 'sel' : ''}`} onClick={() => { setSel({ kind: k }); setTab('orders'); }}><Icon size={20}/><span><strong>{n}</strong><small>{c.open ? `${c.open} open · ${inr(c.total)}` : k === 'counter' ? 'Tap to bill a walk-in' : 'No open orders'}</small></span></button>; })}</div>
       <h4 className="tv-h">Dine-in tables{!staffMode && <button className="tv-link tv-cfg" onClick={() => setCfg(String(data.tableCount))}><Settings2 size={13}/> {data.tableCount} tables</button>}</h4>

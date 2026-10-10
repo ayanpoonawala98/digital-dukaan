@@ -12,7 +12,7 @@ export function staffAllowed(perms, method, route) {
   if (method === 'GET' && /^(?:overview|shop-qr\.pdf)$/.test(route)) return true;
   if (method === 'GET' && /^restaurant-orders(?:\/report\.csv)?$/.test(route)) return has('orders_view');
   if (method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) return has('order_status');
-  if (method === 'GET' && /^tables(?:\/history)?$/.test(route)) return has('orders_view');
+  if (method === 'GET' && /^tables(?:\/history|\/day-summary)?$/.test(route)) return has('orders_view');
   if (method === 'POST' && /^restaurant-orders\/\d+\/items$/.test(route)) return has('order_status');
   if (method === 'POST' && /^restaurant-orders\/\d+\/kot$/.test(route)) return has('order_status');
   if (method === 'GET' && route === 'menu-availability') return has('orders_view');

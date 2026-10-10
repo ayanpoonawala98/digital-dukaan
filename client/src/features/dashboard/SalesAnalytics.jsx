@@ -107,7 +107,7 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
   }
 
   return <div className="sales-analytics sd">
-      {r.bills?.count > 0 && <p className="notice" style={{ margin: "0 0 12px" }}>Table bills settled: <b>{r.bills.count}</b> · billed total <b>{inr(r.bills.total)}</b> (GST {inr(r.bills.gst)}, extra charges {inr(r.bills.charges)}, discounts {inr(r.bills.discounts)}). Full history is under Tables.</p>}
+      {r.bills?.count > 0 && <p className="notice" style={{ margin: "0 0 12px" }}>Table bills settled: <b>{r.bills.count}</b> · billed total <b>{inr(r.bills.total)}</b> (GST {inr(r.bills.gst)}, extra charges {inr(r.bills.charges)}, discounts {inr(r.bills.discounts)}). Full history is under Tables.{r.bills.byMode && <> Collected: cash <b>{inr(r.bills.byMode.cash)}</b>, UPI <b>{inr(r.bills.byMode.upi)}</b>, card <b>{inr(r.bills.byMode.card)}</b>.</>}</p>}
     <div className="sd-kpis">
       <Kpi i={0} title="Earnings" value={inr(r.recordedTotal)} note="Served orders, not verified payments" spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
       <Kpi i={1} title="Served orders" value={r.completedOrders || 0} note="In the selected order-created date range" spark={sparkOf(series, 'servedOrders')}><Delta cur={w.last7.servedOrders} prev={w.prev7.servedOrders}/></Kpi>

@@ -96,3 +96,9 @@
 .soldout-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 10px; border: 1px solid #cfd8d3; border-radius: 999px; background: #fff; font: inherit; cursor: pointer; }
 .soldout-chip em { font-style: normal; font-size: 11px; opacity: .7; }
 .soldout-chip.on { background: #fdecea; border-color: #b3261e; color: #8a1c15; }
+.tv-split { display: grid; gap: 6px; margin: 8px 0; }
+.tv-split label { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.tv-split input { flex: 1; min-width: 0; min-height: 40px; }
+.tv-split .neg { color: #b3261e; }
+.tv-day { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: baseline; }
+.tv-day span { font-size: 13px; opacity: .8; }

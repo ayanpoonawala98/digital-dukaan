@@ -2,6 +2,7 @@
 import { Op, DataTypes } from 'sequelize';
 import { sequelize, Product, RestaurantOrder, TableRequest } from '../../models/index.js';
 import { bad } from '../../shared/utils/core.js';
+import { normalizePayments, byMode } from './payments.js';
 import { orderLine, addedLine } from './bill-lines.js';
 import { gstSetting, billTotals, GST_RATES } from './gst.js';
 
@@ -22,7 +23,8 @@ export const TableBill = sequelize.define('TableBill', {
   cgst: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   sgst: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   total: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
-  paymentMode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'cash' },
+  paymentMode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'cash' }, // cash | upi | card | split
+  payments: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
   customerName: { type: DataTypes.STRING(100), allowNull: true },
   paidAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
 }, { tableName: 'table_bills', indexes: [{ fields: ['businessId', 'channel', 'tableNumber', 'paidAt'] }, { unique: true, fields: ['businessId', 'billNo'] }] });
@@ -46,6 +48,7 @@ export function ensureTableBillSchema() {
   if (!ready) ready = (async () => {
     await TableBill.sync(); // new table only
     await TableHold.sync();
+    await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "payments" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "gstMode" varchar(10) NOT NULL DEFAULT 'exclusive'`);
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "billId" integer');
     await sequelize.query('CREATE INDEX IF NOT EXISTS restaurant_orders_open_idx ON restaurant_orders ("businessId", "billId")');
@@ -93,9 +96,9 @@ export async function billsSummary(store, from, to) {
   await ensureTableBillSchema();
   const where = { businessId: store.id };
   if (from || to) where.paidAt = { ...(from ? { [Op.gte]: from } : {}), ...(to ? { [Op.lt]: to } : {}) };
-  const rows = await TableBill.findAll({ where, attributes: ['subtotal', 'chargesTotal', 'discount', 'cgst', 'sgst', 'total'], raw: true });
+  const rows = await TableBill.findAll({ where, attributes: ['subtotal', 'chargesTotal', 'discount', 'cgst', 'sgst', 'total', 'paymentMode', 'payments'], raw: true });
   const s = k => round2(rows.reduce((a, r) => a + Number(r[k] || 0), 0));
-  return { count: rows.length, total: s('total'), gst: round2(s('cgst') + s('sgst')), charges: s('chargesTotal'), discounts: s('discount') };
+  return { count: rows.length, total: s('total'), gst: round2(s('cgst') + s('sgst')), charges: s('chargesTotal'), discounts: s('discount'), byMode: byMode(rows) };
 }
 
 const cleanText = (v, n) => String(v ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
@@ -149,11 +152,11 @@ export async function settleBill(store, body, setDone) {
   const gstPct = g.rate;
   if (!GST_RATES.includes(gstPct)) throw bad(400, 'Choose a valid GST rate');
   const { half, total } = billTotals({ subtotal, chargesTotal, discount, mode: g.mode, rate: gstPct });
-  const paymentMode = ['cash', 'upi', 'card'].includes(body.paymentMode) ? body.paymentMode : 'cash';
+  const { payments, paymentMode } = normalizePayments(body.payments, total, body.paymentMode);
   const bill = await sequelize.transaction(async t => {
     await sequelize.query('SELECT pg_advisory_xact_lock(:k)', { replacements: { k: 770000 + store.id }, transaction: t });
     const [{ n }] = await sequelize.query('SELECT COALESCE(MAX("billNo"),0)+1 AS n FROM table_bills WHERE "businessId"=:b', { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT, transaction: t });
-    const row = await TableBill.create({ businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, total, paymentMode, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
+    const row = await TableBill.create({ businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, total, paymentMode, payments, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
     if (orderIds.length) {
       const [, count] = await sequelize.query('UPDATE restaurant_orders SET "billId"=:id WHERE id IN (:ids) AND "businessId"=:b AND "billId" IS NULL', { replacements: { id: row.id, ids: orderIds, b: store.id }, transaction: t });
       if ((count?.rowCount ?? orderIds.length) !== orderIds.length) throw bad(409, 'An order on this bill was just billed elsewhere');
@@ -163,4 +166,11 @@ export async function settleBill(store, body, setDone) {
   for (const o of orders) { try { await setDone(o); } catch (e) { /* bill is saved; stock/status issues must not undo history */ } }
   if (channel === "table") await TableHold.destroy({ where: { businessId: store.id, tableNumber } }).catch(() => {});
   return { bill: bill.toJSON() };
+}
+
+// Collections for one IST day, all channels.
+export async function daySummary(store, date) {
+  const day = /^\d{4}-\d{2}-\d{2}$/.test(String(date || '')) ? date : new Date(Date.now() + 19800000).toISOString().slice(0, 10);
+  const a = new Date(`${day}T00:00:00+05:30`);
+  return { date: day, ...(await billsSummary(store, a, new Date(a.getTime() + 86400000))) };
 }
