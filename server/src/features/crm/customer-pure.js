@@ -25,6 +25,14 @@ export function deviceLabel(userAgent) {
   const browser = /Edg\//i.test(ua) ? 'Edge' : /OPR\/|Opera/i.test(ua) ? 'Opera' : /SamsungBrowser/i.test(ua) ? 'Samsung Internet' : /Firefox\//i.test(ua) ? 'Firefox' : /Chrome\//i.test(ua) ? 'Chrome' : /Safari\//i.test(ua) ? 'Safari' : 'Browser';
   return `${browser} on ${os}`;
 }
+// Notification pictures: the shop logo is the small icon (square 192), the cover or a chosen ImageKit picture is the big image (1200x630).
+const ikResize = (value, tr) => { try { const u = new URL(value); if (u.protocol !== 'https:' || u.username || u.password) return ''; if (u.hostname === 'ik.imagekit.io' && !u.searchParams.has('tr')) u.search = `?tr=${tr}`; return u.href; } catch { return ''; } };
+export const pushIcon = store => ikResize(store?.logoUrl, 'w-192,h-192,c-at_max,f-png') || '/icon-192.png';
+export function pushPicture(store, choice) {
+  if (choice === 'none') return '';
+  const own = typeof choice === 'string' && /^https:\/\/ik\.imagekit\.io\/[^\s]{1,300}$/.test(choice) ? choice : '';
+  return ikResize(own || store?.coverUrl || '', 'w-1200,h-630,c-at_max,f-jpg,q-80');
+}
 // Admin-written push. Title and body are plain text; the link must stay inside this shop.
 export function pushMessage(input, store) {
   const title = String(input?.title ?? '').trim(), body = String(input?.body ?? '').trim();
@@ -36,7 +44,7 @@ export function pushMessage(input, store) {
     if (!u.startsWith(`/store/${store.slug}`) || u.startsWith('//') || u.length > 300 || /[\s\\]/.test(u)) return { error: 'Link must be a page of this shop' };
     url = u;
   }
-  return { title, body, url, payload: JSON.stringify({ title, body, url, icon: '/icon-192.png', badge: '/icon-192.png' }) };
+  return { title, body, url, payload: JSON.stringify({ title, body, url, icon: pushIcon(store), badge: '/icon-192.png', ...(pushPicture(store, input?.image) ? { image: pushPicture(store, input?.image) } : {}) }) };
 }
 // Push goes to a customer's devices unless they opted out or were removed. The browser permission itself is the opt-in.
 export const canPush = customer => !customer.archivedAt && customer.optInStatus !== 'opted_out';

@@ -41,6 +41,7 @@ import { validateProductRows } from '../features/catalog/product-import.js';
 import { insights } from '../features/platform/sales-insights.js';
 import { dateWhere, dateWindow, summarize, saleRows, ordersCsv, csvCell as reportCell } from '../features/platform/reporting.js';
 import { auth, roles } from '../shared/middleware/auth.js';
+import { pushIcon } from '../features/crm/customer-pure.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap, clientBase } from '../shared/utils/core.js';
 
 const r = Router();
@@ -685,7 +686,7 @@ r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
     target = `/store/${req.store.slug}/product/${product.id}`;
   }
   const subs = await PushSubscription.findAll({ where: { businessId: bid(req) } });
-  const payload = JSON.stringify({ title, body: bodyText, url: target || `/store/${req.store.slug}`, ...(pushImage(req.store, req.body.image) ? { image: pushImage(req.store, req.body.image) } : {}) });
+  const payload = JSON.stringify({ title, body: bodyText, url: target || `/store/${req.store.slug}`, icon: pushIcon(req.store), ...(pushImage(req.store, req.body.image) ? { image: pushImage(req.store, req.body.image) } : {}) });
   let sent = 0, gone = 0;
   await Promise.all(subs.map(async sub => {
     try {

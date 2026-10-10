@@ -25,6 +25,15 @@ test('push message validation keeps links inside the shop', () => {
   assert.equal(pushMessage({ title: 'a', body: 'b', url: '/store/spice/product/3' }, store).url, '/store/spice/product/3');
   assert.deepEqual(Object.keys(JSON.parse(pushMessage({ title: 'a', body: 'b' }, store).payload)).sort(), ['badge', 'body', 'icon', 'title', 'url']);
 });
+test('push uses the shop logo as icon and cover or a chosen picture as image', () => {
+  const store = { slug: 'spice', logoUrl: 'https://ik.imagekit.io/x/logo.png', coverUrl: 'https://ik.imagekit.io/x/cover.png' };
+  const d = JSON.parse(pushMessage({ title: 'a', body: 'b' }, store).payload);
+  assert.match(d.icon, /logo\.png\?tr=w-192,h-192/); assert.match(d.image, /cover\.png\?tr=w-1200,h-630/);
+  assert.match(JSON.parse(pushMessage({ title: 'a', body: 'b', image: 'https://ik.imagekit.io/x/own.png' }, store).payload).image, /own\.png/);
+  assert.equal(JSON.parse(pushMessage({ title: 'a', body: 'b', image: 'none' }, store).payload).image, undefined);
+  assert.equal(JSON.parse(pushMessage({ title: 'a', body: 'b', image: 'http://evil.com/x.png' }, { slug: 'spice' }).payload).image, undefined);
+  assert.equal(JSON.parse(pushMessage({ title: 'a', body: 'b' }, { slug: 'spice' }).payload).icon, '/icon-192.png');
+});
 test('channel availability follows provider, address and consent', () => {
   const c = { optInStatus: 'unknown', email: 'a@b.com', phone: '919876543210' };
   let a = channelAvailability(c, 2, null);
