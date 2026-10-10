@@ -82,7 +82,9 @@ function SoldOutPanel({ token, storeId }) {
 }
 
 function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
-  const [orders, setOrders] = useState([]), [requests, setRequests] = useState([]), [sound, setSound] = useState(false), [err, setErr] = useState('');
+  const [orders, setOrders] = useState([]), [requests, setRequests] = useState([]), [sound, setSoundState] = useState(() => { try { return localStorage.getItem(`dd-kitchen-alert-${storeId}`) === '1'; } catch { return false; } }), [err, setErr] = useState('');
+  const setSound = fn => setSoundState(prev => { const v = typeof fn === 'function' ? fn(prev) : fn; try { localStorage.setItem(`dd-kitchen-alert-${storeId}`, v ? '1' : '0'); } catch { /* optional */ } return v; });
+  const buzz = useCallback(p => { try { navigator.vibrate?.(p); } catch { /* optional */ } }, []);
   const seen = useRef(null), seenReq = useRef(null), beep = useBeep(), ring = useRing(), soundRef = useRef(false);
   soundRef.current = sound;
   const load = useCallback(async () => {
@@ -90,19 +92,19 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
       const [o, r] = await Promise.all([api(`/owner/${storeId}/restaurant-orders?pageSize=100&page=1`, { token }), api(`/owner/${storeId}/table-requests`, { token })]);
       const open = (o.orders || []).filter(x => !DONE.includes(x.status)).reverse();
       const ids = new Set(open.map(x => x.id));
-      if (seen.current && [...ids].some(id => !seen.current.has(id)) && soundRef.current) beep();
+      if (seen.current && [...ids].some(id => !seen.current.has(id)) && soundRef.current) { beep(); buzz([300, 120, 300]); }
       seen.current = ids; setOrders(open); setRequests(r.requests || []); setErr('');
       const reqIds = new Set((r.requests || []).map(x => x.id));
-      if (seenReq.current && soundRef.current) { const fresh = (r.requests || []).filter(x => !seenReq.current.has(x.id)); if (fresh.length) ring(fresh.every(x => x.kind === 'bill') ? 'bill' : 'waiter'); }
+      if (seenReq.current && soundRef.current) { const fresh = (r.requests || []).filter(x => !seenReq.current.has(x.id)); if (fresh.length) { ring(fresh.every(x => x.kind === 'bill') ? 'bill' : 'waiter'); buzz([500, 150, 500, 150, 500]); } }
       seenReq.current = reqIds;
     } catch (e) { setErr(e.message); }
-  }, [storeId, token, beep, ring]);
+  }, [storeId, token, beep, ring, buzz]);
   useEffect(() => { load(); const t = setInterval(load, 12000); return () => clearInterval(t); }, [load]);
   const clearRequest = async r => { try { await api(`/owner/${storeId}/table-requests/${r.id}`, { method: 'PATCH', token }); load(); } catch (e) { setErr(e.message); } };
   const cols = [['new', 'New'], ['accepted', 'Accepted'], ['preparing', 'Preparing'], ['ready', 'Ready']];
   return <div className="kitchen">
-    <div className="kitchen-bar"><span className="muted">Updates every 12 seconds. Showing open orders only.</span>
-      <button type="button" className="btn btn-outline btn-small" onClick={() => { setSound(s => !s); if (!sound) beep(); }}>{sound ? <><Bell size={14}/> Sound on</> : <><BellOff size={14}/> Sound off</>}</button></div>
+    <div className="kitchen-bar"><span className="muted">Updates every 12 seconds. Showing open orders only. Sound and vibration alert for new orders and waiter or bill calls; keep this screen open and tap Sound on once (browsers need a tap to allow sound). Your choice is remembered.</span>
+      <button type="button" className="btn btn-outline btn-small" onClick={() => { setSound(s => !s); if (!sound) { beep(); buzz(200); } }}>{sound ? <><Bell size={14}/> Sound on</> : <><BellOff size={14}/> Sound off</>}</button></div>
     {err && <p className="notice error" role="alert">{err}</p>}
     <SoldOutPanel token={token} storeId={storeId}/>
     {requests.length > 0 && <div className="table-requests" role="alert">{requests.map(r => <div key={r.id} className={`table-request ${r.kind}`}><strong>Table {r.tableNumber}</strong> {r.kind === 'bill' ? 'wants the bill' : 'is calling the waiter'} <small>{ago(r.createdAt)}</small><button type="button" className="btn btn-small btn-outline" onClick={() => clearRequest(r)}>Done</button></div>)}</div>}
