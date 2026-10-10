@@ -40,6 +40,7 @@ export function staffAllowed(perms, method, route) {
   if (has('leads')) {
     if (method === 'GET' && route === 'leads') return true;
     if (method === 'POST' && /^leads\/\d+\/status$/.test(route)) return true;
+    if (method === 'POST' && /^leads\/\d+\/kot$/.test(route)) return true;
   }
   return false;
 }

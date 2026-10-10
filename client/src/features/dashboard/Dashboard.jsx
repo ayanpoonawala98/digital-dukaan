@@ -130,6 +130,7 @@ function ProductModal({ categories, product, onClose, onSave, busy, restaurant }
 }
 
 import { leadStatusOptions } from '../restaurant/order-flows.js';
+import { KotButton } from '../restaurant/kot-print.jsx';
 import RestaurantOrders, { RestaurantOverview } from '../restaurant/RestaurantOrders.jsx';
 import MenuOptionsEditor from '../restaurant/MenuOptionsEditor.jsx';
 
@@ -158,6 +159,7 @@ function LeadRow({ lead, token, storeId, storeType, onChanged }) {
     <td className="row-actions" data-label="Actions">
       <button className="table-button" disabled={busy} onClick={() => save(status, true)} title="Send status update on WhatsApp"><Busy active={busy}><Send size={14}/> {busy ? 'Updating...' : 'Update'}</Busy></button>
       <button className="table-button" disabled={pdfBusy} onClick={async () => { setPdfBusy(true); try { await download(`/owner/${storeId}/leads/${lead.id}/invoice`, `estimate-${lead.id}.pdf`, token); } catch (e) { setError(e.message); } finally { setPdfBusy(false); } }} title="Download estimate PDF"><Busy active={pdfBusy}><Download size={14}/> {pdfBusy ? 'Loading...' : 'PDF'}</Busy></button>
+      <KotButton lead token={token} storeId={storeId} order={lead}/>
       <PayActions kind="leads" order={lead} token={token} storeId={storeId}/>
       {error && <small className="error-text">{error}</small>}
     </td>

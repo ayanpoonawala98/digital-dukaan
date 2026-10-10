@@ -48,3 +48,7 @@ test('kitchen can mark dishes sold out and print KOTs with order permissions onl
   assert.ok(staffAllowed(act, 'POST', 'menu-availability/5'));
   assert.ok(staffAllowed(act, 'POST', 'restaurant-orders/5/kot'));
 });
+test('retail/service tickets need the leads permission', () => {
+  assert.ok(staffAllowed(effective({ permissions: ['leads'] }), 'POST', 'leads/3/kot'));
+  assert.ok(!staffAllowed(effective({ permissions: ['orders_view', 'order_status'] }), 'POST', 'leads/3/kot'));
+});

@@ -1,4 +1,4 @@
-import { makeKot } from '../features/restaurant/kot.js';
+import { makeKot, makeLeadKot } from '../features/restaurant/kot.js';
 import { tablesState, billHistory, billsSummary, daySummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
 import { assertCanCreateStore } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
@@ -867,6 +867,7 @@ r.post('/:storeId/menu-availability/:id', wrap(async (req, res) => {
   await p.update({ soldOutDate: req.body?.soldOut ? istDay() : null });
   res.json({ item: { id: p.id, name: p.name, soldOut: p.soldOutToday } });
 }));
+r.post('/:storeId/leads/:id/kot', wrap(async (req, res) => { if (req.store.storeType === 'restaurant') throw bad(404, 'Use the restaurant order ticket'); res.json(await makeLeadKot(req.store, numId(req.params.id))); }));
 r.post('/:storeId/table-bills', wrap(async (req, res) => {
   restaurantOnly(req);
   await ensureOrderStockSchema();
