@@ -11,6 +11,7 @@ import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from '../fea
 import Motion from '../shared/components/Motion.jsx';
 import HashScroll from '../shared/components/HashScroll.jsx';
 import Toasts from '../shared/components/Toasts.jsx';
+import { AppBoundary } from '../shared/components/AppBoundary.jsx';
 
 const SetPassword = lazy(() => import('../features/auth/SetPassword.jsx'));
 const Landing = lazy(() => import('../features/landing/Landing.jsx'));
@@ -29,7 +30,7 @@ function Guard({ role, children }) {
 
 export default function App() {
   const hostedSlug = hostedStoreSlug();
-  return <ThemeProvider><AuthProvider><Toasts/><Motion/><HashScroll/><Suspense fallback={<BrandLoader full label="Loading"/>}><Routes>
+  return <ThemeProvider><AuthProvider><Toasts/><Motion/><HashScroll/><AppBoundary><Suspense fallback={<BrandLoader full label="Loading"/>}><Routes>
       <Route path="/offers/opt-out/:token" element={<OfferOptOut/>}/>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
@@ -45,5 +46,5 @@ export default function App() {
     <Route path="/dashboard" element={<Guard role="owner"><Dashboard/></Guard>}/>
     <Route path="/superadmin" element={<Guard role="superadmin"><SuperAdmin/></Guard>}/>
     <Route path="*" element={<Navigate to="/" replace/>}/>
-  </Routes></Suspense></AuthProvider></ThemeProvider>;
+  </Routes></Suspense></AppBoundary></AuthProvider></ThemeProvider>;
 }

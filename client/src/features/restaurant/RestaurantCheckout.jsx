@@ -7,6 +7,7 @@ import { api, inr } from '../../shared/lib/api.js';
 import Busy from '../../shared/components/Busy.jsx';
 import {CustomFieldInputs, missingRequired} from '../dashboard/CustomFields.jsx';
 import { translate } from '../../shared/lib/i18n.js';
+import { useCouponPreview, totalAfterCoupon } from '../../shared/lib/coupon-preview.js';
 import { saveOrder, trackingPath } from '../storefront/my-orders.js';
 import { VegDot, lineText } from './MenuBits.jsx';
 import { lineKey } from '../storefront/shop.js';
@@ -27,6 +28,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   useEffect(() => { if (open) { setError(''); setPlaced(null); } }, [open]);
   const freeAbove = business.freeDeliveryAbove;
   const deliveryFee = orderType === 'delivery' && !(freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove) ? Number(business.deliveryCharge || 0) : 0;
+  const cpv = useCouponPreview(slug, couponCode, cart.subtotal);
   const submit = async e => {
     e.preventDefault(); if (busy || !cart.items.length) return;
     if (business.blocksOrders) { setError('The shop is closed right now and is not taking orders.'); return; }
@@ -63,13 +65,13 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             <label>Email for this order <small>(optional, no offers)</small><input type="email" maxLength={160} value={customerEmail} onChange={e=>{setCustomerEmail(e.target.value);setCustomerEmailConsent(false);}}/></label><label className="check-label"><input type="checkbox" disabled={!customerEmail} checked={customerEmailConsent} onChange={e=>setCustomerEmailConsent(e.target.checked)}/> Email me updates for this order if the store offers email alerts. Not marketing consent.</label>
             {orderType === 'delivery'  && <label>{t('address')}<textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} maxLength={500} required rows={3}/></label>}
             <label>Note for the whole order <small>(optional)</small><input value={orderNote} maxLength={200} onChange={e => setOrderNote(e.target.value)} placeholder="e.g. ring the bell, extra napkins"/></label>
-            <label>Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="SAVE10" maxLength={24}/></label>
+            <label>Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="SAVE10" maxLength={24}/></label>{couponCode && (cpv.error ? <p className="notice warn" role="status">{cpv.error}</p> : cpv.checking ? <p className="drawer-hint">Checking coupon...</p> : cpv.code ? <p className="drawer-hint">Coupon {cpv.code} applied. The restaurant confirms it again when you order.</p> : null)}
             {business.minOrder > 0 && <p className="drawer-hint">Minimum order: {inr(business.minOrder)}</p>}
             {orderType === 'delivery' && business.freeDeliveryAbove > 0 && deliveryFee > 0 && <p className="drawer-hint">Free delivery above {inr(business.freeDeliveryAbove)}.</p>}
             {orderType === 'takeaway' && business.prepMinutes > 0 && <p className="drawer-hint">Takeaway is usually ready in about {business.prepMinutes} minutes.</p>}
             {error && <p className="notice error" role="alert">{error}</p>}
             <div className="drawer-foot">
-            <div className="drawer-totals"><div><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div>{orderType === 'delivery' && <div><span>Delivery fee</span><b>{deliveryFee > 0 ? inr(deliveryFee) : 'Free'}</b></div>}<div className="grand"><span>Estimated total</span><b>{inr(cart.subtotal + deliveryFee)}</b></div></div>
+            <div className="drawer-totals"><div><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div>{orderType === 'delivery' && <div><span>Delivery fee</span><b>{deliveryFee > 0 ? inr(deliveryFee) : 'Free'}</b></div>}{cpv.discount > 0 && <div><span>Coupon {cpv.code}</span><b>-{inr(cpv.discount)}</b></div>}<div className="grand"><span>Estimated total</span><b>{inr(totalAfterCoupon(cart.subtotal, cpv.discount, deliveryFee))}</b></div></div>
             <button className="btn btn-green full" disabled={busy || business.blocksOrders}><Busy active={busy}>{busy ? 'Placing...' : t('submit')}</Busy><ArrowRight size={17}/></button>
             <p className="drawer-hint">Your order goes to the restaurant's dashboard. No payment is taken online.</p>
             </div>

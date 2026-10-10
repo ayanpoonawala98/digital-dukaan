@@ -24,6 +24,8 @@ export const orderLimits = [
   make(60 * 1000, 10, ip, slow)
 ];
 export const tableRequestLimits = [make(10 * 60 * 1000, 60, slug, busy), make(10 * 60 * 1000, 20, ip, slow)];
+// Coupon preview has its own budget so it can never use up the order limits. Per-IP keeps code guessing slow.
+export const couponPreviewLimits = [make(60 * 1000, 12, ip, slow), make(10 * 60 * 1000, 40, ip, slow)];
 export const shopRequestLimit = make(60 * 60 * 1000, 5, ip, slow);
 
 // Web Push endpoints must belong to a real push service, never an arbitrary URL the server would call.

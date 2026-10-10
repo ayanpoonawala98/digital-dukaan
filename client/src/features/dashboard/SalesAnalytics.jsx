@@ -122,7 +122,7 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
       <Kpi i={1} title="Served orders" value={r.completedOrders || 0} note="In the selected order-created date range" spark={sparkOf(series, 'servedOrders')}><Delta cur={w.last7.servedOrders} prev={w.prev7.servedOrders}/></Kpi>
       <Kpi i={2} title="Average served order" value={inr(r.averageOrder)} note="Recorded value divided by served orders"/>
       <Kpi i={3} title="Today / this month" value={inr(r.today)} note={`${inr(r.month)} so far this month. Served value by order date.`}/>
-      <Kpi i={4} title="Open right now" value={r.restaurantPending || 0} note={`${r.cancelledOrders || 0} cancelled in this range`}/>
+      <Kpi i={4} title="Open right now" value={r.restaurantPending || 0} note={`Not yet served (new, accepted, preparing, ready). ${r.cancelledOrders || 0} cancelled in this range`}/>
     </div>
     <div className="sd-grid-2">
       <Panel wide title="Served order value over time" sub={`Recorded value (line) and all orders placed (bars), last ${ins.seriesDays} days, IST`}>{series.some(s => s.orders || s.servedOrders) ? <TrendChart series={series} valueKey="servedValue" countKey="orders" valueLabel="Served value" countLabel="orders placed"/> : <Empty>No orders in this date range.</Empty>}</Panel>

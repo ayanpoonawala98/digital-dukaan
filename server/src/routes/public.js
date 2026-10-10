@@ -4,7 +4,7 @@ import {shopCardPdf} from '../features/stores/shop-card-pdf.js';
 import {campaignPublicRoutes} from '../features/notifications/campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../features/stores/hours.js';
 import { Router } from 'express';
-import { orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
+import { couponPreviewLimits, orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { haversineKm } from '../shared/utils/geo.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
@@ -28,6 +28,7 @@ const r = Router();
 r.post('/stores/:slug/restaurant-orders', ...orderLimits);
 r.post('/stores/:slug/products/:id/enquire', ...orderLimits);
 r.post('/stores/:slug/enquire-cart', ...orderLimits);
+r.post('/stores/:slug/coupon-preview', ...couponPreviewLimits);
 r.post('/stores/:slug/table-requests', ...tableRequestLimits);
 r.post('/shop-requests', shopRequestLimit);
 r.use(campaignPublicRoutes);
@@ -358,6 +359,16 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const waUrl = whatsappUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, {...(typeof product.get==='function'?product.get({plain:true}):product),price:subtotal,orderQty:qty,unitPrice:product.price}, publicImageUrl(product.imageUrl, process.env.PUBLIC_API_URL), answers);
   res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(waUrl, lead.id, lead.claimCode) : waUrl, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total: subtotal } });
+}));
+
+// Shows the discount before the customer places the order. Same rules as the order itself, which recomputes everything.
+r.post('/stores/:slug/coupon-preview', wrap(async (req, res) => {
+  const business = await shop(req.params.slug);
+  const subtotal = Number(req.body?.subtotal);
+  if (!Number.isFinite(subtotal) || subtotal <= 0 || subtotal > 10000000) throw bad(400, 'Add items first');
+  const { discount, code } = await applyCoupon(business, Number(subtotal.toFixed(2)), req.body?.couponCode);
+  res.set('Cache-Control', 'no-store');
+  res.json({ code, discount });
 }));
 
 r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {

@@ -495,6 +495,9 @@ export default function Dashboard() {
   const permissionFeature=tab==='restaurant'?'orders_view':listFeature;
   const listEnabled=!!storeId&&!!data&&String(data.business?.id)===String(storeId)&&pagedTabs.includes(tab)&&data.business?.featureLocks?.[listFeature]!==true&&(!staffMode||(session.user.permissions||[]).includes(permissionFeature));
   const list=useOwnerPages(storeId,tab==='restaurant'?'restaurant-orders':tab,filters,token,listRefresh,listEnabled);
+  // Live refresh for the order lists: quiet 20s poll while the tab is visible, so new orders appear without pressing Refresh.
+  const pollRef=useRef(list.poll);pollRef.current=list.poll;
+  useEffect(()=>{if(!listEnabled||!['leads','restaurant'].includes(tab))return;const t=setInterval(()=>{if(document.visibilityState==='visible')pollRef.current?.();},20000);return()=>clearInterval(t);},[listEnabled,tab,storeId]);
   const leads=tab==='leads'?list.rows:supportLeads;
   const restaurantOrders=tab==='restaurant'?list.rows:supportRestaurantOrders;
   const products=tab==='products'?list.rows:supportProducts;

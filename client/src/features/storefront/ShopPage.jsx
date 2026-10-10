@@ -15,6 +15,7 @@ import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCir
 import { api, imageSrc, inr } from '../../shared/lib/api.js';
 import { storeLink, storePath } from './store-domain.js';
 import { translate } from '../../shared/lib/i18n.js';
+import { useCouponPreview, totalAfterCoupon } from '../../shared/lib/coupon-preview.js';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
 import RestaurantCheckout from '../restaurant/RestaurantCheckout.jsx';
@@ -150,7 +151,8 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [couponCode, setCouponCode] = useState('');
   const freeAbove = business.freeDeliveryAbove;
   const delivery = freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove ? 0 : Number(business.deliveryCharge || 0);
-  const total = cart.subtotal + delivery;
+  const cpv = useCouponPreview(slug, couponCode, cart.subtotal);
+  const total = totalAfterCoupon(cart.subtotal, cpv.discount, delivery);
   const belowMin = business.minOrder > 0 && cart.subtotal < business.minOrder;
   const unanswered = cart.items.find(i => missingRequired(i.customFields, i.answers).length);
   const checkout = async () => {
@@ -184,12 +186,13 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
         </div>
         <ContactFields contact={contact} onChange={setContact}/>
         <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
-        {couponCode && <p className="drawer-hint">The shop verifies the code before opening WhatsApp. Total above does not include a possible discount.</p>}
+        {couponCode && (cpv.error ? <p className="notice warn" role="status">{cpv.error}</p> : cpv.checking ? <p className="drawer-hint">Checking coupon...</p> : cpv.code ? <p className="drawer-hint">Coupon {cpv.code} applied. The shop confirms it again when you order.</p> : <p className="drawer-hint">The shop verifies the code before opening WhatsApp.</p>)}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}
         {error && <p className="notice error">{error}</p>}
         <div className="drawer-foot">
         <div className="drawer-totals">
           <div><span>{t('subtotal')}</span><b>{inr(cart.subtotal)}</b></div>
+          {cpv.discount > 0 && <div><span>Coupon {cpv.code}</span><b>-{inr(cpv.discount)}</b></div>}
           <div><span>{t('deliveryLbl')} {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
           <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
         </div>

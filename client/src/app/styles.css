@@ -1817,3 +1817,7 @@ div.row-actions { display: flex; flex-wrap: wrap; gap: var(--gap-1); }
 .biz-actions .admin-delete-inline input { flex: 1 1 140px; min-width: 0; max-width: 200px; }
 .table-wrap td a { overflow-wrap: anywhere; word-break: break-word; }
 .table-wrap td:last-child { min-width: 0; }
+
+/* Fallback shown if the app cannot load a section (usually right after an update) */
+.app-fallback{min-height:60vh;display:grid;place-content:center;gap:var(--gap-3,12px);padding:var(--gap-4,24px);text-align:center;justify-items:center}
+.app-fallback p{margin:0;color:var(--muted,#526257);max-width:36ch}

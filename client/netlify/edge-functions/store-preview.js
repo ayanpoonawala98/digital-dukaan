@@ -1,6 +1,8 @@
 // Response-time store metadata: social crawlers do not execute the React app.
 const API = 'https://api.digitalshop.website';
 const ROOT = 'https://digitalshop.website';
+export const PLATFORM_IMAGE = 'https://ik.imagekit.io/digitaldukaanayan/digital-dukaan/branding/digital-dukaan-hero_Z71uTHmDJ.jpg?tr=w-1200,h-630,c-at_max,f-jpg,q-80';
+export const SITE_NAME = 'Digital Shop';
 export const config = { path: '/store/*', onError: 'bypass' };
 export const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 // Preview image: the shop's own picture, resized for chat apps; the platform image only when the shop has none.
@@ -56,15 +58,16 @@ export function pageHtml(html, { title, siteName = '', description, canonical, i
 export function storeHtml(html, business, slug, paused = false) {
   const name = clean(business.name, 200);
   const description = paused ? `${name} is temporarily unavailable.` : clean(business.description || `Explore ${name}'s products and shop on WhatsApp.`, 300);
-  const image = paused ? '' : shareImage(business.logoUrl, business.coverUrl);
+  const own = paused ? '' : shareImage(business.logoUrl, business.coverUrl);
+  const image = paused ? '' : (own || PLATFORM_IMAGE);
   const e = escapeHtml;
-  return pageHtml(html, { title: name, siteName: name, description, canonical: `${ROOT}/store/${slug}`, image, imageAlt: `${name} logo`, robots: paused ? 'noindex' : '', schema: paused ? [] : [storeSchema(business, slug)], noscript: paused ? '' : `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to browse the menu and order on WhatsApp.</p></main>` });
+  return pageHtml(html, { title: name, siteName: SITE_NAME, description, canonical: `${ROOT}/store/${slug}`, image, imageAlt: own ? `${name} logo` : name, robots: paused ? 'noindex' : '', schema: paused ? [] : [storeSchema(business, slug)], noscript: paused ? '' : `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to browse the menu and order on WhatsApp.</p></main>` });
 }
 export function productHtml(html, business, product, slug) {
   const shop = clean(business.name, 200), name = clean(product.name, 200), e = escapeHtml;
   const description = clean(product.description || `${name} from ${shop}. Order on WhatsApp.`, 300);
   const image = shareImage(product.imageUrl, ...(Array.isArray(product.imageUrls) ? product.imageUrls : []), business.logoUrl, business.coverUrl);
-  return pageHtml(html, { title: `${name} - ${shop}`, siteName: shop, description, canonical: `${ROOT}/store/${slug}/product/${product.id}`, image, imageAlt: name, type: 'product', schema: productSchema(business, product, slug), noscript: `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to order on WhatsApp.</p></main>` });
+  return pageHtml(html, { title: `${name} - ${shop}`, siteName: SITE_NAME, description, canonical: `${ROOT}/store/${slug}/product/${product.id}`, image, imageAlt: name, type: 'product', schema: productSchema(business, product, slug), noscript: `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to order on WhatsApp.</p></main>` });
 }
 export default async function handler(request, context) {
   const url = new URL(request.url);
