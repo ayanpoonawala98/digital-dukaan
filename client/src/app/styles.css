@@ -1540,3 +1540,14 @@ footer { background:#101d15; }
 .mc-out{margin-left:auto;font-size:.8rem;color:#b3261e;font-weight:600}
 @media (min-width:900px){.mc-sheet{padding:36px 40px 18px;grid-template-columns:1fr 1fr;column-gap:56px}.mc-photo{width:104px;height:104px}}
 @media (max-width:520px){.mc-photo{width:78px;height:78px}.mc-row{gap:12px}.mc-dots{min-width:6px}.mc-name{font-size:1.06rem}.mc-price{font-size:.95rem}.mc-name a{white-space:nowrap}}
+/* Menu mode is text-only, like a printed menu */
+.mc-row{padding:13px 0;gap:0}
+.mc-body{gap:6px}
+.mc-name{font-size:1.1rem}
+.mc-foot{margin-top:0;min-height:0}
+.mc-foot:empty{display:none}
+.mc-add{padding:4px 12px;font-size:.78rem}
+.mc-line{align-items:center}
+.mc-add{margin-left:6px;padding:3px 10px;min-height:28px}
+.mc-out{margin-left:6px;white-space:nowrap}
+.mc-body .tag-row{margin-top:-2px}

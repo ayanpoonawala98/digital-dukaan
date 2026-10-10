@@ -287,12 +287,10 @@ function MenuRow({ product, slug, cart, blocked }) {
   const inCart = cart.items.filter(i => i.id === product.id).reduce((n, i) => n + i.qty, 0);
   const add = e => { if (hasOptions) setSheet(true); else { animateToCart(e.currentTarget); cart.add(product); } };
   return <li className={`mc-row ${out ? 'sold-out' : ''}`}>
-    <Link to={storePath(slug, product.id)} className="mc-photo" aria-label={product.name}>{product.imageUrl ? <img src={storeImage(imageSrc(product.imageUrl), 360)} alt="" loading="lazy"/> : <span><Package size={26}/></span>}</Link>
     <div className="mc-body">
-      <div className="mc-line"><span className="mc-name"><VegDot veg={product.veg}/><Link to={storePath(slug, product.id)}>{product.name}</Link></span><i className="mc-dots" aria-hidden="true"/><b className="mc-price">{(product.variants || []).length ? 'From ' : ''}{inr(from)}</b></div>
-      {product.description && <p className="mc-desc">{product.description}</p>}
-      <div className="mc-foot"><TagChips tags={[...(product.tags || []), ...(product.featured && !(product.tags || []).includes('bestseller') ? ['bestseller'] : [])]}/>
-        {out ? <span className="mc-out">Sold out today</span> : <button className="mc-add" disabled={blocked} onClick={add} aria-label={`Add ${product.name}`}><Plus size={14}/>{inCart > 0 ? `Added · ${inCart}` : hasOptions ? 'Customise' : 'Add'}</button>}</div>
+      <div className="mc-line"><span className="mc-name"><VegDot veg={product.veg}/><Link to={storePath(slug, product.id)}>{product.name}</Link></span><i className="mc-dots" aria-hidden="true"/><b className="mc-price">{(product.variants || []).length ? 'From ' : ''}{inr(from)}</b>
+        {out ? <span className="mc-out">Sold out</span> : <button className="mc-add" disabled={blocked} onClick={add} aria-label={`Add ${product.name}`}>{inCart > 0 ? <>{inCart}<Plus size={13}/></> : <>Add<Plus size={13}/></>}</button>}</div>
+      <TagChips tags={[...(product.tags || []), ...(product.featured && !(product.tags || []).includes('bestseller') ? ['bestseller'] : [])]}/>
     </div>
     {sheet && <MenuItemSheet product={product} onClose={() => setSheet(false)} onAdd={(qty, config) => { cart.add(product, qty, undefined, config); setSheet(false); }}/>}
   </li>;
