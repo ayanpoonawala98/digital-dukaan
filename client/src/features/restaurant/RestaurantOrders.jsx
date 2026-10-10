@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Bell, BellOff, Bike, ChefHat, Clock, ListOrdered, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { api, inr } from '../../shared/lib/api.js';
 import { lineText } from './MenuBits.jsx';
+import { KotButton } from './kot-print.jsx';
 
 export const STEPS = { 'dine-in': ['new', 'accepted', 'preparing', 'ready', 'served'], takeaway: ['new', 'accepted', 'preparing', 'ready', 'picked-up'], delivery: ['new', 'accepted', 'preparing', 'ready', 'out-for-delivery', 'delivered'] };
 const LABEL = { new: 'New', accepted: 'Accepted', preparing: 'Preparing', ready: 'Ready', served: 'Served', 'out-for-delivery': 'Out for delivery', delivered: 'Delivered', 'picked-up': 'Picked up', cancelled: 'Cancelled' };
@@ -90,7 +91,7 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
       {list.length === 0 ? <p className="muted">Nothing here.</p> : list.map(o => { const nx = nextStatus(o); return <article key={o.id} className={`kitchen-card type-${o.orderType}`}>
         <header><b>#{o.orderNumber ?? o.id}</b><span className="rorder-type">{o.orderType === 'dine-in' ? `Table ${o.tableNumber}` : o.orderType}</span><small>{ago(o.createdAt)}</small></header>
         <OrderDetails o={o} kitchen/>
-        <div className="kitchen-actions">{nx && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={async () => { await onStatus(o, nx); load(); }}>{NEXT_LABEL[nx]}</button>}<button type="button" className="btn btn-outline btn-small" disabled={busy} onClick={async () => { if (window.confirm(`Cancel order #${o.orderNumber ?? o.id}?`)) { await onStatus(o, 'cancelled'); load(); } }}>Cancel</button></div>
+        <div className="kitchen-actions"><KotButton token={token} storeId={storeId} order={o}/>{nx && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={async () => { await onStatus(o, nx); load(); }}>{NEXT_LABEL[nx]}</button>}<button type="button" className="btn btn-outline btn-small" disabled={busy} onClick={async () => { if (window.confirm(`Cancel order #${o.orderNumber ?? o.id}?`)) { await onStatus(o, 'cancelled'); load(); } }}>Cancel</button></div>
       </article>; })}</section>; })}</div>
   </div>;
 }
@@ -108,6 +109,7 @@ export default function RestaurantOrders({ orders, busy, actionKey, onStatus, on
         <header className="ro-head"><TypeChip o={o}/><span className="ro-num">#{o.orderNumber ?? o.id}</span><span className={`rorder-status s-${o.status}`}>{statusText(o.status)}</span><small className="ro-time"><Clock size={12}/> {new Date(o.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</small></header>
         <OrderDetails o={o}/>
         <div className="rorder-actions">
+          <KotButton token={token} storeId={storeId} order={o}/>
           {nx && o.status !== 'cancelled' && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={() => onStatus(o, nx)}>{NEXT_LABEL[nx]}</button>}
           <select aria-label={`Status for order ${o.id}`} value={o.status} disabled={busy} onChange={e => onStatus(o, e.target.value)}>{[...new Set([...steps, o.status, 'cancelled'])].map(s => <option key={s} value={s}>{statusText(s)}</option>)}</select>
           {actionKey === `order-${o.id}` && <span className="button-spinner"/>}

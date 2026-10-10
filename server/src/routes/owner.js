@@ -1,3 +1,4 @@
+import { makeKot } from '../features/restaurant/kot.js';
 import { tablesState, billHistory, billsSummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
 import { assertCanCreateStore } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
@@ -843,6 +844,7 @@ const restaurantOnly = req => { if (req.store.storeType !== 'restaurant') throw 
 r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.json(await tablesState(req.store)); }));
 r.post('/:storeId/tables/:n/hold', wrap(async (req, res) => { restaurantOnly(req); res.json(await setTableHold(req.store, req.params.n, req.body?.held !== false)); }));
 r.get('/:storeId/tables/history', wrap(async (req, res) => { restaurantOnly(req); res.json(await billHistory(req.store, req.query)); }));
+r.post('/:storeId/restaurant-orders/:id/kot', wrap(async (req, res) => { restaurantOnly(req); res.json(await makeKot(req.store, numId(req.params.id), req.body?.mode === 'all' ? 'all' : 'new')); }));
 r.post('/:storeId/table-bills', wrap(async (req, res) => {
   restaurantOnly(req);
   await ensureOrderStockSchema();
