@@ -52,6 +52,7 @@ export function ensureTableBillSchema() {
   if (!ready) ready = (async () => {
     await TableBill.sync(); // new table only
     await TableHold.sync();
+    await sequelize.query('CREATE INDEX IF NOT EXISTS table_bills_business_paid_idx ON table_bills ("businessId", "paidAt")');
     await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "payments" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "gstMode" varchar(10) NOT NULL DEFAULT 'exclusive'`);
     await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "settledByUserId" integer');

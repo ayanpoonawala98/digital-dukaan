@@ -726,15 +726,15 @@ const salesReport = async req => {
   const where = { businessId: bid(req), ...dateWhere(req.query, sequelize.Sequelize.Op) };
   const isRestaurant = req.store.storeType === 'restaurant';
   const from = req.query.from ? new Date(req.query.from) : null, to = req.query.to ? new Date(new Date(req.query.to).getTime() + 86400000) : null;
-  // One parallel wave: counts guard the size, rows, products and bills all start together.
-  const [counts, leads, orders, products, bills] = await Promise.all([
-    Promise.all([Lead.count({where}),RestaurantOrder.count({where})]),
+  // Guard first so a huge range never loads its rows, then one parallel wave for rows, products and bills.
+  const counts = await Promise.all([Lead.count({where}),RestaurantOrder.count({where})]);
+  if(counts.some(n=>n>50000)) throw bad(400,'Choose a smaller date range (maximum 50,000 records per type).');
+  const [leads, orders, products, bills] = await Promise.all([
     Lead.findAll({where,order:[['createdAt','DESC']]}),
     RestaurantOrder.findAll({where,order:[['createdAt','DESC']]}),
     isLocked(req.store,'products') ? [] : Product.findAll({where:{businessId:bid(req),active:true},attributes:['id','name','stock','price']}),
     isRestaurant ? billsSummary(req.store, from, to).catch(() => null) : null
   ]);
-  if(counts.some(n=>n>50000)) throw bad(400,'Choose a smaller date range (maximum 50,000 records per type).');
   const movement = new Set(saleRows(orders,leads).flatMap(o=>(o.items || []).map(i=>i.name)));
   return { ...summarize(orders,leads), bills, insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };

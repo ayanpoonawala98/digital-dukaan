@@ -7,9 +7,7 @@ export const PERFORMANCE_INDEXES = [
  ['restaurant_orders_business_id_cursor_idx','restaurant_orders','"businessId", id DESC'],
  ['categories_business_id_cursor_idx','categories','"businessId", id DESC'],
  ['coupons_business_id_cursor_idx','coupons','"businessId", id DESC'],
- ['leads_business_created_idx','leads','"businessId", "createdAt" DESC'],
  ['restaurant_orders_business_created_idx','restaurant_orders','"businessId", "createdAt" DESC'],
- ['table_bills_business_paid_idx','table_bills','"businessId", "paidAt"'],
  ['users_staff_cursor_idx','users','"managerId", "staffBusinessId", role, id DESC']
 ];
 export async function ensurePerformanceIndexes(db){
