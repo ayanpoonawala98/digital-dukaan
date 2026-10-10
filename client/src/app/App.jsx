@@ -1,24 +1,24 @@
 import React, { lazy, Suspense } from 'react';
-import {OfferOptOut} from './components/OfferCampaigns.jsx';
 import { AuthProvider, useAuth } from './auth.jsx';
 export { useAuth } from './auth.jsx';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './theme.jsx';
-import ShopPage from './pages/ShopPage.jsx';
-import { hostedStoreSlug } from './lib/store-domain.js';
-import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from './components/OrderTracking.jsx';
-import Motion from './components/Motion.jsx';
-import HashScroll from './components/HashScroll.jsx';
-import Toasts from './components/Toasts.jsx';
+import { OfferOptOut } from '../features/dashboard/OfferCampaigns.jsx';
+import ShopPage from '../features/storefront/ShopPage.jsx';
+import { hostedStoreSlug } from '../features/storefront/store-domain.js';
+import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from '../features/storefront/OrderTracking.jsx';
+import Motion from '../shared/components/Motion.jsx';
+import HashScroll from '../shared/components/HashScroll.jsx';
+import Toasts from '../shared/components/Toasts.jsx';
 
-const SetPassword = lazy(() => import('./pages/SetPassword.jsx'));
-const Landing = lazy(() => import('./pages/Landing.jsx'));
-const Access = lazy(() => import('./pages/Access.jsx'));
-const ShopRequest = lazy(() => import('./pages/ShopRequest.jsx'));
-const ProductPage = lazy(() => import('./pages/ProductPage.jsx'));
-const Dashboard = lazy(() => import('./pages/Dashboard.jsx'));
-const SuperAdmin = lazy(() => import('./pages/SuperAdmin.jsx'));
-const Nearby = lazy(() => import('./pages/Nearby.jsx'));
+const SetPassword = lazy(() => import('../features/auth/SetPassword.jsx'));
+const Landing = lazy(() => import('../features/landing/Landing.jsx'));
+const Access = lazy(() => import('../features/auth/Access.jsx'));
+const ShopRequest = lazy(() => import('../features/storefront/ShopRequest.jsx'));
+const ProductPage = lazy(() => import('../features/storefront/ProductPage.jsx'));
+const Dashboard = lazy(() => import('../features/dashboard/Dashboard.jsx'));
+const SuperAdmin = lazy(() => import('../features/superadmin/SuperAdmin.jsx'));
+const Nearby = lazy(() => import('../features/storefront/Nearby.jsx'));
 
 function Guard({ role, children }) {
   const { session } = useAuth();
