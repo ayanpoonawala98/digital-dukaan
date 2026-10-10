@@ -63,3 +63,18 @@ test('customers permission: view/add/edit/push per customer only; everything ris
   assert.equal(staffAllowed(['import'], 'POST', 'customers/import/preview'), true);
   assert.equal(effective({ permissions: null }).includes('customers'), false);
 });
+
+test('staff can never delete staff accounts, even with every permission', () => {
+  const all = effective(['products','orders_view','orders_update','coupons','customers','billing']);
+  assert.equal(staffAllowed(all, 'DELETE', 'staff/5'), false);
+  assert.equal(staffAllowed(all, 'PATCH', 'staff/5'), false);
+});
+test('owner staff delete route is owner-only, scoped to this owner and store, and clears alert devices first', async () => {
+  const src = (await import('node:fs')).readFileSync(new URL('../routes/owner.js', import.meta.url), 'utf8');
+  const i = src.indexOf("r.delete('/:storeId/staff/:id'");
+  assert.ok(i > 0);
+  const block = src.slice(i, i + 900);
+  assert.match(block, /ownerOnly/);
+  assert.match(block, /managerId:req\.user\.id, staffBusinessId:bid\(req\), role:'staff'/);
+  assert.ok(block.indexOf('OwnerPushSubscription.destroy') < block.indexOf('staff.destroy'));
+});
