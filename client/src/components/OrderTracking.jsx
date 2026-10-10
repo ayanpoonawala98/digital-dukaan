@@ -7,8 +7,8 @@ import { api, inr } from '../lib/api.js';
 import { flowFor, statusLabel } from '../lib/order-flows.js';
 import { currentBrowserSubscription, loadSavedOrders, onOrdersChanged, pushSupported, subscribeBrowser, trackingPath } from '../lib/my-orders.js';
 
-function StatusSteps({ kind, storeType, status }) {
-  const flow = flowFor(kind, storeType);
+function StatusSteps({ kind, storeType, status, orderType }) {
+  const flow = flowFor(kind, storeType, orderType);
   if (status === 'cancelled') return <p className="notice error" role="status">Cancelled</p>;
   const at = flow.steps.findIndex(([k]) => k === status);
   return <div className="order-progress"><div className="order-current"><span className="order-live-dot"/><span>Current status</span><strong>{statusLabel(flow, status)}</strong><small>{at >= 0 ? `Step ${at + 1} of ${flow.steps.length}` : 'Status updated'}</small></div>
@@ -17,7 +17,7 @@ function StatusSteps({ kind, storeType, status }) {
 }
 
 function OrderBody({ order }) {
-  return <>{order.items.map((item, i) => <div className="cart-row" key={i}><strong>{item.qty} × {item.name}</strong><span>{inr(Number(item.price) * item.qty)}</span></div>)}<div className="drawer-totals">{Number(order.discount) > 0 && <div><span>Discount</span><b>-{inr(order.discount)}</b></div>}<div className="grand"><span>Total</span><b>{inr(order.total)}</b></div></div></>;
+  return <>{order.items.map((item, i) => <div className="cart-row" key={i}><strong>{item.qty} × {item.name}{(item.variant || item.addons?.length) ? <small className="muted"> {[item.variant && `(${item.variant})`, ...(item.addons || []).map(a => `+ ${a.name}`)].filter(Boolean).join(' ')}</small> : null}{item.note ? <small className="muted"> · Note: {item.note}</small> : null}</strong><span>{inr(Number(item.price) * item.qty)}</span></div>)}<div className="drawer-totals">{Number(order.discount) > 0 && <div><span>Discount</span><b>-{inr(order.discount)}</b></div>}<div className="grand"><span>Total</span><b>{inr(order.total)}</b></div></div></>;
 }
 
 // Registers every saved order of this browser under its push subscription (the customer's identity).
@@ -110,13 +110,13 @@ export function OrderTracking({ kind = 'restaurant' }) {
   usePoll(load, true);
   const copy = async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it manually.'); } };
   const saved = [{ kind, id: Number(id), token }];
-  const flow = flowFor(kind, data?.store?.storeType);
+  const flow = flowFor(kind, data?.store?.storeType, data?.order?.orderType);
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">YOUR ORDER</span><h1>Order #{data?.order?.orderNumber ?? id}</h1>
     {error && <p className="notice error" role="alert">{error}</p>}{!data && !error && <p role="status">Loading your order...</p>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
       <div role="status" aria-live="polite"><h3>{statusLabel(flow, data.order.status)}</h3><p>{flow.note[data.order.status] || ''}</p></div>
-      <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status}/>
+      <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={data.order.orderType}/>
       {kind === 'restaurant' && <p>{data.order.orderType}{data.order.tableNumber ? ` · Table ${data.order.tableNumber}` : ''}</p>}
       <OrderBody order={data.order}/>
       <PushControl slug={slug} orders={token ? [...saved, ...loadSavedOrders(slug).filter(o => !(o.kind === kind && o.id === Number(id)))] : []}/>
@@ -146,10 +146,10 @@ export function MyOrdersPage() {
     {error && <p className="notice error" role="alert">{error}</p>}
     {!data && !error && <p role="status">Loading your orders...</p>}
     {data && !orders.length && <div className="empty-state"><h3>No orders yet</h3><p>Orders you place on this store from this browser will show up here.</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Browse the store</Link></div>}
-    {orders.map(o => { const flow = flowFor(o.kind, data.store?.storeType); return <section className="dashboard-panel" key={`${o.kind}-${o.id}`} style={{ marginBottom: 16 }}>
+    {orders.map(o => { const flow = flowFor(o.kind, data.store?.storeType, o.orderType); return <section className="dashboard-panel" key={`${o.kind}-${o.id}`} style={{ marginBottom: 16 }}>
       <h3>Order #{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>
       <div role="status" aria-live="polite"><strong>{statusLabel(flow, o.status)}</strong></div>
-      <StatusSteps kind={o.kind} storeType={data.store?.storeType} status={o.status}/>
+      <StatusSteps kind={o.kind} storeType={data.store?.storeType} status={o.status} orderType={o.orderType}/>
       <OrderBody order={o}/>
       {o.path && <Link className="btn btn-outline btn-small" to={o.path}>Open tracking page</Link>}
     </section>; })}

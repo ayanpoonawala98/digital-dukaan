@@ -17,6 +17,8 @@ import { translate } from '../lib/i18n.js';
 import { CustomFieldInputs, missingRequired } from '../components/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../components/ContactFields.jsx';
 import RestaurantCheckout from '../components/RestaurantCheckout.jsx';
+import MenuItemSheet from '../components/MenuItemSheet.jsx';
+import { VegDot, TagChips } from '../components/MenuBits.jsx';
 import { saveOrder, pushSupported, currentBrowserSubscription, subscribeBrowser } from '../lib/my-orders.js';
 import { useCart, useOrders, useWishlist } from '../lib/shop.js';
 import { Footer, Header } from '../components/chrome.jsx';
@@ -252,6 +254,39 @@ function ProductCard({ product, slug, wishlist, cart, index, t }) {
   </article>;
 }
 
+function RestaurantCard({ product, slug, cart, index, blocked }) {
+  const [sheet, setSheet] = useState(false);
+  const out = product.stock === 0 || product.soldOutToday;
+  const hasOptions = (product.variants || []).length > 0 || (product.addonGroups || []).length > 0;
+  const from = (product.variants || []).length ? Math.min(...product.variants.map(v => Number(v.price))) : Number(product.price);
+  const inCart = cart.items.filter(i => i.id === product.id).reduce((n, i) => n + i.qty, 0);
+  const add = e => { if (hasOptions) setSheet(true); else { animateToCart(e.currentTarget); cart.add(product); } };
+  return <article className={`menu-card anim-up ${out ? 'sold-out' : ''}`} style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}>
+    <div className="menu-card-text">
+      <div className="menu-card-title"><VegDot veg={product.veg}/><h3><Link to={storePath(slug, product.id)}>{product.name}</Link></h3></div>
+      <TagChips tags={[...(product.tags || []), ...(product.featured && !(product.tags || []).includes('bestseller') ? ['bestseller'] : [])]}/>
+      <b className="menu-price">{(product.variants || []).length ? 'From ' : ''}{inr(from)}</b>
+      {product.description && <p className="menu-desc">{product.description}</p>}
+      {hasOptions && !out && <small className="muted">Customisable</small>}
+    </div>
+    <div className="menu-card-media">
+      <Link to={storePath(slug, product.id)} className="menu-img">{product.imageUrl ? <img src={storeImage(imageSrc(product.imageUrl), 480)} alt={product.name} loading="lazy"/> : <span><Package size={32}/></span>}</Link>
+      {out ? <span className="menu-out">Sold out today</span> : <button className="menu-add" disabled={blocked} onClick={add} aria-label={`Add ${product.name}`}>{inCart > 0 ? `ADD · ${inCart}` : 'ADD'}<Plus size={14}/></button>}
+    </div>
+    {sheet && <MenuItemSheet product={product} onClose={() => setSheet(false)} onAdd={(qty, config) => { cart.add(product, qty, undefined, config); setSheet(false); }}/>}
+  </article>;
+}
+
+function TableBar({ slug, business }) {
+  const n = Number(new URLSearchParams(window.location.search).get('table'));
+  const [sent, setSent] = useState(''), [err, setErr] = useState('');
+  if (!Number.isInteger(n) || n < 1 || n > business.tableCount) return null;
+  const ask = async kind => { setErr(''); try { await api(`/public/stores/${slug}/table-requests`, { method: 'POST', body: { tableNumber: n, kind } }); setSent(kind); setTimeout(() => setSent(''), 6000); } catch (e) { setErr(e.message); } };
+  return <div className="table-bar container" role="region" aria-label="Your table"><strong>Table {n}</strong><span>
+    <button className="btn btn-outline btn-small" onClick={() => ask('waiter')} disabled={business.blocksOrders}><Bell size={14}/> {sent === 'waiter' ? 'Waiter called' : 'Call waiter'}</button>
+    <button className="btn btn-outline btn-small" onClick={() => ask('bill')} disabled={business.blocksOrders}><Clock size={14}/> {sent === 'bill' ? 'Bill requested' : 'Ask for bill'}</button></span>{err && <small className="error-text" role="alert">{err}</small>}</div>;
+}
+
 function StoreClosed() { return <ShoppingBag size={42} aria-hidden="true"/>; }
 
 export default function ShopPage({ hostedSlug }) {
@@ -300,6 +335,7 @@ export default function ShopPage({ hostedSlug }) {
         </div>
       </div>
       <PushPrompt key={slug} slug={slug} business={business} blocked={offerOpen || cartOpen || wishOpen || qrOpen}/>
+      {business.storeType === 'restaurant' && <TableBar slug={slug} business={business}/>}
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
         <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{total} {t('productsCount')}</span></div>
         <div className="catalog-tools">
@@ -309,7 +345,7 @@ export default function ShopPage({ hostedSlug }) {
         {loading
           ? <div className="product-grid">{Array.from({ length: 6 }).map((_, i) => <div className="product-card skeleton" key={i}><div className="product-img shimmer"/><div className="product-meta"><span className="shimmer-line"/><h3 className="shimmer-line wide"/></div></div>)}</div>
           : products.length
-            ? <div className="product-grid">{products.map((p, i) => <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
+            ? <div className={business.storeType === 'restaurant' ? 'menu-list' : 'product-grid'}>{products.map((p, i) => business.storeType === 'restaurant' ? <RestaurantCard key={p.id} product={p} slug={slug} cart={cart} index={i} blocked={business.blocksOrders}/> : <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
             : <div className="empty-state"><Package size={38}/><h3>{t('empty')}</h3><p>{t('emptyHint')}</p></div>}
         {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{pageError}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading more...' : pageError ? 'Retry loading products' : 'Load 10 more'}</button><small>{products.length} of {total} products</small></div>}
       </div>

@@ -7,20 +7,25 @@ export function useStored(key, fallback) {
   return [items, save];
 }
 
+export const lineKey = i => i.key ?? i.id;
+export const configKey = (id, config) => (config && (config.variant || (config.addonList || []).length || config.note)) ? `${id}|${config.variant || ''}|${(config.addonList || []).map(a => a.group + ':' + a.name).sort().join(',')}|${config.note || ''}` : id;
 export function useCart(slug) {
   const [items, save] = useStored(`dd-cart-${slug}`, []);
-  const add = (product, qty = 1, answers) => {
-    const found = items.find(i => i.id === product.id), customFields = Array.isArray(product.customFields) ? product.customFields : [];
-    if (found) save(items.map(i => i.id === product.id ? { ...i, customFields, answers: answers || i.answers || {}, qty: Math.min((product.stock ?? 99) || 99, i.qty + qty) } : i));
-    else save([...items, { id: product.id, name: product.name, price: product.price, imageUrl: product.imageUrl, stock: product.stock, qty, customFields, answers: answers || {} }]);
+  // config (restaurant only): { variant, addons: {groupId:[names]}, addonList: [{group,name,price}], note, unitPrice }
+  const add = (product, qty = 1, answers, config) => {
+    const key = configKey(product.id, config), found = items.find(i => lineKey(i) === key), customFields = Array.isArray(product.customFields) ? product.customFields : [];
+    const cap = (product.stock ?? 99) || 99;
+    if (found) save(items.map(i => lineKey(i) === key ? { ...i, customFields, answers: answers || i.answers || {}, qty: Math.min(cap, i.qty + qty) } : i));
+    else save([...items, { id: product.id, ...(key !== product.id ? { key } : {}), name: product.name, price: config?.unitPrice ?? product.price, imageUrl: product.imageUrl, stock: product.stock, qty, customFields, answers: answers || {}, ...(config ? { variant: config.variant || '', addons: config.addons || {}, addonList: config.addonList || [], note: config.note || '', veg: product.veg || '' } : {}) }]);
     notify('success', 'Added to cart.');
   };
-  const setQty = (id, qty) => qty <= 0 ? save(items.filter(i => i.id !== id)) : save(items.map(i => i.id === id ? { ...i, qty } : i));
-  const setAnswers = (id, answers) => save(items.map(i => i.id === id ? { ...i, answers } : i));
+  const setQty = (k, qty) => qty <= 0 ? save(items.filter(i => lineKey(i) !== k)) : save(items.map(i => lineKey(i) === k ? { ...i, qty } : i));
+  const setAnswers = (k, answers) => save(items.map(i => lineKey(i) === k ? { ...i, answers } : i));
+  const setNote = (k, note) => save(items.map(i => lineKey(i) === k ? { ...i, note: note.slice(0, 140) } : i));
   const clear = () => save([]);
   const count = items.reduce((s, i) => s + i.qty, 0);
   const subtotal = items.reduce((s, i) => s + i.qty * i.price, 0);
-  return { items, add, setQty, setAnswers, clear, count, subtotal };
+  return { items, add, setQty, setAnswers, setNote, clear, count, subtotal };
 }
 
 export function useWishlist(slug) {

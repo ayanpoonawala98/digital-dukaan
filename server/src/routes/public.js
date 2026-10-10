@@ -164,7 +164,7 @@ const bearer = req => req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
 const trackingPath = (slug, kind, id, token) => `/store/${slug}/order/${kind === 'lead' ? 'lead/' : ''}${id}#token=${token}`;
 // No customer PII is returned from any tracking read.
 const serializeOrder = (kind, o) => kind === 'restaurant'
-  ? { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, items: o.items, subtotal: o.subtotal, discount: o.discount, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
+  ? { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, items: o.items, subtotal: o.subtotal, discount: o.discount, deliveryFee: o.deliveryFee, estimateMinutes: o.estimateMinutes, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
   : { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, items: Array.isArray(o.items) && o.items.length ? o.items.map(i => ({ name: i.name, qty: i.qty, price: i.price })) : [{ name: o.productName, qty: 1, price: o.price }], discount: o.discount, total: o.price, createdAt: o.createdAt };
 const trackedBusiness = async (slug, cfg, access) => {
   // A paused store may still have outstanding orders; deleted stores remain private.

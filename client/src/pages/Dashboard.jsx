@@ -67,7 +67,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
 import { Store as StoreIcon, Users as UsersIcon } from 'lucide-react';
 
 
-function ProductModal({ categories, product, onClose, onSave, busy }) {
+function ProductModal({ categories, product, onClose, onSave, busy, restaurant }) {
   const [draft, setDraft] = useState(() => productDraft(product, categories));
   const [uploading, setUploading] = useState(false), [error, setError] = useFeedbackState(''), [imageInput, setImageInput] = useState('');
   const { session } = useAuth();
@@ -117,6 +117,7 @@ function ProductModal({ categories, product, onClose, onSave, busy }) {
         {uploading && <p className="muted" role="status">Uploading photos...</p>}
         <div className="form-row"><label>Or add an image URL<input type="url" value={imageInput} onChange={e => setImageInput(e.target.value)} placeholder="https://..."/></label><button type="button" className="btn btn-outline btn-small" onClick={addUrl} disabled={!imageInput.trim() || uploading || draft.imageUrls.length >= 5}>Add URL</button></div>
         {draft.imageUrls.length > 0 && <div className="photo-editor" aria-label="Product photos">{draft.imageUrls.map((url, i) => <div className="photo-editor-item" key={`${url}-${i}`}><img src={storeImage(imageSrc(url),480)} alt={`Product photo ${i + 1}`}/><span>{i === 0 ? 'Cover photo' : `Photo ${i + 1}`}</span><button type="button" className="icon-btn" onClick={() => removePhoto(i)} aria-label={`Remove photo ${i + 1}`}><X size={17}/></button></div>)}</div>}
+        {restaurant && <MenuOptionsEditor draft={draft} setDraft={setDraft}/>}
         {draft.kind !== 'service' || true ? <CustomFieldsEditor value={draft.customFields} onChange={customFields => setDraft(d => ({ ...d, customFields }))}/> : null}
         <label className="check-label"><input type="checkbox" checked={draft.active} onChange={e => setDraft({ ...draft, active: e.target.checked })}/> Visible on storefront</label>
         <button className="btn btn-green full" disabled={busy || uploading || !categories.length}><Busy active={busy || uploading}>{busy ? 'Saving...' : 'Save product'}</Busy> <ArrowRight size={18}/></button>
@@ -127,6 +128,8 @@ function ProductModal({ categories, product, onClose, onSave, busy }) {
 }
 
 import { leadStatusOptions } from '../lib/order-flows.js';
+import RestaurantOrders from '../components/RestaurantOrders.jsx';
+import MenuOptionsEditor from '../components/MenuOptionsEditor.jsx';
 
 function LeadRow({ lead, token, storeId, storeType, onChanged }) {
   const LEAD_STATUSES = leadStatusOptions(storeType);
@@ -317,7 +320,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       gstin: business.gstin || '', upiId: business.upiId || '',
       bannerText: business.bannerText || '', bannerActive: Boolean(business.bannerActive), offerPopupActive: Boolean(business.offerPopupActive), offerPopupText: business.offerPopupText || '', offerPopupTitle: business.offerPopupTitle || '', offerPopupCtaText: business.offerPopupCtaText || '', offerPopupCtaUrl: business.offerPopupCtaUrl || '', offerPopupImageUrl: business.offerPopupImageUrl || '',
       isOpen: business.isOpen !== false, autoHours: Boolean(business.autoHours), blockWhenClosed: business.blockWhenClosed ?? business.storeType === 'restaurant', openTime: business.openTime || '09:00', closeTime: business.closeTime || '21:00', openingHours: business.openingHours || '', storeType: business.storeType || 'retail', tableCount: business.tableCount || 0,
-      deliveryCharge: business.deliveryCharge ?? 0, freeDeliveryAbove: business.freeDeliveryAbove ?? '', minOrder: business.minOrder ?? 0,
+      deliveryCharge: business.deliveryCharge ?? 0, freeDeliveryAbove: business.freeDeliveryAbove ?? '', minOrder: business.minOrder ?? 0, prepMinutes: business.prepMinutes ?? '',
       accentColor: business.accentColor || '#0e9f6e', logoUrl: business.logoUrl || '', coverUrl: business.coverUrl || '', notifyImageUrl: business.notifyImageUrl || '',
       latitude: business.latitude ?? '', longitude: business.longitude ?? '', area: business.area || '', pincode: business.pincode || '', listInDirectory: Boolean(business.listInDirectory), serviceRadiusKm: business.serviceRadiusKm ?? ''
     } : null);
@@ -377,6 +380,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
         <label>Free delivery above (₹) <small>(blank = never)</small><input type="number" min="0" step="1" value={form.freeDeliveryAbove} onChange={e => set('freeDeliveryAbove', e.target.value)} placeholder="499"/></label>
       </div>
       <label>Minimum order (₹)<input type="number" min="0" step="1" value={form.minOrder} onChange={e => set('minOrder', e.target.value)}/></label>
+      {business.storeType === 'restaurant' && <label>Takeaway ready in (minutes) <small>(optional, shown to customers)</small><input type="number" min="1" max="240" step="1" value={form.prepMinutes} onChange={e => set('prepMinutes', e.target.value)} placeholder="e.g. 20"/></label>}
       <label>UPI ID <small>(sent in the order message so customers can pay)</small><input value={form.upiId} onChange={e => set('upiId', e.target.value)} placeholder="yourshop@upi"/></label>
     </div>
     <div className="dashboard-panel settings-panel settings-page" hidden={settingsSection!=='hours'}>
@@ -555,7 +559,7 @@ export default function Dashboard() {
             <td data-label="Category">{p.category?.name || '—'}</td>
             <td data-label="Price">{inr(p.price)}</td>
             <td data-label="Stock">{p.kind === 'service' ? <span className="status service">Service</span> : p.stock === null || p.stock === undefined ? '∞' : p.stock === 0 ? <span className="status paused">Out</span> : p.stock <= 5 ? <span className="status low">{p.stock} low</span> : p.stock}</td>
-            <td data-label="Status"><span className={`status ${p.active ? 'live' : 'paused'}`}>{p.active ? 'Live' : 'Hidden'}</span></td>
+            <td data-label="Status"><span className={`status ${p.active ? 'live' : 'paused'}`}>{p.active ? 'Live' : 'Hidden'}</span>{data?.business?.storeType === 'restaurant' && <button type="button" className={`btn btn-small ${p.soldOutToday ? 'btn-green' : 'btn-outline'}`} disabled={busy} onClick={() => action(async () => { await api(`/owner/${storeId}/products/${p.id}`, { method: 'PATCH', token, body: { soldOutToday: !p.soldOutToday } }); flash(p.soldOutToday ? 'Back on the menu' : 'Marked sold out for today'); }, `soldout-${p.id}`)}>{p.soldOutToday ? 'Put back on menu' : 'Sold out today'}</button>}</td>
             <td className="row-actions" data-label="Actions"><button onClick={() => setEditing({ ...p, __storeId: storeId })}>Edit</button>{!staffMode && <>{deleteProductId !== p.id && <button className="danger" disabled={busy} onClick={() => setDeleteProductId(p.id)}>Delete</button>}{deleteProductId === p.id && <span className="inline-delete-confirm" role="group" aria-label={`Delete ${p.name}?`}><span>Delete {p.name}? <small>Order and enquiry history stays. Uploaded media is not deleted.</small></span><button className="danger" disabled={busy} onClick={() => action(async () => { await api(`/owner/${storeId}/products/${p.id}`, { method: 'DELETE', token }); setDeleteProductId(null); flash('Product deleted'); }, `product-${p.id}`)}><Busy active={actionKey === `product-${p.id}`}>{actionKey === `product-${p.id}` ? 'Deleting...' : 'Yes, delete'}</Busy></button><button disabled={busy} onClick={() => setDeleteProductId(null)}>Cancel</button></span>}</>}</td>
           </tr>)}</tbody></table></div>}
       </div>}
@@ -578,10 +582,7 @@ export default function Dashboard() {
       {tab === 'sales' && <div className="sales-page"><SalesAnalytics report={sales} storeType={data?.business?.storeType}/></div>}
       {tab === 'imports' && staffMode && <>{data?.business?.featureLocks?.products ? <p className="notice">Product import: kindly contact admin.</p> : <MappedImport kind="products" token={token} storeId={storeId}/>} {import.meta.env.VITE_CRM_ENABLED !== 'true' ? <p className="notice">Customer imports are not enabled for this deployment.</p> : data?.business?.featureLocks?.customers ? <p className="notice">Customer import: kindly contact admin.</p> : <MappedImport kind="customers" token={token} storeId={storeId}/>}</>}
       {tab === 'overview' && data && staffMode && <div className="dashboard-panel"><h3>{data.business.name}</h3><p>{data.business.storeType === 'restaurant' ? 'Restaurant order status is available under Table orders.' : 'This staff account has overview access only.'}</p></div>}
-      {tab === 'restaurant' && data?.business?.storeType === 'restaurant' && <div className="dashboard-panel">
-        <div className="leads-head"><h3>Orders received in the app</h3><button className="btn btn-outline btn-small" type="button" onClick={()=>{setListRefresh(n=>n+1);load();}} disabled={busy}>Refresh orders</button></div><p className="muted">Dine-in, takeaway and delivery orders appear here. Payment is handled in person; each order needs confirmation from the restaurant.</p>
-        {restaurantOrders.length ? <div className="table-wrap"><table><thead><tr><th>Order</th><th>Items</th><th>Customer / table</th><th>Total</th><th>Received</th><th>Status</th></tr></thead><tbody>{restaurantOrders.map(o => <tr key={o.id}><td>#{o.orderNumber ?? o.id} · {o.orderType}</td><td>{o.items?.map(i => `${i.qty} × ${i.name}${i.answers?.length ? ` (${i.answers.map(a => `${a.label}: ${a.value}`).join(', ')})` : ''}`).join(', ')}</td><td>{o.orderType === 'dine-in' ? `Table ${o.tableNumber}` : <>{o.customerName}<br/>{o.customerPhone}{o.deliveryAddress && <><br/>{o.deliveryAddress}</>}</>}</td><td>{inr(o.total)}<PayActions kind="restaurant-orders" order={o} token={token} storeId={storeId} staffMode={staffMode}/></td><td>{new Date(o.createdAt).toLocaleString('en-IN')}</td><td><select aria-label={`Status for order ${o.id}`} value={o.status} disabled={busy} onChange={e => updateRestaurantOrder(o, e.target.value)}>{['new','preparing','served','cancelled'].map(status => <option key={status} value={status}>{status === 'served' ? 'fulfilled / served' : status}</option>)}</select>{actionKey === `order-${o.id}` && <span className="button-spinner"/>}{!staffMode && <span className="muted">In-app order (no automatic WhatsApp alert)</span>}</td></tr>)}</tbody></table></div> : <p className="empty-state">No restaurant orders yet.</p>}
-      </div>}
+      {tab === 'restaurant' && data?.business?.storeType === 'restaurant' && <div className="dashboard-panel"><RestaurantOrders orders={restaurantOrders} busy={busy} actionKey={actionKey} onStatus={updateRestaurantOrder} onRefresh={()=>{setListRefresh(n=>n+1);load();}} token={token} storeId={storeId} staffMode={staffMode} renderPay={o=><PayActions kind="restaurant-orders" order={o} token={token} storeId={storeId} staffMode={staffMode}/>}/></div>}
       {tab === 'whatsapp-cloud' && import.meta.env.VITE_WHATSAPP_INTEGRATION_UI_ENABLED === 'true' && <WhatsAppIntegration token={token} storeId={storeId} staff={staffMode} />}
       {tab === 'campaigns' && !staffMode && <OfferCampaigns token={token} storeId={storeId}/>}
       {tab === 'broadcast' && !staffMode && <div className="dashboard-panel status-creative-panel"><span className="kicker">READY FOR WHATSAPP STATUS</span><h3>A story-sized shop promo</h3><p className="muted">Download a vertical image with your shop name, live items and link. Post it to your WhatsApp Status yourself. Nothing is posted automatically.</p><button type="button" className="btn btn-green" onClick={() => { try { downloadStatusCreative(data.business, products); } catch (err) { setError(err.message); } }}>Download status image <Download size={17}/></button></div>}
@@ -615,6 +616,6 @@ export default function Dashboard() {
       </>}
     </>}
   </div>
-  {editing && <ProductModal categories={categories} product={editing} busy={busy} onClose={() => setEditing(null)} onSave={saveProduct}/>}
+  {editing && <ProductModal restaurant={data?.business?.storeType === 'restaurant'} categories={categories} product={editing} busy={busy} onClose={() => setEditing(null)} onSave={saveProduct}/>}
   </AdminShell>;
 }

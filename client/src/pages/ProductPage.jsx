@@ -1,4 +1,5 @@
 import ClosedBanner from '../components/ClosedBanner.jsx';
+import MenuItemSheet from '../components/MenuItemSheet.jsx';
 import { notify } from '../lib/notifications.js';
 import { useFeedbackState } from '../components/Toasts.jsx';
 import { storeThemeStyle } from '../lib/store-theme.js';
@@ -35,14 +36,14 @@ export default function ProductPage({ hostedSlug }) {
   const { slug: pathSlug, id } = useParams();
   const slug = hostedSlug || pathSlug;
   const { theme } = useTheme();
-  const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [qty, setQtyState] = useState(1), [answers, setAnswers] = useState({});
+  const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [sheet, setSheet] = useState(false), [qty, setQtyState] = useState(1), [answers, setAnswers] = useState({});
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
   if (error) return <><Header/><div className="container empty-state page-fade">{error}</div></>;
   if (!data) return <div className="container empty-state">Loading product...</div>;
   const { business, product } = data;
   const isService = product.kind === 'service';
-  const out = !isService && product.stock === 0;
+  const out = !isService && (product.stock === 0 || Boolean(product.soldOutToday));
   const restaurant = business.storeType === 'restaurant';
   const low = product.stock !== null && product.stock > 0 && product.stock <= 5;
   return <div className="page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
@@ -63,9 +64,10 @@ export default function ProductPage({ hostedSlug }) {
           {!out && !restaurant && <CustomFieldInputs fields={product.customFields} answers={answers} onChange={setAnswers}/>}
           <div className="detail-actions">
             {!out && !restaurant && <BuyButton slug={slug} id={id} qty={qty} fields={product.customFields} answers={answers} blocked={business.blocksOrders}>{isService ? 'Book on WhatsApp' : undefined}</BuyButton>}
-            {!out && <button className="btn btn-outline" onClick={() => { const m = missingRequired(product.customFields, answers); if (!restaurant && m.length) { notify('error', `Please answer: ${m.map(f => f.label).join(', ')}`); return; } cart.add(product, qty, answers); }}><ShoppingBag size={17}/> {restaurant ? 'Add to order' : isService ? 'Add to booking' : 'Add to cart'}</button>}
+            {!out && <button className="btn btn-outline" onClick={() => { const m = missingRequired(product.customFields, answers); if (!restaurant && m.length) { notify('error', `Please answer: ${m.map(f => f.label).join(', ')}`); return; } if (restaurant) { setSheet(true); return; } cart.add(product, qty, answers); }}><ShoppingBag size={17}/> {restaurant ? 'Add to order' : isService ? 'Add to booking' : 'Add to cart'}</button>}
             <button className={`icon-btn heart-lg ${wishlist.has(product.id) ? 'active' : ''}`} onClick={() => wishlist.toggle(product.id)} aria-label="Save to favorites"><Heart size={19}/></button>
           </div>
+          {sheet && <MenuItemSheet product={product} onClose={() => setSheet(false)} onAdd={(q, config) => { cart.add(product, q, undefined, config); setSheet(false); }}/>}
           {cart.count > 0 && <Link className="text-link" to={`${storePath(slug)}${restaurant ? window.location.search : ''}`}>View cart ({cart.count} items, {inr(cart.subtotal)}) on the shop page <ArrowUpRight size={14}/></Link>}
           <p className="detail-hint"><MessageCircle size={16}/> {restaurant ? 'Place your order from the menu. Nothing is charged online.' : `Opens a conversation with ${business.name}`}</p>
           <button className="share-link" onClick={async () => { try { await navigator.clipboard.writeText(window.location.href); notify('success', 'Link copied.'); setCopied(true); setTimeout(() => setCopied(false), 2000); } catch { notify('error', 'Could not copy the link. Please copy it from the address bar.'); setCopied(false); } }}><Copy size={16}/>{copied ? 'Link copied!' : 'Copy product link'}</button>

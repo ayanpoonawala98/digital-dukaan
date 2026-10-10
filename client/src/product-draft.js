@@ -4,4 +4,4 @@ function baseDraft(product, categories) {
     : { name: '', description: '', price: '', category: categories[0]?.id || '', imageUrl: '', imageUrls: [], stock: '', featured: false, active: true, kind: 'product', duration: '' };
 }
 
-export const productDraft = (product, categories) => ({ ...baseDraft(product, categories), customFields: Array.isArray(product?.customFields) ? product.customFields : [] });
+export const productDraft = (product, categories) => ({ ...baseDraft(product, categories), customFields: Array.isArray(product?.customFields) ? product.customFields : [], variants: Array.isArray(product?.variants) ? product.variants.map(v => ({ ...v })) : [], addonGroups: Array.isArray(product?.addonGroups) ? product.addonGroups.map(g => ({ ...g, options: (g.options || []).map(o => ({ ...o })) })) : [], veg: product?.veg || '', tags: Array.isArray(product?.tags) ? product.tags : [] });
