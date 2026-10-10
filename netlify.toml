@@ -1,3 +1,4 @@
 # Build command/publish directory remain managed by the existing site settings.
 [build]
   edge_functions = "client/netlify/edge-functions"
+  functions = "client/netlify/functions"

@@ -15,7 +15,7 @@ export default function ProductReviews({ slug, productId }) {
   }, [base]);
   useEffect(() => { load(null); }, [load]);
   const { summary, reviews, next, loading, error } = state;
-  if (!loading && !error && (!summary || !summary.count)) return null;
+  if (!loading && (error ? !reviews.length : (!summary || !summary.count))) return null; // no reviews or a failed first load: hide the section, never show a red error to shoppers
   return <section className="reviews" aria-label="Customer reviews">
     <div className="reviews-head"><h2>Reviews</h2>{summary?.count > 0 && <Stars value={summary.avg} count={summary.count} size={18}/>}</div>
     {reviews.map(r => <article className="review-item" key={r.id}><Stars value={r.rating}/>{r.text && <p>{r.text}</p>}<small className="muted">{r.name} · Verified order · {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</small></article>)}
