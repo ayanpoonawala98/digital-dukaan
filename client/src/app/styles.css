@@ -1651,3 +1651,9 @@ td[data-label="Status"] .btn{vertical-align:middle}
 .bills-strip small{font-size:.74rem;color:#6b6b5e;text-transform:uppercase;letter-spacing:.04em}
 .bills-strip b{font-size:1.05rem;overflow-wrap:anywhere}
 .bills-strip>p{grid-column:1/-1;margin:0;font-size:.82rem}
+
+/* Staff permissions: box always sits left of its label; presets spaced */
+label.perm-check{display:flex!important;flex-direction:row!important;align-items:center;gap:10px;width:100%;padding:6px 0}
+label.perm-check input[type=checkbox]{width:18px;height:18px;min-width:18px;margin:0;flex:none}
+.perm-checks{gap:2px}
+.perm-presets,.staff-presets{display:flex;flex-wrap:wrap;gap:8px}
