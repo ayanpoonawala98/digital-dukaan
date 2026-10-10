@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../../shared/lib/api.js';
 import { StarInput } from './Stars.jsx';
 
@@ -27,6 +27,8 @@ export default function OrderReviews({ slug, kind, id, token }) {
     api(`/public/stores/${encodeURIComponent(slug)}/${kind === 'lead' ? 'lead-orders' : 'restaurant-orders'}/${id}/reviews`, { token, feedback: false }).then(r => { if (live) setItems(r.items || []); }).catch(() => { if (live) setItems([]); });
     return () => { live = false; };
   }, [slug, kind, id, token]);
+  const ref = useRef(null);
+  useEffect(() => { if (items?.length && new URLSearchParams(window.location.hash.slice(1)).get('review') === '1') ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, [items]);
   if (!items || !items.length) return null;
-  return <section className="reviews" aria-label="Rate your order"><h3>How was your order?</h3>{items.map(i => <ItemReview key={i.productId} slug={slug} kind={kind} id={id} token={token} item={i}/>)}</section>;
+  return <section ref={ref} className="reviews" aria-label="Rate your order"><h3>How was your order?</h3>{items.map(i => <ItemReview key={i.productId} slug={slug} kind={kind} id={id} token={token} item={i}/>)}</section>;
 }
