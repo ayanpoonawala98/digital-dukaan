@@ -724,12 +724,18 @@ r.patch('/:storeId/coupons/:id', wrap(async (req, res) => {
 
 const salesReport = async req => {
   const where = { businessId: bid(req), ...dateWhere(req.query, sequelize.Sequelize.Op) };
-  const counts=await Promise.all([Lead.count({where}),RestaurantOrder.count({where})]);
+  const isRestaurant = req.store.storeType === 'restaurant';
+  const from = req.query.from ? new Date(req.query.from) : null, to = req.query.to ? new Date(new Date(req.query.to).getTime() + 86400000) : null;
+  // One parallel wave: counts guard the size, rows, products and bills all start together.
+  const [counts, leads, orders, products, bills] = await Promise.all([
+    Promise.all([Lead.count({where}),RestaurantOrder.count({where})]),
+    Lead.findAll({where,order:[['createdAt','DESC']]}),
+    RestaurantOrder.findAll({where,order:[['createdAt','DESC']]}),
+    isLocked(req.store,'products') ? [] : Product.findAll({where:{businessId:bid(req),active:true},attributes:['id','name','stock','price']}),
+    isRestaurant ? billsSummary(req.store, from, to).catch(() => null) : null
+  ]);
   if(counts.some(n=>n>50000)) throw bad(400,'Choose a smaller date range (maximum 50,000 records per type).');
-  const [leads, orders] = await Promise.all([Lead.findAll({where,order:[['createdAt','DESC']]}),RestaurantOrder.findAll({where,order:[['createdAt','DESC']]})]);
   const movement = new Set(saleRows(orders,leads).flatMap(o=>(o.items || []).map(i=>i.name)));
-  const products = isLocked(req.store,'products') ? [] : await Product.findAll({where:{businessId:bid(req),active:true}});
-  const bills = req.store.storeType === 'restaurant' ? await billsSummary(req.store, req.query.from ? new Date(req.query.from) : null, req.query.to ? new Date(new Date(req.query.to).getTime() + 86400000) : null).catch(() => null) : null;
   return { ...summarize(orders,leads), bills, insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };
 r.get('/:storeId/sales-summary', wrap(async (req,res) => res.json(await salesReport(req))));

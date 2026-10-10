@@ -424,11 +424,26 @@ r.get('/stores/:slug/qr', wrap(async (req, res) => {
   res.type('image/svg+xml').send(mark);
 }));
 
+// The card is rendered from a ~280 KB SVG through svg-to-pdfkit (about 2-3 s). Cache the finished PDF per store version for 10 minutes.
+const cardPdfCache = new Map();
+const CARD_TTL_MS = 10 * 60 * 1000;
+const renderCardPdf = (business, url) => new Promise(async (resolve, reject) => {
+  try { const doc = await shopCardPdf(business, url), chunks = []; doc.on('data', c => chunks.push(c)); doc.on('end', () => resolve(Buffer.concat(chunks))); doc.on('error', reject); doc.end(); } catch (e) { reject(e); }
+});
 r.get('/stores/:slug/business-card.pdf', wrap(async(req,res)=>{
  const business=await shop(req.params.slug);
- const doc=await shopCardPdf(business,shopUrl(business.slug));
- res.type('application/pdf').attachment(`${business.slug}-business-card.pdf`);doc.pipe(res);doc.end();
+ const key=`${business.id}:${business.updatedAt?.getTime?.() || ''}:${shopUrl(business.slug)}`;
+ let hit=cardPdfCache.get(key);
+ if(!hit || Date.now()-hit.at>CARD_TTL_MS){
+  const pdf=await renderCardPdf(business,shopUrl(business.slug));
+  hit={pdf,at:Date.now()};
+  for(const k of [...cardPdfCache.keys()].filter(k=>k.startsWith(`${business.id}:`)))cardPdfCache.delete(k);
+  if(cardPdfCache.size>=50)cardPdfCache.delete(cardPdfCache.keys().next().value);
+  cardPdfCache.set(key,hit);
+ }
+ res.set('Cache-Control','public, max-age=600').type('application/pdf').attachment(`${business.slug}-business-card.pdf`).send(hit.pdf);
 }));
+
 
 r.get('/stores/:slug/push-key', wrap(async (req, res) => {
   await shop(req.params.slug);
