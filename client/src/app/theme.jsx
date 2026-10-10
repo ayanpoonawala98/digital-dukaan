@@ -16,7 +16,7 @@ export function ThemeProvider({ children }) {
   return <ThemeCtx.Provider value={{ theme, toggle: () => setTheme(t => t === 'dark' ? 'light' : 'dark') }}>{children}</ThemeCtx.Provider>;
 }
 
-export function ThemeToggle({ className = '' }) {
+export function ThemeToggle({ className = '', showLabel = false }) {
   const { theme, toggle } = useTheme();
-  return <button className={`theme-toggle ${className}`} onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}</button>;
+  return <button className={`theme-toggle ${className}`} onClick={toggle} aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>}{showLabel && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}</button>;
 }

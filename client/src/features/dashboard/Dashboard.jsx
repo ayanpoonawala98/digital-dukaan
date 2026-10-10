@@ -86,7 +86,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
       <div className="sidebar-label">WORKSPACE</div>
       <nav>{items.map(([key, label, Icon]) => { const locked = !superMode && current && isTabLocked(current, key); return <button key={key} className={`${tab === key ? 'selected' : ''}${locked ? ' nav-locked' : ''}`} onClick={() => setTab(key)}><Icon size={18}/>{label}{locked && <Lock size={13} className="nav-lock-icon" aria-label="Locked by platform admin"/>}</button>; })}</nav>
       <div className="sidebar-bottom">
-        <ThemeToggle className="sidebar-theme"/>
+        <ThemeToggle className="sidebar-theme" showLabel/>
         {!superMode && current && <a href={storeLink(current.slug)} target="_blank" rel="noreferrer"><ArrowUpRight size={17}/> View storefront</a>}
         <button onClick={() => { save(null); nav('/'); }}><LogOut size={17}/> Log out</button>
       </div>
