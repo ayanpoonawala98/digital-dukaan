@@ -23,7 +23,12 @@ test('permissions switch routes on and off', () => {
   assert.ok(staffAllowed(prod, 'GET', 'products'));
   assert.ok(staffAllowed(prod, 'PATCH', 'products/9'));
   assert.ok(!staffAllowed(prod, 'DELETE', 'products/9'));
-  assert.ok(!staffAllowed(prod, 'POST', 'products'));
+  assert.ok(staffAllowed(prod, 'POST', 'products'));
+  assert.ok(staffAllowed(prod, 'POST', 'categories'));
+  assert.ok(!staffAllowed(prod, 'DELETE', 'categories/1'));
+  assert.ok(!staffAllowed(prod, 'GET', 'coupons'));
+  const cp = effective({ permissions: ['coupons'] });
+  assert.ok(staffAllowed(cp, 'POST', 'coupons') && staffAllowed(cp, 'PATCH', 'coupons/2') && !staffAllowed(cp, 'DELETE', 'coupons/2') && !staffAllowed(cp, 'POST', 'products'));
   const leads = effective({ permissions: ['leads'] });
   assert.ok(staffAllowed(leads, 'GET', 'leads'));
   assert.ok(staffAllowed(leads, 'POST', 'leads/3/status'));

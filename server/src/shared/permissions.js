@@ -1,5 +1,5 @@
 // Per-staff permissions. Existing staff (permissions = null) keep the original fixed access.
-export const KEYS = ['orders_view', 'order_status', 'whatsapp', 'import', 'products', 'leads'];
+export const KEYS = ['orders_view', 'order_status', 'whatsapp', 'import', 'products', 'leads', 'coupons'];
 export const LEGACY = ['orders_view', 'order_status', 'whatsapp', 'import'];
 export const effective = u => Array.isArray(u?.permissions) ? KEYS.filter(k => u.permissions.includes(k)) : LEGACY;
 export const clean = v => {
@@ -20,7 +20,14 @@ export function staffAllowed(perms, method, route) {
   if (has('products')) {
     if (method === 'GET' && /^(?:products|categories)$/.test(route)) return true;
     if (method === 'PATCH' && /^products\/\d+$/.test(route)) return true;
+    if (method === 'POST' && route === 'products') return true;
+    if (method === 'POST' && route === 'categories') return true;
     if (method === 'POST' && route === 'upload') return true;
+  }
+  if (has('coupons')) {
+    if (method === 'GET' && route === 'coupons') return true;
+    if (method === 'POST' && route === 'coupons') return true;
+    if (method === 'PATCH' && /^coupons\/\d+$/.test(route)) return true;
   }
   if (has('leads')) {
     if (method === 'GET' && route === 'leads') return true;
