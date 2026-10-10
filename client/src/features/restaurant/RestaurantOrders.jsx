@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, ChefHat, ListOrdered } from 'lucide-react';
+import { Bell, BellOff, Bike, ChefHat, Clock, ListOrdered, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { api, inr } from '../../shared/lib/api.js';
 import { lineText } from './MenuBits.jsx';
 
@@ -12,6 +12,11 @@ export const stepsFor = o => STEPS[o.orderType] || STEPS['dine-in'];
 export const nextStatus = o => { const steps = stepsFor(o), i = steps.indexOf(o.status); return i >= 0 && i < steps.length - 1 ? steps[i + 1] : null; };
 const ago = d => { const m = Math.max(0, Math.round((Date.now() - new Date(d).getTime()) / 60000)); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : `${Math.floor(m / 60)}h ${m % 60}m ago`; };
 
+const TYPE_INFO = { 'dine-in': ['Dine-in', UtensilsCrossed], takeaway: ['Takeaway', ShoppingBag], delivery: ['Delivery', Bike] };
+function TypeChip({ o }) {
+  const [label, Icon] = TYPE_INFO[o.orderType] || [o.orderType || 'Order', UtensilsCrossed];
+  return <span className={`ro-type t-${o.orderType}`}><Icon size={16}/><b>{label}</b>{o.orderType === 'dine-in' && o.tableNumber ? <em>Table {o.tableNumber}</em> : null}</span>;
+}
 export function OrderDetails({ o, kitchen = false }) {
   return <div className="rorder-details">
     <ul className="rorder-items">{(o.items || []).map((i, idx) => <li key={idx}>
@@ -100,7 +105,7 @@ export default function RestaurantOrders({ orders, busy, actionKey, onStatus, on
     {view === 'kitchen' ? <KitchenBoard token={token} storeId={storeId} onStatus={onStatus} busy={busy} staffMode={staffMode}/> : <>
       <p className="muted">Dine-in, takeaway and delivery orders appear here with every detail needed to prepare and serve. Payment is handled in person.</p>
       {orders.length ? <div className="rorder-list">{orders.map(o => { const nx = nextStatus(o), steps = stepsFor(o); return <article key={o.id} className={`rorder-card status-${o.status}`}>
-        <header><b>#{o.orderNumber ?? o.id}</b><span className="rorder-type">{o.orderType === 'dine-in' ? `Dine-in · Table ${o.tableNumber}` : o.orderType}</span><span className={`rorder-status s-${o.status}`}>{statusText(o.status)}</span><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small></header>
+        <header className="ro-head"><TypeChip o={o}/><span className="ro-num">#{o.orderNumber ?? o.id}</span><span className={`rorder-status s-${o.status}`}>{statusText(o.status)}</span><small className="ro-time"><Clock size={12}/> {new Date(o.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</small></header>
         <OrderDetails o={o}/>
         <div className="rorder-actions">
           {nx && o.status !== 'cancelled' && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={() => onStatus(o, nx)}>{NEXT_LABEL[nx]}</button>}

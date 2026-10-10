@@ -1625,3 +1625,18 @@ td[data-label="Status"] .btn{vertical-align:middle}
 .ro-recent-list li strong { margin-left: auto; }
 .ro-recent-list li small { color: var(--muted); }
 @media (max-width: 520px) { .ro-recent-list li strong { margin-left: 0; } }
+
+/* Orders list cards: order type first, clear hierarchy, two columns on wide screens */
+.rorder-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; align-items: start; }
+.rorder-card { position: relative; overflow: hidden; padding-top: 0; transition: transform .25s var(--ease), box-shadow .25s; }
+.rorder-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+.rorder-card::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--ro-accent, var(--line)); }
+.rorder-card.status-new { --ro-accent: #3b82f6; } .rorder-card.status-accepted, .rorder-card.status-preparing { --ro-accent: #f59e0b; } .rorder-card.status-ready, .rorder-card.status-out-for-delivery { --ro-accent: #8b5cf6; } .rorder-card.status-served, .rorder-card.status-delivered, .rorder-card.status-picked-up { --ro-accent: #10b981; } .rorder-card.status-cancelled { --ro-accent: #ef4444; }
+.rorder-card .ro-head { margin: 0 -20px 14px; padding: 14px 20px 12px 24px; gap: 8px 10px; background: var(--bg-soft); border-bottom: 1px solid var(--line); }
+.ro-type { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; font-size: 1rem; color: #fff; background: var(--accent, #0e9f6e); }
+.ro-type b { font-weight: 700; letter-spacing: .01em; } .ro-type em { font-style: normal; font-weight: 700; background: rgba(255,255,255,.22); border-radius: 999px; padding: 1px 9px; }
+.ro-type.t-takeaway { background: #b45309; } .ro-type.t-delivery { background: #6d28d9; } .ro-type.t-dine-in { background: #0f766e; }
+.ro-num { font-family: var(--font-display); font-size: 1.25rem; font-weight: 700; color: var(--ink); }
+.rorder-card .ro-time { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
+.rorder-card .rorder-actions { padding-top: 14px; }
+@media (max-width: 520px) { .rorder-list { grid-template-columns: 1fr; } .rorder-card .ro-head { margin: 0 -16px 12px; padding-left: 20px; } }
