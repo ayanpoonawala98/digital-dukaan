@@ -1642,3 +1642,5 @@ td[data-label="Status"] .btn{vertical-align:middle}
 .rorder-card .ro-time { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
 .rorder-card .rorder-actions { padding-top: 14px; }
 @media (max-width: 520px) { .rorder-list { grid-template-columns: 1fr; } .rorder-card .ro-head { margin: 0 -16px 12px; padding-left: 20px; } }
+.menu-card.sold-out .menu-img img, .mc-row.sold-out img { filter: grayscale(1) opacity(.6); }
+.menu-card.sold-out .menu-img, .menu-card.sold-out h3 a { pointer-events: auto; }

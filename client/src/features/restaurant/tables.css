@@ -89,3 +89,10 @@
 .tv-click{cursor:pointer}.tv-click:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
 .tv-date{display:flex;align-items:center;gap:10px;padding:6px 0}.tv-date input{padding:7px 10px;border-radius:10px;border:1.5px solid var(--line,#d1d5db);background:transparent;color:inherit;font:inherit}.tv-add{margin-top:8px;padding:6px 10px;font-size:12.5px}
 .tv-lines .n small.tv-opt, .tv-receipt .tv-opt { display: block; font-weight: 500; font-size: 12px; opacity: .8; }
+.soldout-panel { margin: 8px 0; }
+.soldout-body { margin-top: 8px; display: grid; gap: 8px; }
+.soldout-body input { width: 100%; max-width: 360px; }
+.soldout-list { display: flex; flex-wrap: wrap; gap: 6px; max-height: 240px; overflow: auto; }
+.soldout-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 6px 10px; border: 1px solid #cfd8d3; border-radius: 999px; background: #fff; font: inherit; cursor: pointer; }
+.soldout-chip em { font-style: normal; font-size: 11px; opacity: .7; }
+.soldout-chip.on { background: #fdecea; border-color: #b3261e; color: #8a1c15; }

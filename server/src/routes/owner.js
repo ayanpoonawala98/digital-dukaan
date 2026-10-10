@@ -853,6 +853,19 @@ r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.js
 r.post('/:storeId/tables/:n/hold', wrap(async (req, res) => { restaurantOnly(req); res.json(await setTableHold(req.store, req.params.n, req.body?.held !== false)); }));
 r.get('/:storeId/tables/history', wrap(async (req, res) => { restaurantOnly(req); res.json(await billHistory(req.store, req.query)); }));
 r.post('/:storeId/restaurant-orders/:id/kot', wrap(async (req, res) => { restaurantOnly(req); res.json(await makeKot(req.store, numId(req.params.id), req.body?.mode === 'all' ? 'all' : 'new')); }));
+// Kitchen / staff: mark dishes sold out for today without needing product-edit rights.
+r.get('/:storeId/menu-availability', wrap(async (req, res) => {
+  restaurantOnly(req);
+  const rows = await Product.findAll({ where: { businessId: req.store.id, active: true }, attributes: ['id', 'name', 'veg', 'soldOutDate'], order: [['name', 'ASC']], limit: 600 });
+  res.json({ items: rows.map(p => ({ id: p.id, name: p.name, veg: p.veg || '', soldOut: p.soldOutToday })) });
+}));
+r.post('/:storeId/menu-availability/:id', wrap(async (req, res) => {
+  restaurantOnly(req);
+  const p = await Product.findOne({ where: { id: numId(req.params.id), businessId: req.store.id } });
+  if (!p) throw bad(404, 'Item not found');
+  await p.update({ soldOutDate: req.body?.soldOut ? istDay() : null });
+  res.json({ item: { id: p.id, name: p.name, soldOut: p.soldOutToday } });
+}));
 r.post('/:storeId/table-bills', wrap(async (req, res) => {
   restaurantOnly(req);
   await ensureOrderStockSchema();

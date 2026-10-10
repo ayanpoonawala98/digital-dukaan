@@ -40,3 +40,11 @@ test('clean rejects unknown keys and non-arrays', () => {
   assert.equal(clean('products'), null);
   assert.deepEqual(clean(['leads', 'products', 'leads']), ['products', 'leads']);
 });
+test('kitchen can mark dishes sold out and print KOTs with order permissions only', () => {
+  const view = effective({ permissions: ['orders_view'] }), act = effective({ permissions: ['orders_view', 'order_status'] });
+  assert.ok(staffAllowed(view, 'GET', 'menu-availability'));
+  assert.ok(!staffAllowed(view, 'POST', 'menu-availability/5'));
+  assert.ok(!staffAllowed(view, 'POST', 'restaurant-orders/5/kot'));
+  assert.ok(staffAllowed(act, 'POST', 'menu-availability/5'));
+  assert.ok(staffAllowed(act, 'POST', 'restaurant-orders/5/kot'));
+});

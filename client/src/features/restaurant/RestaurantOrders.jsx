@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Bell, BellOff, Bike, ChefHat, Clock, ListOrdered, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { Ban, Bell, BellOff, Bike, ChefHat, Clock, ListOrdered, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { api, inr } from '../../shared/lib/api.js';
 import { lineText } from './MenuBits.jsx';
 import { KotButton } from './kot-print.jsx';
+import { VegDot } from './MenuBits.jsx';
 
 export const STEPS = { 'dine-in': ['new', 'accepted', 'preparing', 'ready', 'served'], takeaway: ['new', 'accepted', 'preparing', 'ready', 'picked-up'], delivery: ['new', 'accepted', 'preparing', 'ready', 'out-for-delivery', 'delivered'] };
 const LABEL = { new: 'New', accepted: 'Accepted', preparing: 'Preparing', ready: 'Ready', served: 'Served', 'out-for-delivery': 'Out for delivery', delivered: 'Delivered', 'picked-up': 'Picked up', cancelled: 'Cancelled' };
@@ -63,6 +64,23 @@ function useRing() {
   }, []);
 }
 
+function SoldOutPanel({ token, storeId }) {
+  const [open, setOpen] = useState(false), [items, setItems] = useState(null), [q, setQ] = useState(''), [err, setErr] = useState(''), [busyId, setBusyId] = useState(null);
+  const load = useCallback(async () => { try { setItems((await api(`/owner/${storeId}/menu-availability`, { token, feedback: false })).items); setErr(''); } catch (e) { setErr(e.message); } }, [storeId, token]);
+  useEffect(() => { if (open) load(); }, [open, load]);
+  const toggle = async it => { setBusyId(it.id); try { await api(`/owner/${storeId}/menu-availability/${it.id}`, { token, method: 'POST', body: { soldOut: !it.soldOut }, feedback: false }); await load(); } catch (e) { setErr(e.message); } finally { setBusyId(null); } };
+  const out = (items || []).filter(i => i.soldOut), shown = (items || []).filter(i => !q || i.name.toLowerCase().includes(q.toLowerCase()));
+  return <div className="soldout-panel">
+    <button type="button" className="btn btn-outline btn-small" aria-expanded={open} onClick={() => setOpen(o => !o)}><Ban size={14}/> Sold out today{items ? ` (${out.length})` : ''}</button>
+    {open && <div className="soldout-body">
+      {err && <p className="notice error" role="alert">{err}</p>}
+      <p className="muted">Tap a dish to mark it sold out for today. It greys out on the menu and cannot be ordered. It comes back tomorrow, or tap again.</p>
+      <input type="search" placeholder="Search dishes" value={q} onChange={e => setQ(e.target.value)} aria-label="Search dishes"/>
+      {!items ? <p className="muted">Loading...</p> : <div className="soldout-list">{shown.map(i => <button key={i.id} type="button" disabled={busyId === i.id} className={`soldout-chip ${i.soldOut ? 'on' : ''}`} aria-pressed={i.soldOut} onClick={() => toggle(i)}><VegDot veg={i.veg}/>{i.name}<em>{i.soldOut ? 'Sold out' : 'Available'}</em></button>)}{!shown.length && <p className="muted">No dishes match.</p>}</div>}
+    </div>}
+  </div>;
+}
+
 function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
   const [orders, setOrders] = useState([]), [requests, setRequests] = useState([]), [sound, setSound] = useState(false), [err, setErr] = useState('');
   const seen = useRef(null), seenReq = useRef(null), beep = useBeep(), ring = useRing(), soundRef = useRef(false);
@@ -86,6 +104,7 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
     <div className="kitchen-bar"><span className="muted">Updates every 12 seconds. Showing open orders only.</span>
       <button type="button" className="btn btn-outline btn-small" onClick={() => { setSound(s => !s); if (!sound) beep(); }}>{sound ? <><Bell size={14}/> Sound on</> : <><BellOff size={14}/> Sound off</>}</button></div>
     {err && <p className="notice error" role="alert">{err}</p>}
+    <SoldOutPanel token={token} storeId={storeId}/>
     {requests.length > 0 && <div className="table-requests" role="alert">{requests.map(r => <div key={r.id} className={`table-request ${r.kind}`}><strong>Table {r.tableNumber}</strong> {r.kind === 'bill' ? 'wants the bill' : 'is calling the waiter'} <small>{ago(r.createdAt)}</small><button type="button" className="btn btn-small btn-outline" onClick={() => clearRequest(r)}>Done</button></div>)}</div>}
     <div className="kitchen-cols">{cols.map(([st, title]) => { const list = orders.filter(o => o.status === st); return <section key={st} className="kitchen-col"><h4>{title} <span>{list.length}</span></h4>
       {list.length === 0 ? <p className="muted">Nothing here.</p> : list.map(o => { const nx = nextStatus(o); return <article key={o.id} className={`kitchen-card type-${o.orderType}`}>
