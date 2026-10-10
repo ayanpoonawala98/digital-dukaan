@@ -1618,3 +1618,10 @@ td[data-label="Status"] .btn{vertical-align:middle}
 .table-request.bill{background:color-mix(in srgb,#5b8cff 14%,var(--card));border-color:color-mix(in srgb,#5b8cff 35%,transparent)}
 .table-request small{color:var(--muted)}
 @media(max-width:700px){.rorder-card .rorder-actions>.btn,.rorder-card .rorder-actions>select{width:100%;max-width:none}}
+
+.ro-recent { margin-top: 16px; }
+.ro-recent-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.ro-recent-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; padding: 10px 12px; border: 1px solid var(--line); border-radius: var(--r-sm, 10px); }
+.ro-recent-list li strong { margin-left: auto; }
+.ro-recent-list li small { color: var(--muted); }
+@media (max-width: 520px) { .ro-recent-list li strong { margin-left: 0; } }

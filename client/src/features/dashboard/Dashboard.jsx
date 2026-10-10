@@ -129,7 +129,7 @@ function ProductModal({ categories, product, onClose, onSave, busy, restaurant }
 }
 
 import { leadStatusOptions } from '../restaurant/order-flows.js';
-import RestaurantOrders from '../restaurant/RestaurantOrders.jsx';
+import RestaurantOrders, { RestaurantOverview } from '../restaurant/RestaurantOrders.jsx';
 import MenuOptionsEditor from '../restaurant/MenuOptionsEditor.jsx';
 
 function LeadRow({ lead, token, storeId, storeType, onChanged }) {
@@ -461,11 +461,11 @@ export default function Dashboard() {
   const coupons=tab==='coupons'?list.rows:supportCoupons;
   const referrals=tab==='referrals'?list.rows:supportReferrals;
   const staff=tab==='staff'?list.rows:supportStaff;
-  const load = async () => {
+  const load = async (quiet = false) => {
     if (!storeId) return;
     const requestStore = storeId, sequence = ++loadSequence.current;
     const stale = () => String(selectedStoreRef.current) !== String(requestStore) || sequence !== loadSequence.current;
-    setLoading(true);
+    if (!quiet) setLoading(true);
     try {
       const freshOverview = await api(`/owner/${storeId}/overview`, {token});
       if(stale())return;
@@ -489,7 +489,7 @@ export default function Dashboard() {
   useEffect(() => { const timer=setTimeout(()=>{ if(storeId) load(); },300); return ()=>clearTimeout(timer); }, [tab,filters.from,filters.to]);
   const reportDownload = async kind => { setExportBusy(true); try { await download(`/owner/${storeId}/${kind}/report.csv?${kind === 'sales-summary' ? new URLSearchParams({from:filters.from,to:filters.to}) : queryString}`, `${kind}-${data?.business?.slug || 'store'}.csv`,token); } catch(e){setError(e.message);} finally{setExportBusy(false);} };
   const flash = msg => { setSuccess(msg); setError(''); setTimeout(() => setSuccess(''), 4000); };
-  const action = async (fn, key = 'action') => { if (busy) return; setBusy(true); setActionKey(key); setError(''); try { await fn(); setListRefresh(n=>n+1); await load(); } catch (e) { setError(e.message); } finally { setBusy(false); setActionKey(''); } };
+  const action = async (fn, key = 'action') => { if (busy) return; setBusy(true); setActionKey(key); setError(''); try { await fn(); setListRefresh(n=>n+1); await load(true); } catch (e) { setError(e.message); } finally { setBusy(false); setActionKey(''); } };
 
   const saveProduct = draft => action(async () => {
     const body = { ...draft, price: Number(draft.price), stock: draft.kind === 'service' || draft.stock === '' ? null : Number(draft.stock), category: draft.category, kind: draft.kind, duration: draft.kind === 'service' ? draft.duration : '' };
@@ -546,7 +546,7 @@ export default function Dashboard() {
       {tab === 'overview' && staffMode && current && storeId && <OrderAlertsCard token={token} storeId={storeId} slug={current.slug}/>}
       {tab === 'overview' && data && !staffMode && <><ShopQr business={data.business} token={token} storeId={storeId}/>
         {data.lowStock?.length > 0 && <div className="notice warn anim-up" role="alert"><Package size={16}/> Low stock alert: {data.lowStock.map(p => `${p.name} (${p.stock} left)`).join(', ')}. Restock these items.</div>}
-        <div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>Enquiries are requests, not confirmed sales.</p></div><div className="stat-grid overview-stats">{[[data.products, 'Products live in your catalog', Package], [data.categories, 'Ways to browse', Tags], [data.leads, 'WhatsApp enquiries', MessageCircle], [data.subscribers, 'Push subscribers', Bell]].map(([num, label, Icon], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={label}><Icon size={21}/><strong>{num}</strong><span>{label}</span></div>)}</div>
+        {data.business?.storeType === 'restaurant' ? <RestaurantOverview token={token} storeId={storeId} onOpen={setTab}/> : <><div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>Enquiries are requests, not confirmed sales.</p></div><div className="stat-grid overview-stats">{[[data.products, 'Products live in your catalog', Package], [data.categories, 'Ways to browse', Tags], [data.leads, 'WhatsApp enquiries', MessageCircle], [data.subscribers, 'Push subscribers', Bell]].map(([num, label, Icon], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={label}><Icon size={21}/><strong>{num}</strong><span>{label}</span></div>)}</div></>}
         <div className="dashboard-panel welcome-panel">
           <div><span className="kicker">YOUR SHOP LINK</span><h2>{data.business?.active ? 'Ready to share your shop?' : 'Your shop is paused'}</h2><p>{data.business?.active ? 'Send your shop link to customers, print your QR code, or share a product directly.' : 'The catalog is hidden from visitors until you reopen the shop in Settings.'}</p><div className="url-pill">{storeLink(data.business?.slug)}</div></div>
           <div className="welcome-actions"><a href={storeLink(data.business?.slug)} target="_blank" rel="noreferrer" className="btn btn-green">Visit your shop <ArrowUpRight size={17}/></a><button className="btn btn-outline" onClick={async () => { try { await navigator.clipboard.writeText(storeLink(data.business?.slug)); flash('Shop link copied'); } catch { showToast('error', 'Could not copy the link. Please copy it manually.'); } }}><Copy size={16}/> Copy link</button></div>
@@ -587,7 +587,7 @@ export default function Dashboard() {
       {tab === 'sales' && <div className="sales-page"><SalesAnalytics report={sales} storeType={data?.business?.storeType}/></div>}
       {tab === 'imports' && staffMode && <>{data?.business?.featureLocks?.products ? <p className="notice">Product import: kindly contact admin.</p> : <MappedImport kind="products" token={token} storeId={storeId}/>} {import.meta.env.VITE_CRM_ENABLED !== 'true' ? <p className="notice">Customer imports are not enabled for this deployment.</p> : data?.business?.featureLocks?.customers ? <p className="notice">Customer import: kindly contact admin.</p> : <MappedImport kind="customers" token={token} storeId={storeId}/>}</>}
       {tab === 'overview' && data && staffMode && <div className="dashboard-panel"><h3>{data.business.name}</h3><p>{data.business.storeType === 'restaurant' ? 'Restaurant order status is available under Table orders.' : 'This staff account has overview access only.'}</p></div>}
-      {tab === 'restaurant' && data?.business?.storeType === 'restaurant' && <div className="dashboard-panel"><RestaurantOrders orders={restaurantOrders} busy={busy} actionKey={actionKey} onStatus={updateRestaurantOrder} onRefresh={()=>{setListRefresh(n=>n+1);load();}} token={token} storeId={storeId} staffMode={staffMode} renderPay={o=><PayActions kind="restaurant-orders" order={o} token={token} storeId={storeId} staffMode={staffMode}/>}/></div>}
+      {tab === 'restaurant' && data?.business?.storeType === 'restaurant' && <div className="dashboard-panel"><RestaurantOrders orders={restaurantOrders} busy={busy} actionKey={actionKey} onStatus={updateRestaurantOrder} onRefresh={()=>{setListRefresh(n=>n+1);load(true);}} token={token} storeId={storeId} staffMode={staffMode} renderPay={o=><PayActions kind="restaurant-orders" order={o} token={token} storeId={storeId} staffMode={staffMode}/>}/></div>}
       {tab === 'whatsapp-cloud' && import.meta.env.VITE_WHATSAPP_INTEGRATION_UI_ENABLED === 'true' && <WhatsAppIntegration token={token} storeId={storeId} staff={staffMode} />}
       {tab === 'campaigns' && !staffMode && <OfferCampaigns token={token} storeId={storeId}/>}
       {tab === 'broadcast' && !staffMode && <div className="dashboard-panel status-creative-panel"><span className="kicker">READY FOR WHATSAPP STATUS</span><h3>A story-sized shop promo</h3><p className="muted">Download a vertical image with your shop name, live items and link. Post it to your WhatsApp Status yourself. Nothing is posted automatically.</p><button type="button" className="btn btn-green" onClick={() => { try { downloadStatusCreative(data.business, products); } catch (err) { setError(err.message); } }}>Download status image <Download size={17}/></button></div>}

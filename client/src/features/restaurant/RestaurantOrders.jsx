@@ -111,3 +111,33 @@ export default function RestaurantOrders({ orders, busy, actionKey, onStatus, on
         </div></article>; })}</div> : <p className="empty-state">No restaurant orders yet.</p>}</>}
   </div>;
 }
+
+const dayKey = d => new Date(d).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+export function RestaurantOverview({ token, storeId, onOpen }) {
+  const [orders, setOrders] = useState(null), [requests, setRequests] = useState([]), [err, setErr] = useState('');
+  useEffect(() => {
+    let live = true;
+    const load = async () => {
+      try {
+        const [o, r] = await Promise.all([api(`/owner/${storeId}/restaurant-orders?pageSize=100&page=1`, { token }), api(`/owner/${storeId}/table-requests`, { token })]);
+        if (live) { setOrders(o.orders || []); setRequests(r.requests || []); setErr(''); }
+      } catch (e) { if (live) setErr(e.message); }
+    };
+    load(); const t = setInterval(load, 15000);
+    return () => { live = false; clearInterval(t); };
+  }, [storeId, token]);
+  if (err) return <div className="notice error" role="alert">{err}</div>;
+  if (!orders) return null;
+  const today = dayKey(Date.now()), todays = orders.filter(o => dayKey(o.createdAt) === today && o.status !== 'cancelled');
+  const sales = todays.filter(o => DONE.includes(o.status)).reduce((s, o) => s + Number(o.total || 0), 0);
+  const active = orders.filter(o => !DONE.includes(o.status));
+  const cards = [[todays.length, "Today's orders"], [inr(sales), "Today's sales (served)"], [active.length, 'Active orders'], [requests.length, 'Waiter / bill requests']];
+  return <>
+    <div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>Sales count served, delivered and picked-up orders.</p></div>
+    <div className="stat-grid overview-stats">{cards.map(([n, l], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={l}><strong>{n}</strong><span>{l}</span></div>)}</div>
+    <div className="dashboard-panel ro-recent">
+      <div className="section-heading"><div><span className="kicker">LATEST</span><h2>Recent orders</h2></div><button type="button" className="btn btn-outline btn-small" onClick={() => onOpen('restaurant')}>Open table orders</button></div>
+      {orders.length === 0 ? <p className="muted">No orders yet. Share your table QR so guests can order.</p> : <ul className="ro-recent-list">{orders.slice(0, 5).map(o => <li key={o.id}><b>#{o.orderNumber ?? o.id}</b><span>{o.orderType === 'dine-in' ? `Table ${o.tableNumber}` : o.orderType}</span><span className={`rorder-status s-${o.status}`}>{statusText(o.status)}</span><strong>{inr(o.total)}</strong><small>{ago(o.createdAt)}</small></li>)}</ul>}
+    </div>
+  </>;
+}
