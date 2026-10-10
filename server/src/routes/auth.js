@@ -9,13 +9,24 @@ import { bad, wrap } from '../shared/utils/core.js';
 const r = Router();
 import { effective as staffPerms } from '../shared/permissions.js';
 const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, staffBusinessId: u.staffBusinessId || null, ...(u.role === 'staff' ? { permissions: staffPerms(u) } : {}) });
-const sign = u => jwt.sign({ sub: u.id, pwd: passwordStamp(u.passwordHash) }, process.env.JWT_SECRET, { expiresIn: '7d' });
+const sign = u => jwt.sign({ sub: u.id, pwd: passwordStamp(u.passwordHash) }, process.env.JWT_SECRET, { expiresIn: '7d', algorithm: 'HS256' });
 // Public registration is intentionally disabled. Existing clients cannot create accounts.
 r.post('/signup', (_, res) => res.status(403).json({ error: 'New accounts are created by the superadmin. Request a shop instead.' }));
+// Login hardening: constant-ish timing for unknown emails and a per-email failure lockout (in-memory, per process).
+const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', 12);
+const fails = new Map();
+const LOCK_AFTER = 8, LOCK_MS = 15 * 60 * 1000;
+const lockedFor = key => { const f = fails.get(key); if (!f) return 0; if (Date.now() - f.first > LOCK_MS) { fails.delete(key); return 0; } return f.n >= LOCK_AFTER ? LOCK_MS - (Date.now() - f.first) : 0; };
+const noteFail = key => { const f = fails.get(key); if (!f || Date.now() - f.first > LOCK_MS) fails.set(key, { n: 1, first: Date.now() }); else f.n++; if (fails.size > 5000) fails.clear(); };
 r.post('/login', wrap(async (req, res) => {
-  const user = await User.unscoped().findOne({ where: { email: String(req.body.email || '').toLowerCase().trim() } });
-  if (!user || !await bcrypt.compare(String(req.body.password || ''), user.passwordHash)) throw bad(401, 'Invalid credentials');
+  const email = String(req.body.email || '').toLowerCase().trim();
+  const wait = lockedFor(email);
+  if (wait) throw bad(429, 'Too many failed attempts. Try again in a few minutes.');
+  const user = await User.unscoped().findOne({ where: { email } });
+  const ok = await bcrypt.compare(String(req.body.password || ''), user?.passwordHash || DUMMY_HASH);
+  if (!user || !ok) { noteFail(email); throw bad(401, 'Invalid credentials'); }
   if (!user.active) throw bad(403, 'Account unavailable');
+  fails.delete(email);
   res.json({ token: sign(user), user: safeUser(user) });
 }));
 r.post('/set-password', wrap(async (req,res) => {
