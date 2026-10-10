@@ -50,3 +50,8 @@ test('report and import endpoints preserve staff scopes and store boundaries', a
   const pdf=await call('/5/shop-qr.pdf');assert.equal(pdf.status,200);assert.match(pdf.headers.get('content-type'),/pdf/);(await import('node:fs/promises')).writeFile('/downloads/dukaan-local-qr.pdf',Buffer.from(await pdf.arrayBuffer()));
  }finally{for(const [key,value]of Object.entries(originals)){const [model,method]=key.split('.');m[model][method]=value;}m.sequelize.transaction=originalTransaction;await new Promise(r=>server.close(r));}
 });
+test('restaurantPending counts every unserved, uncancelled status', () => {
+  const o = s => ({ status: s, total: 10, createdAt: new Date().toISOString(), items: [] });
+  const r = summarize(['new', 'accepted', 'preparing', 'ready', 'served', 'cancelled'].map(o), []);
+  assert.equal(r.restaurantPending, 4);
+});

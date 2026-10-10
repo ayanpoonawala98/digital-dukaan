@@ -14,9 +14,9 @@ test('store preview replaces all generic branding, escapes owner text and preser
  assert.equal((html.match(/application\/ld\+json/g)||[]).length,1);assert.match(html,/"@type":"LocalBusiness"/);assert.doesNotMatch(html,/<shop>/);
  assert.match(html,/<div id="root"><\/div>/);assert.match(html,/src="\/src\/app\/main.jsx"/);assert.match(html,/fonts.googleapis/);
 });
-test('no-logo and paused stores do not inherit platform image',()=>{
+test('no-logo stores fall back to the platform image, paused stores get none, site name is the platform',()=>{
  assert.equal(logoUrl('javascript:alert(1)'), '');assert.equal(logoUrl('https://user:pass@foo.test/x'),'');
- assert.doesNotMatch(storeHtml(base,{name:'No logo'},'no-logo'),/og:image|twitter:image|digital-dukaan-hero/);
+ const nl=storeHtml(base,{name:'No logo'},'no-logo');assert.match(nl,/og:image" content="https:\/\/ik.imagekit.io\/digitaldukaanayan\/digital-dukaan\/branding\/digital-dukaan-hero/);assert.match(nl,/og:site_name" content="Digital Shop"/);assert.match(nl,/og:title" content="No logo"/);
  const html=storeHtml(base,business,'paused',true);assert.match(html,/name="robots" content="noindex"/);assert.doesNotMatch(html,/og:image/);
 });
 test('handler fetches only exact public storefront routes and handles errors without breaking SPA',async()=>{
