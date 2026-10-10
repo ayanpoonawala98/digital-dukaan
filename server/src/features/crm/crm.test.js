@@ -22,6 +22,7 @@ test('CRM off by default; owner-scoped reads, no inferred consent, staff blocked
   const server = app.listen(0), base = `http://127.0.0.1:${server.address().port}/api/owner`;
   const call = (url, method = 'GET', body) => fetch(base + url, { method, headers: { authorization: `Bearer ${jwt.sign({ sub: actor.id }, process.env.JWT_SECRET)}`, 'content-type': 'application/json' }, ...(body ? { body: JSON.stringify(body) } : {}) });
   try {
+    process.env.CRM_ENABLED = 'false';
     assert.equal((await call('/72/customers')).status, 404);
     process.env.CRM_ENABLED = 'true';
     assert.equal((await call('/72/customers')).status, 200);

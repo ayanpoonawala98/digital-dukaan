@@ -10,6 +10,7 @@ import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { storeUrl } from '../shared/utils/store-domain.js';
 import {shopQrSvg} from '../features/stores/shop-qr.js';
+import { recordCustomerOrder, attachCustomerDevice, removeCustomerDevice } from '../features/crm/customer-sync.js';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { isLocked } from '../features/platform/feature-locks.js';
@@ -156,6 +157,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const estimateMinutes = orderType === 'takeaway' && business.prepMinutes ? business.prepMinutes : null;
   const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
   void notifyNewOrder(business, 'restaurant', order);
+  void recordCustomerOrder(business.id, order);
   void notifyOwnerDevices(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
@@ -191,10 +193,11 @@ const validPushBody = body => {
   if (url.protocol !== 'https:' || !isAllowedPushEndpoint(endpoint) || endpoint.length > 1000 || !keys || typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string' || !keys.p256dh || !keys.auth || keys.p256dh.length > 300 || keys.auth.length > 300) return null;
   return { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } };
 };
-const savePushSubscription = async (business, kind, orderId, token, push) => {
+const savePushSubscription = async (business, kind, orderId, token, push, order, userAgent) => {
   const returnPath = trackingPath(business.slug, kind, orderId, token).slice(0, 600);
   const [row, created] = await OrderPushSubscription.findOrCreate({ where: { orderType: kind, orderId, endpoint: push.endpoint }, defaults: { businessId: business.id, keys: push.keys, returnPath } });
   if (!created) await row.update({ keys: push.keys, returnPath });
+  if (order) await attachCustomerDevice(business.id, order, push, userAgent);
 };
 for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
   const { kind } = cfg;
@@ -221,10 +224,11 @@ for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
     res.set('Cache-Control', 'no-store');
     const id = numId(req.params.id), token = bearer(req), access = verifyTracking(token, id, kind);
     const business = await trackedBusiness(req.params.slug, cfg, access);
-    if (!(await cfg.model().findOne({ where: { id, businessId: business.id } }))) throw bad(404, 'Order not found');
+    const order = await cfg.model().findOne({ where: { id, businessId: business.id } });
+    if (!order) throw bad(404, 'Order not found');
     const push = validPushBody(req.body);
     if (!push) throw bad(400, 'Invalid push subscription');
-    await savePushSubscription(business, kind, id, token, push);
+    await savePushSubscription(business, kind, id, token, push, order, req.get('user-agent'));
     res.status(201).json({ ok: true });
   }));
   r.delete(`/stores/:slug/${segment}/:id/push-subscription`, wrap(async (req, res) => {
@@ -232,6 +236,7 @@ for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
     const id = numId(req.params.id), access = verifyTracking(bearer(req), id, kind);
     const endpoint = typeof req.body?.endpoint === 'string' ? req.body.endpoint : '';
     await OrderPushSubscription.destroy({ where: { businessId: access.businessId, orderType: kind, orderId: id, endpoint } });
+    await removeCustomerDevice(access.businessId, endpoint);
     res.status(204).end();
   }));
 }
@@ -281,7 +286,8 @@ r.post('/stores/:slug/my-orders/push-subscription', wrap(async (req, res) => {
   if (!push) throw bad(400, 'Invalid push subscription');
   const refs = [...myOrderRefs(req.body, business.id).values()];
   for (const ref of refs) {
-    if (await kindModel(ref.kind).findOne({ where: { id: ref.id, businessId: business.id } })) await savePushSubscription(business, ref.kind, ref.id, ref.token, push);
+    const order = await kindModel(ref.kind).findOne({ where: { id: ref.id, businessId: business.id } });
+    if (order) await savePushSubscription(business, ref.kind, ref.id, ref.token, push, order, req.get('user-agent'));
   }
   res.status(201).json({ ok: true, registered: refs.length });
 }));
@@ -289,7 +295,7 @@ r.delete('/stores/:slug/my-orders/push-subscription', wrap(async (req, res) => {
   res.set('Cache-Control', 'no-store');
   const business = await Business.findOne({ where: { slug: req.params.slug, deletedAt: null } });
   const endpoint = typeof req.body?.endpoint === 'string' ? req.body.endpoint : '';
-  if (business && endpoint) await OrderPushSubscription.destroy({ where: { businessId: business.id, endpoint } });
+  if (business && endpoint) { await OrderPushSubscription.destroy({ where: { businessId: business.id, endpoint } }); await removeCustomerDevice(business.id, endpoint); }
   res.status(204).end();
 }));
 
@@ -348,6 +354,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const lines=[{productId:product.id,name:product.name,price:product.price,qty,...(answers.length?{answers}:{})}];
   const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: subtotal, items:lines, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
+  void recordCustomerOrder(business.id, lead);
   void notifyOwnerDevices(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   res.set('Cache-Control', 'no-store');
@@ -379,6 +386,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const total = Number((subtotal - discount + delivery).toFixed(2));
   const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
+  void recordCustomerOrder(business.id, lead);
   void notifyOwnerDevices(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   const url = whatsappCartUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);

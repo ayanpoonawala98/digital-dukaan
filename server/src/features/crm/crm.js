@@ -4,6 +4,7 @@ import { sequelize, Business } from '../../models/index.js';
 import { Router } from 'express';
 import { createHash, randomUUID } from 'node:crypto';
 import { bad, wrap } from '../../shared/utils/core.js';
+import { cleanOrderEmail } from './customer-pure.js';
 
 export const Customer = sequelize.define('Customer', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -19,10 +20,43 @@ export const Customer = sequelize.define('Customer', {
   optInAt: { type: DataTypes.DATE, allowNull: true },
   optOutAt: { type: DataTypes.DATE, allowNull: true },
   importBatchId: { type: DataTypes.UUID, allowNull: true },
+  email: { type: DataTypes.STRING(160), allowNull: false, defaultValue: '' },
+  orderCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  totalSpent: { type: DataTypes.DOUBLE, allowNull: false, defaultValue: 0 },
+  lastOrderAt: { type: DataTypes.DATE, allowNull: true },
   archivedAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'customers', indexes: [{ unique: true, fields: ['businessId', 'phone'] }, { fields: ['businessId', 'createdAt'] }] });
 Business.hasMany(Customer, { foreignKey: 'businessId' });
 Customer.belongsTo(Business, { foreignKey: 'businessId' });
+
+// One row per browser/device a customer enabled notifications on. A customer can have many.
+// endpoint+keys are secrets of the browser: they are never returned by any API.
+export const CustomerDevice = sequelize.define('CustomerDevice', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
+  customerId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'customers', key: 'id' } },
+  channel: { type: DataTypes.STRING(8), allowNull: false, defaultValue: 'push' },
+  endpoint: { type: DataTypes.TEXT, allowNull: false },
+  keys: { type: DataTypes.JSONB, allowNull: false },
+  label: { type: DataTypes.STRING(60), allowNull: false, defaultValue: 'Browser' },
+  lastSeenAt: { type: DataTypes.DATE, allowNull: true }
+}, { tableName: 'customer_devices', indexes: [{ unique: true, fields: ['businessId', 'endpoint'], name: 'customer_devices_store_endpoint' }, { fields: ['customerId'] }] });
+Customer.hasMany(CustomerDevice, { foreignKey: 'customerId' });
+
+// Every reach-out, whatever the channel (push now; email and sms use the same table when connected).
+export const CustomerMessage = sequelize.define('CustomerMessage', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
+  customerId: { type: DataTypes.INTEGER, allowNull: true }, // null = broadcast
+  channel: { type: DataTypes.STRING(8), allowNull: false },
+  audience: { type: DataTypes.STRING(12), allowNull: false, defaultValue: 'single' },
+  title: { type: DataTypes.STRING(150), allowNull: false, defaultValue: '' },
+  body: { type: DataTypes.TEXT, allowNull: false },
+  recipients: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  sent: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  failed: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  sentByUserId: { type: DataTypes.INTEGER, allowNull: true }
+}, { tableName: 'customer_messages', indexes: [{ fields: ['businessId', 'createdAt'] }, { fields: ['customerId'] }] });
 
 export const CustomerImportBatch = sequelize.define('CustomerImportBatch', {
   id: { type: DataTypes.UUID, primaryKey: true },
@@ -32,10 +66,19 @@ export const CustomerImportBatch = sequelize.define('CustomerImportBatch', {
   undoneAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'customer_import_batches' });
 
+// Customers are on for every store. CRM_ENABLED=false is the emergency off switch.
+export const crmEnabled = () => process.env.CRM_ENABLED !== 'false';
+
 export async function ensureCrmSchema() {
-  if (process.env.CRM_ENABLED !== 'true') return;
+  if (!crmEnabled()) return;
   await Customer.sync(); // CRM-owned table only; never alter existing store/catalog tables.
   await sequelize.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS "archivedAt" TIMESTAMP WITH TIME ZONE');
+  await sequelize.query(`ALTER TABLE customers ADD COLUMN IF NOT EXISTS "email" varchar(160) NOT NULL DEFAULT ''`);
+  await sequelize.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS "orderCount" integer NOT NULL DEFAULT 0');
+  await sequelize.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS "totalSpent" double precision NOT NULL DEFAULT 0');
+  await sequelize.query('ALTER TABLE customers ADD COLUMN IF NOT EXISTS "lastOrderAt" TIMESTAMP WITH TIME ZONE');
+  await CustomerDevice.sync();
+  await CustomerMessage.sync();
   await CustomerImportBatch.sync();
 }
 
@@ -53,6 +96,11 @@ function customerFields(input, { imported = false } = {}) {
   if (!input || typeof input !== 'object' || Array.isArray(input)) throw bad(400, 'Invalid customer');
   const result = { phone: phone(input.phone) };
   for (const [key, max] of [['name', 100], ['source', 80], ['notes', 2000]]) if (input[key] !== undefined) result[key] = cleanString(input[key], max, key);
+  if (input.email !== undefined) {
+    const email = typeof input.email === 'string' ? input.email.trim() : '';
+    if (email && !cleanOrderEmail(email)) throw bad(400, 'Enter a valid email or leave it blank');
+    result.email = cleanOrderEmail(email);
+  }
   if (imported) {
     result.source = result.source || 'import';
     // Never infer marketing permission from a spreadsheet.
@@ -93,7 +141,7 @@ function assertRows(rows) {
   return { valid, errors };
 }
 export const crmRoutes = Router();
-crmRoutes.use((req, res, next) => process.env.CRM_ENABLED === 'true' ? next() : res.status(404).json({ error: 'Not found' }));
+crmRoutes.use((req, res, next) => crmEnabled() ? next() : res.status(404).json({ error: 'Not found' }));
 crmRoutes.get('/', wrap(async (req, res) => {
   const q = String(req.query.q || '').trim().slice(0, 100), status = String(req.query.status || 'all');
   if (!['all', 'unknown', 'opted_in', 'opted_out'].includes(status)) throw bad(400, 'Invalid filter');
@@ -102,15 +150,24 @@ crmRoutes.get('/', wrap(async (req, res) => {
   const limit = 50;
   const where = { businessId: req.store.id, archivedAt: null, ...(status !== 'all' ? { optInStatus: status } : {}) };
   if (q) where[Op.or] = [{ phone: { [Op.like]: `%${q.replace(/[%_\\]/g, '\\$&')}%` } }, { name: { [Op.iLike]: `%${q.replace(/[%_\\]/g, '\\$&')}%` } }];
-  if(req.query.limit!==undefined)return res.json(await ownerList(Customer,'customers',{query:{limit:req.query.limit,cursor:req.query.cursor}},where,[]));
+  const withDevices = async rows => {
+    const counts = rows.length ? await CustomerDevice.findAll({ where: { businessId: req.store.id, customerId: rows.map(r => r.id) }, attributes: ['customerId', [sequelize.fn('count', sequelize.col('id')), 'n']], group: ['customerId'], raw: true }) : [];
+    const byId = new Map(counts.map(c => [c.customerId, Number(c.n)]));
+    return rows.map(r => ({ ...r.toJSON(), deviceCount: byId.get(r.id) || 0 }));
+  };
+  if (req.query.limit !== undefined) { const page = await ownerList(Customer, 'customers', { query: { limit: req.query.limit, cursor: req.query.cursor } }, where, []); return res.json({ ...page, customers: await withDevices(page.customers) }); }
   const result = await Customer.findAndCountAll({ where, order: [['createdAt', 'DESC'], ['id', 'DESC']], limit, offset: (page - 1) * limit });
-  res.json({ customers: result.rows, total: result.count, page, pageSize: limit });
+  res.json({ customers: await withDevices(result.rows), total: result.count, page, pageSize: limit });
 }));
+const consentKeys = ['optInStatus', 'optInPurpose', 'optInSource', 'optInAt'];
+const noStaffConsent = req => { if (req.user?.role === 'staff' && consentKeys.some(k => req.body?.[k] !== undefined)) throw bad(403, 'Only the store owner can record consent'); };
 crmRoutes.post('/', wrap(async (req, res) => {
-  const fields = customerFields(req.body);
+  noStaffConsent(req);
+  const fields = { source: 'admin', ...customerFields(req.body) };
   res.status(201).json({ customer: await Customer.create({ ...fields, businessId: req.store.id }) });
 }));
 crmRoutes.patch('/:id', wrap(async (req, res) => {
+  noStaffConsent(req);
   if (!/^\d+$/.test(req.params.id)) throw bad(400, 'Invalid customer ID');
   const customer = await sequelize.transaction(async transaction => {
   const customer = await Customer.findOne({ where: { id: Number(req.params.id), businessId: req.store.id, archivedAt: null }, transaction, lock: transaction.LOCK.UPDATE });
