@@ -147,3 +147,7 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
 [data-theme="dark"] .settings-eyebrow { color: color-mix(in srgb, var(--accent-ink) 80%, #fff); }
 :root:not([data-theme="dark"]) .tv .tv-table.vac .st { color: color-mix(in srgb, var(--vac) 62%, var(--ink)); }
 :root:not([data-theme="dark"]) .tv .tv-table.occ .st { color: color-mix(in srgb, var(--occ) 62%, var(--ink)); }
+[data-theme="dark"] .admin-content .kicker { color: color-mix(in srgb, var(--accent-ink) 80%, #fff); }
+.admin-content .ro-type b, .admin-content .ro-type em { color: inherit; }
+.sd .sd-kpi small { opacity: .95; }
+.sd .sd-axis, .sd .sd-donut-l { opacity: .92; }
