@@ -3,12 +3,29 @@
 // WHATSAPP_ORDER_BOT_BUSINESS_IDS (comma separated). Start with the demo store only.
 export const orderBotBusinessIds = () => (process.env.WHATSAPP_ORDER_BOT_BUSINESS_IDS || '').split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s));
 export const orderBotEnabledFor = id => process.env.WHATSAPP_ORDER_BOT_ENABLED === 'true' && orderBotBusinessIds().includes(String(id));
+import crypto from 'node:crypto';
+import { orderPhone } from '../crm/customer-pure.js';
 export const orderRef = id => `DD-${id}`;
+// A short random code printed in the customer's own order message. For an order with no phone on file it is the only way to link a
+// WhatsApp number to the order, so a guessed or sequential DD-<id> alone never reveals or claims anything.
+const CLAIM_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+export const newClaimCode = () => Array.from(crypto.randomBytes(8), b => CLAIM_ALPHABET[b % CLAIM_ALPHABET.length]).join('');
+export const parseOrderClaim = text => { const m = /\bDD-(\d{1,9})(?:-([A-Za-z0-9]{8}))?\b/i.exec(String(text || '')); return m ? { id: Number(m[1]), code: m[2] ? m[2].toUpperCase() : null } : null; };
+const sameCode = (a, b) => { const x = Buffer.from(String(a || '')), y = Buffer.from(String(b || '')); return x.length === y.length && x.length > 0 && crypto.timingSafeEqual(x, y); };
+// 'match': the sender is the phone already on the order. 'claim': the order has no phone and the sender holds its claim code.
+// Anything else is 'deny' and must look exactly like an unknown order.
+export function decideOrderAccess(lead, senderPhone, code) {
+  const sender = orderPhone(senderPhone);
+  if (!lead || !sender) return 'deny';
+  const onFile = orderPhone(lead.customerPhone);
+  if (onFile) return onFile === sender ? 'match' : 'deny';
+  return lead.claimCode && sameCode(String(code || '').toUpperCase(), lead.claimCode) ? 'claim' : 'deny';
+}
 export const parseOrderRef = text => { const m = /\bDD-(\d{1,9})\b/i.exec(String(text || '')); return m ? Number(m[1]) : null; };
-export function withOrderRef(url, id) {
+export function withOrderRef(url, id, code) {
   try {
     const u = new URL(url);
-    u.searchParams.set('text', `${u.searchParams.get('text') || ''}\nOrder ref: ${orderRef(id)}`);
+    u.searchParams.set('text', `${u.searchParams.get('text') || ''}\nOrder ref: ${orderRef(id)}${code ? `-${code}` : ''}`);
     return u.toString();
   } catch { return url; }
 }

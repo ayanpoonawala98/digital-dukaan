@@ -6,7 +6,8 @@ import { bad, wrap } from '../../shared/utils/core.js';
 import { merchantConnection, connectionForEvent, connectionToken, signupConfig, installSignupRoutes, legacyConnection } from './whatsapp-merchants.js';
 import { Lead, Business } from '../../models/index.js';
 import { installInboxRoutes } from './whatsapp-inbox.js';
-import { orderBotEnabledFor, parseOrderRef, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
+import { accessibleLead } from './whatsapp-order-access.js';
+import { orderBotEnabledFor, parseOrderClaim, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
@@ -120,13 +121,12 @@ async function sendOnce({ connection, businessId, phone, text, key, fetcher }) {
 export async function orderBot({ connection, businessId, phone, text, eventAt, fetcher = fetch }) {
   try {
     if (!orderBotEnabledFor(businessId) || !canSend(connection) || !serviceWindowOpen(eventAt)) return false;
-    const id = parseOrderRef(text);
-    if (!id) return false;
-    const lead = await Lead.findOne({ where: { id, businessId } });
-    if (!lead || Date.now() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000) return false;
+    const ref = parseOrderClaim(text);
+    if (!ref) return false;
+    const lead = await accessibleLead({ id: ref.id, code: ref.code, businessId, sender: phone });
+    if (!lead) return false;
     const store = await Business.findByPk(businessId);
     if (!store || store.deletedAt) return false;
-    if (!lead.customerPhone) await lead.update({ customerPhone: phone });
     return await sendOnce({ connection, businessId, phone, text: confirmationText(store, lead), key: `bot:confirm:${businessId}:${lead.id}`, fetcher });
   } catch { return false; }
 }

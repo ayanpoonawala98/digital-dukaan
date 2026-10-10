@@ -10,7 +10,8 @@ import { bad, wrap } from '../../shared/utils/core.js';
 import { encryptCredential, decryptCredential } from './whatsapp-merchants.js';
 import { WhatsAppMessage, WhatsAppAutoReply, serviceWindowOpen, notifyNewOrderWhatsApp, sendOrderStatusWhatsApp } from './whatsapp-cloud.js';
 import { installInboxRoutes } from './whatsapp-inbox.js';
-import { parseOrderRef, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
+import { accessibleLead } from './whatsapp-order-access.js';
+import { parseOrderClaim, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
 
 export const PROVIDERS = ['meta', '360dialog', 'twilio'];
 export const byoBusinessIds = () => (process.env.WHATSAPP_BYO_BUSINESS_IDS || '').split(',').map(s => s.trim()).filter(s => /^\d+$/.test(s));
@@ -195,11 +196,10 @@ export async function sendOrderStatus(store, lead, status, fetcher = fetch) {
 // ---- inbound ----
 const AUTO_REPLY_COOLDOWN_MS = 12 * 60 * 60 * 1000;
 async function orderBotByo(conn, businessId, m, fetcher) {
-  const id = parseOrderRef(m.text); if (!id) return false;
-  const lead = await Lead.findOne({ where: { id, businessId } });
-  if (!lead || Date.now() - new Date(lead.createdAt).getTime() > 24 * 60 * 60 * 1000) return false;
+  const ref = parseOrderClaim(m.text); if (!ref) return false;
+  const lead = await accessibleLead({ id: ref.id, code: ref.code, businessId, sender: m.from });
+  if (!lead) return false;
   const store = await Business.findByPk(businessId); if (!store || store.deletedAt) return false;
-  if (!lead.customerPhone) await lead.update({ customerPhone: m.from });
   return byoSendText(conn, businessId, m.from, confirmationText(store, lead), `byo:botconfirm:${businessId}:${lead.id}`, fetcher);
 }
 async function autoReplyByo(conn, businessId, m, fetcher) {
