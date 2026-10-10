@@ -491,7 +491,7 @@ export default function Dashboard() {
   useEffect(() => { const keep = initialTab.current; if (storeId) initialTab.current = null; setTab(pendingOrderTab.current || keep || 'overview'); pendingOrderTab.current = false; setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
 
   useEffect(()=>{ setFilters(f=>({...f,q:'',status:'all',page:1})); },[tab,storeId]);
-  useEffect(() => { const timer=setTimeout(()=>{ if(storeId) load(); },300); return ()=>clearTimeout(timer); }, [tab,filters.from,filters.to]);
+  useEffect(() => { if (tab === 'settings' && data?.business && String(data.business.id) === String(storeId)) return; const timer=setTimeout(()=>{ if(storeId) load(); },300); return ()=>clearTimeout(timer); }, [tab,filters.from,filters.to]);
   const reportDownload = async kind => { setExportBusy(true); try { await download(`/owner/${storeId}/${kind}/report.csv?${kind === 'sales-summary' ? new URLSearchParams({from:filters.from,to:filters.to}) : queryString}`, `${kind}-${data?.business?.slug || 'store'}.csv`,token); } catch(e){setError(e.message);} finally{setExportBusy(false);} };
   const flash = msg => { setSuccess(msg); setError(''); setTimeout(() => setSuccess(''), 4000); };
   const action = async (fn, key = 'action') => { if (busy) return; setBusy(true); setActionKey(key); setError(''); try { await fn(); setListRefresh(n=>n+1); await load(true); } catch (e) { setError(e.message); } finally { setBusy(false); setActionKey(''); } };
