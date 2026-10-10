@@ -11,7 +11,7 @@ test('store preview replaces all generic branding, escapes owner text and preser
  assert.equal((html.match(/property="og:image"/g)||[]).length,1);
  assert.match(html,/og:url" content="https:\/\/digitalshop.website\/store\/ashiya/);
  assert.doesNotMatch(html,/digital-dukaan-hero|application\/ld\+json|og:image:width/);
- assert.match(html,/<div id="root"><\/div>/);assert.match(html,/src="\/src\/main.jsx"/);assert.match(html,/fonts.googleapis/);
+ assert.match(html,/<div id="root"><\/div>/);assert.match(html,/src="\/src\/app\/main.jsx"/);assert.match(html,/fonts.googleapis/);
 });
 test('no-logo and paused stores do not inherit platform image',()=>{
  assert.equal(logoUrl('javascript:alert(1)'), '');assert.equal(logoUrl('https://user:pass@foo.test/x'),'');

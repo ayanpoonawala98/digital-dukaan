@@ -1,4 +1,4 @@
-import test from 'node:test';import assert from 'node:assert/strict';import {startShowcaseScroll} from '../../../../client/src/lib/showcase-scroll.js';
+import test from 'node:test';import assert from 'node:assert/strict';import {startShowcaseScroll} from '../../../../client/src/features/storefront/showcase-scroll.js';
 test('gentle scroll stops permanently on every manual input, hidden tab and reduced motion',()=>{
  for(const event of ['touchstart','pointerdown','wheel','keydown','visibilitychange']){
  const events={},docEvents={};let cb,scrolls=0;const win={scrollY:0,innerHeight:800,matchMedia:()=>({matches:false}),requestAnimationFrame:f=>(cb=f,1),cancelAnimationFrame:()=>{},addEventListener:(k,f)=>events[k]=f,removeEventListener:k=>delete events[k],scrollTo:options=>(assert.equal(options.behavior,'instant'),win.scrollY=options.top,scrolls++)};const doc={hidden:false,documentElement:{scrollHeight:5000},addEventListener:(k,f)=>docEvents[k]=f,removeEventListener:k=>delete docEvents[k]};

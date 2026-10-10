@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {productsCsv,productCsvTemplate,PRODUCT_CSV_COLUMNS} from '../../../../client/src/lib/product-csv.js';
-import {parseCsv} from '../../../../client/src/lib/parse-csv.js';
+import {productsCsv,productCsvTemplate,PRODUCT_CSV_COLUMNS} from '../../../../client/src/features/imports/product-csv.js';
+import {parseCsv} from '../../../../client/src/features/imports/parse-csv.js';
 import {validateProductRows} from './product-import.js';
 test('product export round trips supported import fields including multiline commas quotes and unlimited stock',()=>{
  const product={name:'Ring, "green"',price:499,stock:null,category:{name:'Rings'},description:'Green\ndiamond'};

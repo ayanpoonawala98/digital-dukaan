@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { productDraft } from '../../../../client/src/product-draft.js';
+import { productDraft } from '../../../../client/src/features/dashboard/product-draft.js';
 test('new product store wrapper uses create defaults including checked visibility and first category', () => {
   const draft = productDraft({ __storeId: 1 }, [{ id: 12 }]);
   assert.equal(draft.active, true);

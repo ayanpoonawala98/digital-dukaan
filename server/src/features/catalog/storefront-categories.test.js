@@ -7,5 +7,5 @@ test('storefront lookup scopes visible category membership to active tenant prod
  const s=fs.readFileSync(new URL('../../routes/public.js',import.meta.url),'utf8');assert.match(s,/where: \{ businessId: business.id, active: true \}, attributes: \['categoryId'\]/);
 });
 test('category row is single-line with horizontal overflow and nonshrinking pills',()=>{
- const s=fs.readFileSync(new URL('../../../../client/src/styles.css',import.meta.url),'utf8');assert.match(s,/\.filter-tabs \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto/);assert.match(s,/\.filter-tabs button \{ flex: 0 0 auto; white-space: nowrap;/);
+ const s=fs.readFileSync(new URL('../../../../client/src/app/styles.css',import.meta.url),'utf8');assert.match(s,/\.filter-tabs \{[^}]*flex-wrap: nowrap;[^}]*overflow-x: auto/);assert.match(s,/\.filter-tabs button \{ flex: 0 0 auto; white-space: nowrap;/);
 });
