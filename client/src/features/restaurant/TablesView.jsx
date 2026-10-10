@@ -28,7 +28,7 @@ function printReceipt(bill, lines, charges, store, saved) {
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:13px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:16px;text-align:center;margin:0 0 4px}.c{text-align:center;margin:4px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.r{display:flex;justify-content:space-between;gap:8px}.r span:first-child{flex:1;min-width:0;word-break:break-word}.big{font-size:16px;font-weight:700}</style></head><body>${body}</body></html>`;
   const f = document.createElement('iframe');
   f.setAttribute('aria-hidden', 'true');
-  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  f.style.cssText = 'position:fixed;left:-9999px;top:0;width:80mm;height:200mm;border:0';
   document.body.appendChild(f);
   const doc = f.contentWindow.document; doc.open(); doc.write(html); doc.close();
   const go = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch { window.print(); } setTimeout(() => f.remove(), 60000); };
