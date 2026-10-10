@@ -1,24 +1,25 @@
 import BrandLoader from '../shared/components/BrandLoader.jsx';
-const SetPassword = lazy(() => import('../features/auth/SetPassword.jsx'));
 import {OfferOptOut} from '../features/dashboard/OfferCampaigns.jsx';
 import React, { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './auth.jsx';
 export { useAuth } from './auth.jsx';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ThemeProvider } from './theme.jsx';
-const Landing = lazy(() => import('../features/landing/Landing.jsx'));
-const Access = lazy(() => import('../features/auth/Access.jsx'));
-const ShopRequest = lazy(() => import('../features/storefront/ShopRequest.jsx'));
 import ShopPage from '../features/storefront/ShopPage.jsx';
-const ProductPage = lazy(() => import('../features/storefront/ProductPage.jsx'));
-const Dashboard = lazy(() => import('../features/dashboard/Dashboard.jsx'));
-const SuperAdmin = lazy(() => import('../features/superadmin/SuperAdmin.jsx'));
 import { hostedStoreSlug } from '../features/storefront/store-domain.js';
 import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from '../features/storefront/OrderTracking.jsx';
-const Nearby = lazy(() => import('../features/storefront/Nearby.jsx'));
 import Motion from '../shared/components/Motion.jsx';
 import HashScroll from '../shared/components/HashScroll.jsx';
 import Toasts from '../shared/components/Toasts.jsx';
+
+const SetPassword = lazy(() => import('../features/auth/SetPassword.jsx'));
+const Landing = lazy(() => import('../features/landing/Landing.jsx'));
+const Access = lazy(() => import('../features/auth/Access.jsx'));
+const ShopRequest = lazy(() => import('../features/storefront/ShopRequest.jsx'));
+const ProductPage = lazy(() => import('../features/storefront/ProductPage.jsx'));
+const Dashboard = lazy(() => import('../features/dashboard/Dashboard.jsx'));
+const SuperAdmin = lazy(() => import('../features/superadmin/SuperAdmin.jsx'));
+const Nearby = lazy(() => import('../features/storefront/Nearby.jsx'));
 
 function Guard({ role, children }) {
   const { session } = useAuth();
