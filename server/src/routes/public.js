@@ -10,7 +10,7 @@ import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { storeUrl } from '../shared/utils/store-domain.js';
 import {shopQrSvg} from '../features/stores/shop-qr.js';
-import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
+import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { isLocked } from '../features/platform/feature-locks.js';
 import { notifyNewOrder } from '../features/notifications/notify.js';
@@ -43,13 +43,6 @@ const applyCoupon = async (business, subtotal, code) => {
   return { discount: Number((subtotal * coupon.percentOff / 100).toFixed(2)), code: coupon.code };
 };
 
-const checkReferral = async (businessId, referralCode) => {
-  if (!referralCode) return null;
-  if (typeof referralCode !== 'string' || !/^[A-Z0-9-]{5,24}$/.test(referralCode.trim().toUpperCase())) throw bad(400, 'Invalid referral code');
-  const referral = await Referral.findOne({ where: { businessId, code: referralCode.trim().toUpperCase() } });
-  if (!referral || referral.status !== 'pending') throw bad(400, 'Referral code is not active');
-  return referral;
-};
 
 // Creates only an enquiry. It never creates a login or a store.
 r.post('/shop-requests', wrap(async (req, res) => {
@@ -148,13 +141,12 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const subtotal = Number(items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0).toFixed(2));
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
-  const referral = await checkReferral(business.id, req.body?.referralCode);
   const freeAbove = business.freeDeliveryAbove;
   const deliveryFee = orderType === 'delivery' && !(freeAbove !== null && freeAbove !== undefined && subtotal >= freeAbove) ? Number(business.deliveryCharge || 0) : 0;
   const total = Number((subtotal - discount + deliveryFee).toFixed(2));
   const orderNote = cleanNote(req.body?.note, 200);
   const estimateMinutes = orderType === 'takeaway' && business.prepMinutes ? business.prepMinutes : null;
-  const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
+  const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, total, status: 'new' });
   void notifyNewOrder(business, 'restaurant', order);
   void notifyOwnerDevices(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
@@ -374,15 +366,14 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
-  const referral = await checkReferral(business.id, req.body?.referralCode);
   const delivery = business.freeDeliveryAbove !== null && subtotal >= business.freeDeliveryAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = Number((subtotal - discount + delivery).toFixed(2));
-  const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, referralCode: referral?.code || null, ...optionalContact(req.body) });
+  const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, ...optionalContact(req.body) });
   void notifyNewOrder(business, 'lead', lead);
   void notifyOwnerDevices(business, 'lead', lead);
   void notifyNewOrderWhatsApp(business, lead);
   const url = whatsappCartUrl({ ...(typeof business.get === 'function' ? business.get({ plain: true }) : business), orderNumber: lead.orderNumber }, lines, subtotal, delivery, total, shopUrl(req.params.slug), code, discount);
-  const finalUrl = new URL(url); if (referral) finalUrl.searchParams.set('text', `${finalUrl.searchParams.get('text')}\nReferral: ${referral.code} (reward after shop confirms order)`);
+  const finalUrl = new URL(url);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ url: orderBotEnabledFor(business.id) ? withOrderRef(finalUrl.toString(), lead.id) : finalUrl.toString(), total, discount, tracking: { kind: 'lead', id: lead.id, orderNumber: lead.orderNumber, token: signTracking('lead', lead.id, business.id), total } });
 }));

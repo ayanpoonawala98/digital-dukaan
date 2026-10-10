@@ -146,7 +146,7 @@ function QrModal({ slug, business, onClose }) {
 function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   const t = key => translate(lang, key);
   const [contact, setContact] = useContact();
-  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [couponCode, setCouponCode] = useState(''), [referralCode, setReferralCode] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
+  const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [couponCode, setCouponCode] = useState('');
   const freeAbove = business.freeDeliveryAbove;
   const delivery = freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = cart.subtotal + delivery;
@@ -156,7 +156,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
-      const { url, total: confirmedTotal, tracking } = await api(`/public/stores/${slug}/enquire-cart`, { method: 'POST', body: { items: cart.items.map(i => ({ id: i.id, qty: i.qty, answers: i.answers || {} })), couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(), ...contactBody(contact) } });
+      const { url, total: confirmedTotal, tracking } = await api(`/public/stores/${slug}/enquire-cart`, { method: 'POST', body: { items: cart.items.map(i => ({ id: i.id, qty: i.qty, answers: i.answers || {} })), couponCode: couponCode.trim().toUpperCase(), ...contactBody(contact) } });
       orders.record(cart.items, confirmedTotal);
       if (tracking) saveOrder(slug, { kind: 'lead', id: tracking.id, token: tracking.token, total: tracking.total });
       cart.clear();
@@ -187,7 +187,6 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
           <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
         </div>
         <ContactFields contact={contact} onChange={setContact}/>
-        <label className="coupon-field">{t('referral')}<input value={referralCode} onChange={e => setReferralCode(e.target.value)} maxLength={24} placeholder="FR..."/></label>
         <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
         {couponCode && <p className="drawer-hint">The shop verifies the code before opening WhatsApp. Total above does not include a possible discount.</p>}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}

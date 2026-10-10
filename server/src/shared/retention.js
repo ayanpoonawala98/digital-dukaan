@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, Coupon, Referral } from '../models/index.js';
+import { sequelize, Business, User, Category, Product, Lead, PushSubscription, RestaurantOrder, Coupon } from '../models/index.js';
 import { unregisterStoreDomain } from './utils/store-domain.js';
 
 export const RESTORE_MS = 30 * 24 * 60 * 60 * 1000;
@@ -24,7 +24,7 @@ export async function purgeExpiredStore(now = new Date()) {
       if (crmTables[0].whatsapp) await sequelize.query('DELETE FROM whatsapp_messages WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       if (crmTables[0].customers) await sequelize.query('DELETE FROM customers WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       if (crmTables[0].batches) await sequelize.query('DELETE FROM customer_import_batches WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
-      for (const Model of [PushSubscription, RestaurantOrder, Coupon, Referral, Lead, Product]) await Model.destroy(options);
+      for (const Model of [PushSubscription, RestaurantOrder, Coupon, Lead, Product]) await Model.destroy(options);
       await Category.destroy(options);
       await User.destroy({ where: { role: 'staff', staffBusinessId: store.id }, transaction });
       await store.destroy({ transaction });

@@ -23,7 +23,6 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [orderNote, setOrderNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
-  const [referralCode, setReferralCode] = useState(() => new URLSearchParams(window.location.search).get('ref') || '');
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [placed, setPlaced] = useState(null);
   useEffect(() => { if (open) { setError(''); setPlaced(null); } }, [open]);
   const freeAbove = business.freeDeliveryAbove;
@@ -42,7 +41,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
         customerEmail,customerEmailConsent,
         customerPhone: orderType === 'dine-in' ? null : customerPhone,
         deliveryAddress: orderType === 'delivery' ? deliveryAddress : null,
-        couponCode: couponCode.trim().toUpperCase(), referralCode: referralCode.trim().toUpperCase(),
+        couponCode: couponCode.trim().toUpperCase(),
         note: orderNote.trim(),
         items: cart.items.map(i => ({ id: i.id, qty: i.qty, answers: i.answers || {}, variant: i.variant || undefined, addons: i.addons && Object.keys(i.addons).length ? i.addons : undefined, note: i.note || undefined }))
       } });
@@ -64,7 +63,6 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             <label>Email for this order <small>(optional, no offers)</small><input type="email" maxLength={160} value={customerEmail} onChange={e=>{setCustomerEmail(e.target.value);setCustomerEmailConsent(false);}}/></label><label className="check-label"><input type="checkbox" disabled={!customerEmail} checked={customerEmailConsent} onChange={e=>setCustomerEmailConsent(e.target.checked)}/> Email me updates for this order if the store offers email alerts. Not marketing consent.</label>
             {orderType === 'delivery'  && <label>{t('address')}<textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} maxLength={500} required rows={3}/></label>}
             <label>Note for the whole order <small>(optional)</small><input value={orderNote} maxLength={200} onChange={e => setOrderNote(e.target.value)} placeholder="e.g. ring the bell, extra napkins"/></label>
-            <label>Referral code <small>(optional; reward after order confirmation)</small><input value={referralCode} onChange={e => setReferralCode(e.target.value)} placeholder="FR..." maxLength={24}/></label>
             <label>Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="SAVE10" maxLength={24}/></label>
             <div className="drawer-totals"><div><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div>{orderType === 'delivery' && <div><span>Delivery fee</span><b>{deliveryFee > 0 ? inr(deliveryFee) : 'Free'}</b></div>}<div className="grand"><span>Estimated total</span><b>{inr(cart.subtotal + deliveryFee)}</b></div></div>
             {business.minOrder > 0 && <p className="drawer-hint">Minimum order: {inr(business.minOrder)}</p>}

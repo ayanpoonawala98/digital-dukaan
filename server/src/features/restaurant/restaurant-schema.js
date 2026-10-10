@@ -2,7 +2,7 @@ import {ensurePerformanceIndexes} from '../../shared/performance-indexes.js';
 import {ensureOrderStockSchema} from '../orders/order-stock-schema.js';
 import { ensureOrderNumbers } from '../orders/order-numbers.js';
 import { sequelize } from '../../config/db.js';
-import { TableRequest, RestaurantOrder, OrderPushSubscription, OwnerPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from '../../models/index.js';
+import { TableRequest, RestaurantOrder, OrderPushSubscription, OwnerPushSubscription, Coupon, NotifySecret, PaymentSecret } from '../../models/index.js';
 import { ensureCrmSchema } from '../crm/crm.js';
 let ready;
 export function ensureRestaurantSchema() {
@@ -45,8 +45,6 @@ export function ensureRestaurantSchema() {
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "couponCode" varchar(24)');
     await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "discount" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "couponCode" varchar(24)');
-    await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "referralCode" varchar(24)');
-    await sequelize.query('ALTER TABLE leads ADD COLUMN IF NOT EXISTS "referralCode" varchar(24)');
     await sequelize.query("ALTER TABLE leads ADD COLUMN IF NOT EXISTS \"customerName\" varchar(100) NOT NULL DEFAULT ''");
     await sequelize.query("ALTER TABLE products ADD COLUMN IF NOT EXISTS \"imageUrls\" jsonb NOT NULL DEFAULT '[]'::jsonb");
     await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"featureLocks\" jsonb NOT NULL DEFAULT '{}'::jsonb");
@@ -54,7 +52,6 @@ export function ensureRestaurantSchema() {
     // Additive enum values for per-store-type order flows. ADD VALUE IF NOT EXISTS never rewrites data.
     for (const value of ['shipped', 'in-progress', 'completed']) await sequelize.query(`ALTER TYPE "enum_leads_status" ADD VALUE IF NOT EXISTS '${value}'`);
     await Coupon.sync(); // New table only.
-    await Referral.sync();
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "customFields" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "variants" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "addonGroups" jsonb NOT NULL DEFAULT '[]'::jsonb`);
