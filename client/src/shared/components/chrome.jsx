@@ -18,7 +18,7 @@ export function Header({ shop, business }) {
   const [menuOpen, setMenuOpen] = useState(false);
   return <header className="header"><div className="container header-inner">
     {business ? <Link className="brand store-header-brand" to={storePath(shop || business.slug)}>{business.logoUrl ? <img className="header-store-logo" src={imageSrc(business.logoUrl)} alt=""/> : <span className="brand-mark"><Store size={22}/></span>}<span className="header-store-name">{business.name}</span></Link> : <Logo/>}
-    <div className="header-controls">{storefrontActive() && <StorefrontLanguage/>}<ThemeToggle/><button type="button" className="header-menu-toggle" aria-label={menuOpen ? st("Close menu") : st("Open menu")} aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(v => !v)}>{menuOpen ? <X size={22}/> : <Menu size={22}/>}</button></div>
+    <div className="header-controls">{storefrontActive() && <StorefrontLanguage/>}<ThemeToggle/><button type="button" className="header-menu-toggle" aria-label={menuOpen ? pt("Close menu") : pt("Open menu")} aria-expanded={menuOpen} aria-controls="site-menu" onClick={() => setMenuOpen(v => !v)}>{menuOpen ? <X size={22}/> : <Menu size={22}/>}</button></div>
     <nav id="site-menu" className={menuOpen ? 'menu-open' : ''} aria-label={pt("Main navigation")} onClick={() => setMenuOpen(false)}>
       {shop ? <Link to={storePath(shop)}>{pt("Storefront")}</Link> : <a href="/#how-it-works">{pt("How it works")}</a>}
       {shop && <Link to={`${storePath(shop)}/orders`}>{pt("My orders")}</Link>}

@@ -5881,7 +5881,7 @@ export const ownerMessages = {
     "mr": "कर्मचारी हटवला"
   },
   "Keep": {
-    "hi": "रखें",
+    "hi": "रहने दें",
     "mr": "ठेवा"
   },
   "table": {
