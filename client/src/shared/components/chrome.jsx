@@ -1,3 +1,4 @@
+import { ot } from '../lib/owner-i18n.js';
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Menu, X, Store } from 'lucide-react';
@@ -27,7 +28,7 @@ export function Header({ shop, business }) {
 }
 
 export function Notice({ error, success }) {
-  return <>{error && <p className="notice error">{error}</p>}{success && <p className="notice success">{success}</p>}</>;
+  return <>{error && <p className="notice error">{ot(error)}</p>}{success && <p className="notice success">{ot(success)}</p>}</>;
 }
 
 export function Footer({ children }) {

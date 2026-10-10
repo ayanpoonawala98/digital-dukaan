@@ -1,3 +1,4 @@
+import { ot } from '../../shared/lib/owner-i18n.js';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../shared/lib/api.js';
 
@@ -63,7 +64,7 @@ export default function WhatsAppInbox({ token, root, canSend }) {
     try {
       const r = await api(`${root}/send`, { token, method: 'POST', body: { to: active.phone, text: text.trim(), requestId: crypto.randomUUID() } });
       setText('');
-      if (r.message?.status === 'unknown' || r.message?.status === 'submitting') setError('Delivery is unconfirmed. Check the thread before sending again.');
+      if (r.message?.status === 'unknown' || r.message?.status === 'submitting') setError(ot("Delivery is unconfirmed. Check the thread before sending again."));
       await loadThread(active.phone, { mark: true }); loadList(true);
     } catch (e) { setError(e.message); } finally { setSending(false); }
   }
@@ -73,42 +74,42 @@ export default function WhatsAppInbox({ token, root, canSend }) {
   const rows = []; let lastDay = '';
   for (const m of msgs) { const d = dayLabel(m.eventAt); if (d !== lastDay) { rows.push({ sep: d, key: 'sep-' + m.id }); lastDay = d; } rows.push({ m, key: m.id }); }
   const line = '1px solid var(--line)';
-  return <section aria-label="WhatsApp inbox" style={{ marginTop: 28 }}>
-    <h4 style={{ margin: '0 0 12px' }}>Inbox</h4>
-    {error && <p className="notice error" role="alert" style={{ margin: '0 0 12px' }}>{error}</p>}
+  return <section aria-label={ot("WhatsApp inbox")} style={{ marginTop: 28 }}>
+    <h4 style={{ margin: '0 0 12px' }}>{ot("Inbox")}</h4>
+    {error && <p className="notice error" role="alert" style={{ margin: '0 0 12px' }}>{ot(error)}</p>}
     <div className="wa-inbox" style={{ display: 'grid', gridTemplateColumns: narrow ? '1fr' : 'minmax(260px,340px) 1fr', gridTemplateRows: 'minmax(0, 1fr)', border: line, borderRadius: 16, overflow: 'hidden', height: 'min(72vh, 660px)', minHeight: 380, background: 'var(--card)' }}>
       <div style={{ borderRight: narrow ? 0 : line, display: narrow && active ? 'none' : 'flex', flexDirection: 'column', minHeight: 0 }}>
-        <div style={{ padding: 12, borderBottom: line }}><input type="search" aria-label="Search by number" placeholder="Search by number" value={q} onChange={e => setQ(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 999, margin: 0 }} /></div>
+        <div style={{ padding: 12, borderBottom: line }}><input type="search" aria-label={ot("Search by number")} placeholder={ot("Search by number")} value={q} onChange={e => setQ(e.target.value)} style={{ width: '100%', boxSizing: 'border-box', padding: '10px 14px', borderRadius: 999, margin: 0 }} /></div>
         <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>
-          {loading && !convs.length && <p style={{ padding: 18, margin: 0, textAlign: 'center', opacity: .7 }} role="status">Loading conversations...</p>}
-          {!loading && !convs.length && <p style={{ padding: 18, margin: 0, textAlign: 'center', opacity: .7 }}>{q ? 'No conversation matches.' : 'No conversations yet. They appear when a customer messages your shop number.'}</p>}
+          {loading && !convs.length && <p style={{ padding: 18, margin: 0, textAlign: 'center', opacity: .7 }} role="status">{ot("Loading conversations...")}</p>}
+          {!loading && !convs.length && <p style={{ padding: 18, margin: 0, textAlign: 'center', opacity: .7 }}>{q ? ot("No conversation matches.") : ot("No conversations yet. They appear when a customer messages your shop number.")}</p>}
           {convs.map(c => { const on = active?.phone === c.phone; return <button key={c.phone} onClick={() => open(c)} aria-current={on} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', boxSizing: 'border-box', textAlign: 'left', padding: '12px 14px', border: 0, borderBottom: line, borderLeft: `3px solid ${on ? GREEN : 'transparent'}`, background: on ? 'rgba(18,140,74,.08)' : 'transparent', cursor: 'pointer', font: 'inherit', color: 'inherit' }}>
             <Avatar c={c} />
             <span style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 3 }}>
               <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}><strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title(c)}</strong><small style={{ flex: '0 0 auto', opacity: .65, color: c.unread > 0 ? GREEN : undefined }}>{fmtTime(c.lastAt)}</small></span>
-              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><small style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: .72 }}>{c.lastDirection === 'outbound' ? 'You: ' : ''}{c.lastText.replace(/\s+/g, ' ')}</small>{c.unread > 0 && <span aria-label={`${c.unread} unread`} style={{ flex: '0 0 auto', background: GREEN, color: '#fff', borderRadius: 999, minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', textAlign: 'center', fontSize: 12, lineHeight: '20px', fontWeight: 600 }}>{c.unread > 99 ? '99+' : c.unread}</span>}</span>
+              <span style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><small style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', opacity: .72 }}>{c.lastDirection === 'outbound' ? ot('You: ') : ''}{c.lastText.replace(/\s+/g, ' ')}</small>{c.unread > 0 && <span aria-label={ot("{v0} unread", {v0: c.unread})} style={{ flex: '0 0 auto', background: GREEN, color: '#fff', borderRadius: 999, minWidth: 20, height: 20, padding: '0 6px', boxSizing: 'border-box', textAlign: 'center', fontSize: 12, lineHeight: '20px', fontWeight: 600 }}>{c.unread > 99 ? '99+' : c.unread}</span>}</span>
             </span>
           </button>; })}
-          {next && <div style={{ padding: 12, textAlign: 'center' }}><button className="btn" onClick={() => loadList(false, next)}>Load more conversations</button></div>}
+          {next && <div style={{ padding: 12, textAlign: 'center' }}><button className="btn" onClick={() => loadList(false, next)}>{ot("Load more conversations")}</button></div>}
         </div>
       </div>
       <div style={{ display: narrow && !active ? 'none' : 'flex', flexDirection: 'column', minHeight: 0, minWidth: 0, background: 'rgba(0,0,0,.025)' }}>
-        {!active ? <div style={{ margin: 'auto', padding: 24, textAlign: 'center', opacity: .65 }}>Select a conversation to read and reply.</div> : <>
+        {!active ? <div style={{ margin: 'auto', padding: 24, textAlign: 'center', opacity: .65 }}>{ot("Select a conversation to read and reply.")}</div> : <>
           <div style={{ padding: '10px 16px', borderBottom: line, display: 'flex', gap: 12, alignItems: 'center', background: 'var(--card)' }}>
-            {narrow && <button className="btn" onClick={() => { gen.current++; setActive(null); }}>Back</button>}
+            {narrow && <button className="btn" onClick={() => { gen.current++; setActive(null); }}>{ot("Back")}</button>}
             <Avatar c={active} size={36} />
             <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}><strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{title(active)}</strong>{active.name && <small style={{ opacity: .65 }}>+{active.phone}</small>}</span>
           </div>
           <div ref={scroller} style={{ overflowY: 'auto', flex: 1, minHeight: 0, padding: '14px 18px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {older && <button className="btn" style={{ alignSelf: 'center', marginBottom: 8 }} onClick={() => loadThread(active.phone, { before: older })}>Load older messages</button>}
+            {older && <button className="btn" style={{ alignSelf: 'center', marginBottom: 8 }} onClick={() => loadThread(active.phone, { before: older })}>{ot("Load older messages")}</button>}
             {rows.map(r => r.sep ? <div key={r.key} style={{ alignSelf: 'center', margin: '10px 0 4px', padding: '3px 12px', borderRadius: 999, background: 'rgba(0,0,0,.07)', fontSize: 12, opacity: .8 }}>{r.sep}</div> : (() => { const m = r.m, out = m.direction === 'outbound'; return <div key={r.key} style={{ alignSelf: out ? 'flex-end' : 'flex-start', maxWidth: 'min(78%, 520px)', background: out ? '#d9f3e3' : 'var(--card)', border: out ? '1px solid rgba(18,140,74,.18)' : line, borderRadius: out ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '8px 12px 6px' }}>
               <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.4 }}>{m.text}</div>
               <div style={{ textAlign: 'right', marginTop: 3 }}><small style={{ opacity: .6, fontSize: 11 }}>{clock(m.eventAt)}{out ? ` · ${m.status}` : ''}{m.errorCode ? ` (${m.errorCode})` : ''}</small></div>
             </div>; })())}
           </div>
           <div style={{ borderTop: line, padding: 12, background: 'var(--card)' }}>
-            {!canSend ? <small style={{ opacity: .7 }}>Replies are not enabled for this shop yet.</small> : !open24 && active.loaded ? <small style={{ opacity: .75 }}>This customer has not messaged in the last 24 hours, so a free reply is not possible. Ask them to message the shop first.</small> :
-              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}><textarea aria-label="Reply message" placeholder="Type a reply" value={text} onChange={e => setText(e.target.value)} maxLength={4096} rows={2} style={{ flex: 1, margin: 0, resize: 'none', borderRadius: 12, padding: '10px 12px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }} /><button className="btn" style={{ margin: 0, height: 44 }} disabled={sending || !text.trim()} onClick={send}>{sending ? 'Sending...' : 'Send'}</button></div>}
+            {!canSend ? <small style={{ opacity: .7 }}>{ot("Replies are not enabled for this shop yet.")}</small> : !open24 && active.loaded ? <small style={{ opacity: .75 }}>{ot("This customer has not messaged in the last 24 hours, so a free reply is not possible. Ask them to message the shop first.")}</small> :
+              <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end' }}><textarea aria-label={ot("Reply message")} placeholder={ot("Type a reply")} value={text} onChange={e => setText(e.target.value)} maxLength={4096} rows={2} style={{ flex: 1, margin: 0, resize: 'none', borderRadius: 12, padding: '10px 12px', boxSizing: 'border-box' }} onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }} /><button className="btn" style={{ margin: 0, height: 44 }} disabled={sending || !text.trim()} onClick={send}>{sending ? ot("Sending...") : ot("Send")}</button></div>}
           </div>
         </>}
       </div>

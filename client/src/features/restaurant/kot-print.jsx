@@ -1,3 +1,4 @@
+import { ot } from '../../shared/lib/owner-i18n.js';
 import React, { useState } from 'react';
 import { Printer } from 'lucide-react';
 import { api } from '../../shared/lib/api.js';
@@ -25,7 +26,7 @@ export async function printKot({ token, storeId, order }) {
   const url = `/owner/${storeId}/restaurant-orders/${order.id}/kot`;
   let { kot } = await api(url, { token, method: 'POST', body: { mode: 'new' }, feedback: false });
   if (!kot.lines.length) {
-    if (!window.confirm('Everything on this order was already sent to the kitchen. Reprint the full ticket?')) return;
+    if (!window.confirm(ot('Everything on this order was already sent to the kitchen. Reprint the full ticket?'))) return;
     ({ kot } = await api(url, { token, method: 'POST', body: { mode: 'all' }, feedback: false }));
   }
   printHtml(kotHtml(kot));
@@ -36,5 +37,5 @@ export async function printLeadKot({ token, storeId, order }) {
 }
 export function KotButton({ token, storeId, order, disabled, lead = false }) {
   const [busy, setBusy] = useState(false), [err, setErr] = useState('');
-  return <><button type="button" className="btn btn-outline btn-small" disabled={busy || disabled} onClick={async () => { setBusy(true); setErr(''); try { await (lead ? printLeadKot : printKot)({ token, storeId, order }); } catch (e) { setErr(e.message || 'Could not print'); } finally { setBusy(false); } }}><Printer size={14}/> Print KOT</button>{err && <small className="notice error" role="alert">{err}</small>}</>;
+  return <><button type="button" className="btn btn-outline btn-small" disabled={busy || disabled} onClick={async () => { setBusy(true); setErr(''); try { await (lead ? printLeadKot : printKot)({ token, storeId, order }); } catch (e) { setErr(e.message || 'Could not print'); } finally { setBusy(false); } }}><Printer size={14}/> {ot("Print KOT")}</button>{err && <small className="notice error" role="alert">{ot(err)}</small>}</>;
 }

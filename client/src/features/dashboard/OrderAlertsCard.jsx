@@ -1,3 +1,4 @@
+import { ot } from '../../shared/lib/owner-i18n.js';
 import React, { useEffect, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { api } from '../../shared/lib/api.js';
@@ -40,11 +41,11 @@ export default function OrderAlertsCard({ token, storeId, slug }) {
   };
   if (!supported) return null;
   return <div className="dashboard-panel order-alerts-card">
-    <h3><Bell size={18}/> New-order alerts on this device</h3>
-    <p className="muted">Get a push notification the moment a new order arrives at this shop. It shows only the order number and total - customer details stay inside the dashboard.</p>
+    <h3><Bell size={18}/> {ot("New-order alerts on this device")}</h3>
+    <p className="muted">{ot("Get a push notification the moment a new order arrives at this shop. It shows only the order number and total - customer details stay inside the dashboard.")}</p>
     {note && <p className={enabled ? 'notice success' : 'muted'}>{note}</p>}
     {enabled
-      ? <button type="button" className="btn btn-outline" disabled={busy} onClick={disable}><Busy active={busy}>{busy ? 'Updating...' : 'Turn off alerts on this device'}</Busy></button>
-      : <button type="button" className="btn btn-green" disabled={busy || !slug} onClick={enable}><Busy active={busy}><Bell size={16}/> {busy ? 'Enabling...' : 'Get new-order alerts'}</Busy></button>}
+      ? <button type="button" className="btn btn-outline" disabled={busy} onClick={disable}><Busy active={busy}>{busy ? ot("Updating...") : ot("Turn off alerts on this device")}</Busy></button>
+      : <button type="button" className="btn btn-green" disabled={busy || !slug} onClick={enable}><Busy active={busy}><Bell size={16}/> {busy ? ot("Enabling...") : ot("Get new-order alerts")}</Busy></button>}
   </div>;
 }

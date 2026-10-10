@@ -1,3 +1,4 @@
+import { ot } from '../../shared/lib/owner-i18n.js';
 import React, {useEffect,useState} from 'react';
 import {api} from '../../shared/lib/api.js';
 import {useFeedbackState} from '../../shared/components/Toasts.jsx';
@@ -11,18 +12,18 @@ export default function AutoReplyCard({token,storeId,base='whatsapp-cloud'}) {
     try{const r=await api(root,{token,method:'PUT',body:{enabled:next,text},successMessage:next?'Auto-reply is on':'Auto-reply saved'});setEnabled(r.enabled);setText(r.text);}
     catch(e){setError(e.message);}finally{setBusy(false);}
   }
-  if(!loaded)return error?<p className="error">{error}</p>:null;
-  return <section className="dashboard-panel"><h3>Auto-reply</h3>
-    <p className="muted">When a customer messages your shop number, send this text once. Each customer gets it at most once every 12 hours, only inside WhatsApp's free 24-hour window. It is off until you turn it on.</p>
-    <label>Reply text<textarea value={text} maxLength={1000} rows={4} placeholder="Write the message customers should get" onChange={e=>setText(e.target.value)} /></label>
+  if(!loaded)return error?<p className="error">{ot(error)}</p>:null;
+  return <section className="dashboard-panel"><h3>{ot("Auto-reply")}</h3>
+    <p className="muted">{ot("When a customer messages your shop number, send this text once. Each customer gets it at most once every 12 hours, only inside WhatsApp's free 24-hour window. It is off until you turn it on.")}</p>
+    <label>{ot("Reply text")}<textarea value={text} maxLength={1000} rows={4} placeholder={ot("Write the message customers should get")} onChange={e=>setText(e.target.value)} /></label>
     <p className="muted">{text.length}/1000</p>
-    {error&&<p className="error">{error}</p>}
+    {error&&<p className="error">{ot(error)}</p>}
     <div className="inline-form">
-      <button className="btn btn-outline btn-small" disabled={busy||(enabled&&!text.trim())} onClick={()=>save(enabled)}>Save text</button>
+      <button className="btn btn-outline btn-small" disabled={busy||(enabled&&!text.trim())} onClick={()=>save(enabled)}>{ot("Save text")}</button>
       {enabled
-        ? <button className="btn btn-outline btn-small" disabled={busy} onClick={()=>save(false)}>Turn off</button>
-        : <button className="btn btn-green" disabled={busy||!text.trim()} onClick={()=>save(true)}>Turn on auto-reply</button>}
-      <span className="muted">{enabled?'Status: ON':'Status: OFF'}</span>
+        ? <button className="btn btn-outline btn-small" disabled={busy} onClick={()=>save(false)}>{ot("Turn off")}</button>
+        : <button className="btn btn-green" disabled={busy||!text.trim()} onClick={()=>save(true)}>{ot("Turn on auto-reply")}</button>}
+      <span className="muted">{enabled?ot("Status: ON"):ot("Status: OFF")}</span>
     </div>
   </section>;
 }
