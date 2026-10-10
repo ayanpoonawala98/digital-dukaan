@@ -19,7 +19,8 @@ test('only non-cancelled order lines can be reviewed, once per product', () => {
   const order = { status: 'delivered', items: [{ productId: 3, name: 'Tea' }, { productId: 3, name: 'Tea' }, { productId: 9, name: 'Cake' }, { name: 'ghost' }] };
   assert.deepEqual(reviewableProducts(order), [{ productId: 3, name: 'Tea' }, { productId: 9, name: 'Cake' }]);
   assert.deepEqual(reviewableProducts({ ...order, status: 'cancelled' }), []);
-  assert.deepEqual(reviewableProducts({ status: 'new', items: [], productId: 7, productName: 'Shirt' }), [{ productId: 7, name: 'Shirt' }]);
+  assert.deepEqual(reviewableProducts({ status: 'delivered', items: [], productId: 7, productName: 'Shirt' }), [{ productId: 7, name: 'Shirt' }]);
+  assert.deepEqual(reviewableProducts({ status: 'new', items: [{ productId: 1, name: 'A' }] }), []);
   assert.deepEqual(reviewableProducts(null), []);
 });
 test('summary rounds to one decimal', () => {

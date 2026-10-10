@@ -102,7 +102,8 @@ export const reviewOwnerRoutes = Router();
 reviewOwnerRoutes.use((req, res, next) => req.user.role === 'owner' ? next() : res.status(403).json({ error: 'Only the store owner can manage reviews' }));
 reviewOwnerRoutes.get('/', wrap(async (req, res) => {
   const where = { businessId: req.store.id };
-  if (['visible', 'hidden'].includes(req.query.visibility)) where.status = req.query.visibility;
+  const vis = req.query.visibility ?? req.query.status;
+  if (['visible', 'hidden'].includes(vis)) where.status = vis;
   const page = await ownerList(Review, 'reviews', req, where, ['customerName', 'text'], { include: [{ model: Product, attributes: ['name'] }] },
     r => ({ id: r.id, productId: r.productId, productName: r.Product?.name || '', rating: r.rating, text: r.text, customerName: r.customerName, status: r.status, orderKind: r.orderKind, orderId: r.orderId, createdAt: r.createdAt }));
   res.json(page);

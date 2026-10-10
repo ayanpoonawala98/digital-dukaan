@@ -17,7 +17,7 @@ export function publicName(name) {
 }
 // Products a customer may review from this order: lines with a product id, order not cancelled.
 export function reviewableProducts(order) {
-  if (!order || order.status === 'cancelled') return [];
+  if (!order || ['cancelled', 'new'].includes(order.status)) return [];
   const ids = new Map();
   const items = Array.isArray(order.items) ? order.items : [];
   for (const i of items) { const id = Number(i?.productId ?? i?.id); if (Number.isInteger(id) && id > 0 && !ids.has(id)) ids.set(id, String(i.name || '')); }

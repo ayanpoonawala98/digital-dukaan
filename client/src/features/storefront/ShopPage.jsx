@@ -2,6 +2,7 @@ import { useShowcaseScroll } from './showcase-scroll.js';
 import { useProductPages } from '../dashboard/use-product-pages.js';
 import { storeImage } from './store-image.js';
 import {downloadShopCard} from './shop-card-download.js';
+import { Stars } from '../reviews/Stars.jsx';
 import { shouldInvite, hasSeenPushInvite, rememberPushInvite } from './push-prompt.js';
 import ClosedBanner, { hoursLabel } from './ClosedBanner.jsx';
 import { notify } from '../notifications/notifications.js';
@@ -245,6 +246,7 @@ function ProductCard({ product, slug, wishlist, cart, index, t }) {
     <div className="product-meta">
       <span>{product.category?.name || 'PRODUCT'}</span>
       <h3><Link to={storePath(slug, product.id)}>{product.name}</Link></h3>
+      {product.ratingCount > 0 && <Stars value={product.ratingAvg} count={product.ratingCount}/>}
       <div className="product-bottom">
         <b>{inr(product.price)}</b>
         <div className="product-actions">
