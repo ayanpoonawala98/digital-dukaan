@@ -1,3 +1,4 @@
+import { OwnerLanguage, useOwnerLanguage } from '../../shared/components/OwnerLanguage.jsx';
 import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import {storeImage} from '../storefront/store-image.js';
 import {useOwnerPages} from './use-owner-pages.js';
@@ -95,6 +96,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
     <div className="admin-main">
       <div className="admin-top">
         <span>{superMode ? 'SUPERADMIN / DIGITAL SHOP' : <select className="store-switcher" value={storeId || ''} onChange={e => setStoreId(e.target.value)}><option value="" disabled>Select store</option>{stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</span>
+        {!superMode && <OwnerLanguage/>}
         <div className="admin-profile"><span>{session.user.name?.[0]?.toUpperCase()}</span><div><strong>{session.user.name}</strong><small>{superMode ? 'Superadmin' : staffMode ? 'Shop staff' : 'Shop owner'}</small></div></div>
       </div>
       {children}
@@ -441,6 +443,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
 }
 
 export default function Dashboard() {
+  useOwnerLanguage();
   const { session } = useAuth(), token = session.token;
   const staffMode = session.user.role === 'staff';
   const location = useLocation();
