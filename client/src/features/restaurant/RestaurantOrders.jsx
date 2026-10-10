@@ -1,3 +1,4 @@
+import { SALES_BASIS } from '../../shared/lib/owner-ui.js';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Ban, Bell, BellOff, Bike, ChefHat, Clock, ListOrdered, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { api, inr } from '../../shared/lib/api.js';
@@ -163,7 +164,7 @@ export function RestaurantOverview({ token, storeId, onOpen }) {
   const active = orders.filter(o => !DONE.includes(o.status));
   const cards = [[todays.length, "Today's orders"], [inr(sales), "Today's sales (served)"], [active.length, 'Active orders'], [requests.length, 'Waiter / bill requests']];
   return <>
-    <div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>Sales count served, delivered and picked-up orders.</p></div>
+    <div className="section-heading"><div><span className="kicker">STORE SNAPSHOT</span><h2>Today at a glance</h2></div><p>{SALES_BASIS.served}</p></div>
     <div className="stat-grid overview-stats">{cards.map(([n, l], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={l}><strong>{n}</strong><span>{l}</span></div>)}</div>
     <div className="dashboard-panel ro-recent">
       <div className="section-heading"><div><span className="kicker">LATEST</span><h2>Recent orders</h2></div><button type="button" className="btn btn-outline btn-small" onClick={() => onOpen('restaurant')}>Open table orders</button></div>

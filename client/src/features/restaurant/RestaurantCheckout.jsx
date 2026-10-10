@@ -64,13 +64,15 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             {orderType === 'delivery'  && <label>{t('address')}<textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} maxLength={500} required rows={3}/></label>}
             <label>Note for the whole order <small>(optional)</small><input value={orderNote} maxLength={200} onChange={e => setOrderNote(e.target.value)} placeholder="e.g. ring the bell, extra napkins"/></label>
             <label>Coupon code <small>(optional)</small><input value={couponCode} onChange={e => setCouponCode(e.target.value)} placeholder="SAVE10" maxLength={24}/></label>
-            <div className="drawer-totals"><div><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div>{orderType === 'delivery' && <div><span>Delivery fee</span><b>{deliveryFee > 0 ? inr(deliveryFee) : 'Free'}</b></div>}<div className="grand"><span>Estimated total</span><b>{inr(cart.subtotal + deliveryFee)}</b></div></div>
             {business.minOrder > 0 && <p className="drawer-hint">Minimum order: {inr(business.minOrder)}</p>}
             {orderType === 'delivery' && business.freeDeliveryAbove > 0 && deliveryFee > 0 && <p className="drawer-hint">Free delivery above {inr(business.freeDeliveryAbove)}.</p>}
             {orderType === 'takeaway' && business.prepMinutes > 0 && <p className="drawer-hint">Takeaway is usually ready in about {business.prepMinutes} minutes.</p>}
             {error && <p className="notice error" role="alert">{error}</p>}
+            <div className="drawer-foot">
+            <div className="drawer-totals"><div><span>Items subtotal</span><b>{inr(cart.subtotal)}</b></div>{orderType === 'delivery' && <div><span>Delivery fee</span><b>{deliveryFee > 0 ? inr(deliveryFee) : 'Free'}</b></div>}<div className="grand"><span>Estimated total</span><b>{inr(cart.subtotal + deliveryFee)}</b></div></div>
             <button className="btn btn-green full" disabled={busy || business.blocksOrders}><Busy active={busy}>{busy ? 'Placing...' : t('submit')}</Busy><ArrowRight size={17}/></button>
             <p className="drawer-hint">Your order goes to the restaurant's dashboard. No payment is taken online.</p>
+            </div>
           </form>
         </>}
       </>}

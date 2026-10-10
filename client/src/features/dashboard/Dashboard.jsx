@@ -447,7 +447,7 @@ export default function Dashboard() {
   const orderLinkApplied = React.useRef(false);
   const pendingOrderTab = React.useRef(false);
   const linkedStore = new URLSearchParams(location.search).get('store');
-  const initialTab = useRef(['imports','whatsapp-cloud','overview','products','categories','customers','leads','sales','tables','staff','coupons','restaurant','campaigns','broadcast','notifications','settings'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || null);
+  const initialTab = useRef(['imports','whatsapp-cloud','overview','products','categories','customers','leads','sales','tables','staff','coupons','restaurant','campaigns','broadcast','notifications','settings','reviews'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || null);
   const [tab, setTabState] = useState(initialTab.current || 'overview');
   // Keep the open page in the URL so a browser refresh stays on the same page.
   const setTab = useCallback(next => { setTabState(next); try { const t = typeof next === 'function' ? null : next; if (t) history.replaceState(null, '', `${location.pathname}${location.search}#${t}`); } catch { /* URL sync is optional */ } }, []);

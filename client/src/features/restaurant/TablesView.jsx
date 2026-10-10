@@ -13,7 +13,7 @@ const label = s => (s.kind === 'table' ? `Table ${s.n}` : CH[s.kind][0]);
 const opt = l => [lineText(l), l.note && `Note: ${l.note}`].filter(Boolean).join(' ');
 const paidText = b => Array.isArray(b.payments) && b.payments.length > 1 ? 'Paid: ' + b.payments.map(p => `${String(p.mode).toUpperCase()} ${inr(p.amount)}`).join(', ') : `Paid by ${String(b.paymentMode === 'split' ? 'split' : b.paymentMode).toUpperCase()}`;
 const billText = (bill, lines, charges, store) => {
-  const rows = [store.name, `${bill.title} - Bill #${bill.billNo}`, new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), ''];
+  const rows = [store.name, ...shopLines(store), `${bill.title} - Bill #${bill.billNo}`, new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }), ''];
   for (const l of lines) rows.push(`${l.qty} x ${l.name}${opt(l) ? ' ' + opt(l) : ''} - ${inr(l.qty * l.price)}`);
   rows.push('', `Subtotal: ${inr(bill.subtotal)}`);
   for (const c of charges) rows.push(`${c.label}: ${inr(c.amount)}`);
@@ -21,19 +21,20 @@ const billText = (bill, lines, charges, store) => {
   if (bill.gstPct > 0) rows.push(`CGST ${bill.gstPct / 2}%: ${inr(bill.cgst)}${bill.gstMode === 'inclusive' ? ' (incl.)' : ''}`, `SGST ${bill.gstPct / 2}%: ${inr(bill.sgst)}${bill.gstMode === 'inclusive' ? ' (incl.)' : ''}`);
   if (Number(bill.roundOff)) rows.push(`Round off: ${Number(bill.roundOff) > 0 ? '+' : '-'}${inr(Math.abs(bill.roundOff))}`);
   rows.push(`Total: ${inr(bill.total)}`, paidText(bill));
-  if (store.gstin) rows.push(`GSTIN ${store.gstin}`);
   rows.push('', 'Thank you, visit again!');
   return rows.join('\n');
 };
+// Receipt header lines shared by the on-screen bill, the printout and the WhatsApp text.
+const shopLines = store => [store.address, store.phone ? `Ph: ${store.phone}` : '', store.gstin ? `GSTIN ${store.gstin}` : ''].filter(Boolean);
 const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // Prints through an isolated iframe holding only the receipt, so mobile browsers never print the app page (which came out blank).
 function printReceipt(bill, lines, charges, store, saved) {
   const gst = bill.gstPct, incl = bill.gstMode === 'inclusive', row = (a, b, cls = '') => `<div class="r ${cls}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
-  const body = `<h1>${esc(store.name)}</h1><p class="c">${esc(bill.title)}${saved ? ' - Bill #' + esc(bill.billNo) : ''}<br>${esc(new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))}</p><hr>`
+  const body = `<h1>${esc(store.name)}</h1>${shopLines(store).length ? `<p class="c">${shopLines(store).map(esc).join('<br>')}</p>` : ''}<p class="c">${esc(bill.title)}${saved ? ' - Bill #' + esc(bill.billNo) : ''}<br>${esc(new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))}</p><hr>`
     + lines.map(l => row(`${l.qty} x ${l.name}`, inr(l.qty * l.price)) + (opt(l) ? `<div class="o">${esc(opt(l))}</div>` : '')).join('') + '<hr>' + row('Subtotal', inr(bill.subtotal))
     + charges.map(c => row(c.label, inr(c.amount))).join('') + (bill.discount > 0 ? row('Discount', '-' + inr(bill.discount)) : '')
     + (gst > 0 ? row(`CGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.cgst)) + row(`SGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.sgst)) : '') + (Number(bill.roundOff) ? row('Round off', (bill.roundOff > 0 ? '+' : '-') + inr(Math.abs(bill.roundOff))) : '') + '<hr>' + row('TOTAL', inr(bill.total), 'big')
-    + (saved ? `<p class="c">${paidText(bill)}</p>` : '') + `<p class="c">${store.gstin ? 'GSTIN ' + esc(store.gstin) + '<br>' : ''}Thank you, visit again!</p>`;
+    + (saved ? `<p class="c">${paidText(bill)}</p>` : '') + '<p class="c">Thank you, visit again!</p>';
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:13px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:16px;text-align:center;margin:0 0 4px}.c{text-align:center;margin:4px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.r{display:flex;justify-content:space-between;gap:8px}.r span:first-child{flex:1;min-width:0;word-break:break-word}.big{font-size:16px;font-weight:700}.o{padding-left:10px;font-size:11px}</style></head><body>${body}</body></html>`;
   const f = document.createElement('iframe');
   f.setAttribute('aria-hidden', 'true');
@@ -85,6 +86,7 @@ function Receipt_({ bill, lines, charges, store, onClose, saved }) {
   const gst = bill.gstPct, incl = bill.gstMode === 'inclusive';
   return <div className="tv-modal" role="dialog" aria-label="Bill" onClick={onClose}><div className="tv-receipt" onClick={e => e.stopPropagation()}>
     <h4>{store.name}</h4>
+    {shopLines(store).length > 0 && <p className="c tv-shopinfo">{shopLines(store).map((t, i) => <React.Fragment key={i}>{i > 0 && <br/>}{t}</React.Fragment>)}</p>}
     <p>{bill.title}{saved ? ` · Bill #${bill.billNo}` : ' · Draft'} · {new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</p><hr/>
     {lines.map((l, i) => <div className="r" key={i}><span>{l.qty} × {l.name}{opt(l) && <small className="tv-opt"> {opt(l)}</small>}</span><span>{inr(l.qty * l.price)}</span></div>)}<hr/>
     <div className="r"><span>Subtotal</span><span>{inr(bill.subtotal)}</span></div>
@@ -94,7 +96,7 @@ function Receipt_({ bill, lines, charges, store, onClose, saved }) {
     {Number(bill.roundOff) !== 0 && bill.roundOff !== undefined && <div className="r"><span>Round off</span><span>{bill.roundOff > 0 ? '+' : '-'}{inr(Math.abs(bill.roundOff))}</span></div>}<hr/>
     <div className="r big"><span>TOTAL</span><span>{inr(bill.total)}</span></div>
     {saved && <p className="c">{paidText(bill)}</p>}
-    <p className="c">{store.gstin ? `GSTIN ${store.gstin} · ` : ''}Thank you, visit again!</p>
+    <p className="c">Thank you, visit again!</p>
     <div className="tv-cta no-print"><button className="btn btn-outline" onClick={onClose}>Close</button>{saved && <a className="btn btn-outline" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(billText(bill, lines, charges, store))}`}>Share on WhatsApp</a>}<button className="btn btn-green" onClick={() => printReceipt(bill, lines, charges, store, saved)}><Printer size={16}/> {saved ? 'Reprint (80mm)' : 'Print (80mm)'}</button></div>
   </div></div>;
 }
@@ -173,7 +175,7 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
     {tab === 'history' && <div className="tv-orders"><div className="tv-date"><label>Date <input type="date" value={hDate} max={new Date().toISOString().slice(0, 10)} onChange={e => { setHDate(e.target.value); loadHist(e.target.value); }}/></label>{hDate && <button type="button" className="tv-link" onClick={() => { setHDate(''); loadHist(''); }}>All dates</button>}</div><p className="tv-note">Every billed order stays here and in Sales. Nothing is deleted.</p>{hist === null && <p className="tv-empty">Loading…</p>}{hist?.length === 0 && <p className="tv-empty">{hDate ? 'No bills on this date.' : 'No bills yet.'}</p>}{hist?.map(h => <button className="tv-hist" key={h.id} onClick={() => setPreview({ saved: true, bill: { ...h, title: label(sel) }, lines: h.lines, charges: h.charges })}><strong>#{h.billNo}</strong><span>{when(h.paidAt)} · {h.paymentMode.toUpperCase()}</span><b>{inr(h.total)}</b></button>)}</div>}
     {tab === 'bill' && <div className="tv-bill">
       {canBill && <div className="tv-add"><Search size={15}/><select value={pick} onChange={e => addItem(e.target.value)} aria-label="Add item"><option value="">Add item to bill…</option>{data.menu.flatMap(p => Array.isArray(p.variants) && p.variants.length ? p.variants.map(v => <option key={`${p.id}|${v.name}`} value={`${p.id}|${v.name}`}>{p.name} ({v.name}) · {inr(v.price)}</option>) : [<option key={p.id} value={p.id}>{p.name} · {inr(p.price)}</option>])}</select></div>}
-      <ul className="tv-lines">{lines.map(l => <li key={l.key}><span className="n">{l.name}{opt(l) && <small className="tv-opt">{opt(l)}</small>}<small>{inr(l.price)} each</small></span><span className="q">{canBill ? <><button onClick={() => setQty(l, -1)} aria-label="Less"><Minus size={14}/></button><b>{l.qty}</b><button onClick={() => setQty(l, 1)} aria-label="More"><Plus size={14}/></button></> : <b>{l.qty}</b>}</span><span className="a">{inr(l.qty * l.price)}</span>{canBill && <button className="rm" onClick={() => setQty(l, -l.qty)} aria-label={`Remove ${l.name}`}><Trash2 size={15}/></button>}</li>)}{!lines.length && <li className="tv-empty">No items yet.</li>}</ul>
+      <ul className="tv-lines">{lines.map(l => <li key={l.key}><span className="n">{l.name}{opt(l) && <small className="tv-opt">{opt(l)}</small>}<small>{inr(l.price)} each</small></span><span className="q">{canBill ? <><button onClick={() => setQty(l, -1)} aria-label="Less"><Minus size={14}/></button><b>{l.qty}</b><button onClick={() => setQty(l, 1)} aria-label="More"><Plus size={14}/></button></> : <b>{l.qty}</b>}</span><span className="a">{inr(l.qty * l.price)}</span>{canBill && <button className="rm" onClick={() => { if (window.confirm(`Remove ${l.name} (${l.qty}) from this bill? Nothing is saved until you save the order.`)) setQty(l, -l.qty); }} aria-label={`Remove ${l.name}`}><Trash2 size={15}/></button>}</li>)}{!lines.length && <li className="tv-empty">No items yet.</li>}</ul>
       <div className="tv-adj">{edit.charges.map((c, i) => <div key={i}><span>{c.label}</span><b>+ {inr(c.amount)}</b><button onClick={() => setEdit(e => ({ ...e, charges: e.charges.filter((_, j) => j !== i) }))} aria-label="Remove charge"><X size={14}/></button></div>)}{m.d > 0 && <div><span>Discount{edit.disc.type === 'pct' ? ` ${edit.disc.value}%` : ''}</span><b className="neg">− {inr(m.d)}</b><button onClick={() => setEdit(e => ({ ...e, disc: { type: 'flat', value: '' } }))} aria-label="Remove discount"><X size={14}/></button></div>}
         {canBill && !form && <div className="tv-links"><button className="tv-link" onClick={() => setForm({ k: 'charge', label: 'Service charge', v: '' })}><Plus size={13}/> Add charge</button><button className="tv-link" onClick={() => setForm({ k: 'disc', type: 'pct', v: '' })}><Percent size={13}/> Discount</button></div>}
         {form?.k === 'charge' && <form className="tv-form" onSubmit={e => { e.preventDefault(); const a = Number(form.v); if (a > 0) setEdit(x => ({ ...x, charges: [...x.charges, { label: form.label.trim() || 'Charge', amount: a }] })); setForm(null); }}><input aria-label="Charge name" value={form.label} maxLength={40} onChange={e => setForm({ ...form, label: e.target.value })}/><input aria-label="Amount" type="number" min="0" step="0.01" inputMode="decimal" placeholder="₹" autoFocus value={form.v} onChange={e => setForm({ ...form, v: e.target.value })}/><button className="btn btn-green btn-small">Add</button><button type="button" className="tv-x" onClick={() => setForm(null)} aria-label="Cancel"><X size={16}/></button></form>}
