@@ -42,7 +42,7 @@ export async function tablesState(store) {
   const orders = await sequelize.query(
     `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' AND ("orderType"='dine-in' OR "createdAt">:since) ORDER BY "createdAt" ASC LIMIT 1000`,
     { replacements: { b: store.id, since: new Date(Date.now() - CHANNEL_WINDOW_MS) }, type: sequelize.QueryTypes.SELECT });
-  const menu = await sequelize.query(`SELECT id,name,price FROM products WHERE "businessId"=:b AND active=true AND ("soldOutDate" IS NULL OR "soldOutDate"<>:today) ORDER BY name ASC LIMIT 600`, { replacements: { b: store.id, today: new Date(Date.now() + 19800000).toISOString().slice(0, 10) }, type: sequelize.QueryTypes.SELECT });
+  const menu = await sequelize.query(`SELECT id,name,price,variants FROM products WHERE "businessId"=:b AND active=true AND ("soldOutDate" IS NULL OR "soldOutDate"<>:today) ORDER BY name ASC LIMIT 600`, { replacements: { b: store.id, today: new Date(Date.now() + 19800000).toISOString().slice(0, 10) }, type: sequelize.QueryTypes.SELECT });
   const count = Math.max(0, Number(store.tableCount) || 0);
   const tables = Array.from({ length: count }, (_, i) => ({ number: i + 1, orders: [] }));
   const channels = { delivery: { orders: [] }, takeaway: { orders: [] }, counter: { orders: [] } };

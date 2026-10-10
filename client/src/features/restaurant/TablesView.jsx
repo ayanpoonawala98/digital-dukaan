@@ -39,17 +39,19 @@ function printReceipt(bill, lines, charges, store, saved) {
 function NewOrder({ kind, table, menu, base, token, onClose, onDone }) {
   const [f, setF] = useState({ name: '', phone: '', address: '', note: '' });
   const [qty, setQty] = useState({});
+  const [vr, setVr] = useState({});
   const [q, setQ] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const list = menu.filter(m => !q || m.name.toLowerCase().includes(q.toLowerCase()));
   const picked = menu.filter(m => qty[m.id] > 0);
-  const total = picked.reduce((a, m) => a + m.price * qty[m.id], 0);
+  const vprice = m => { const vs = Array.isArray(m.variants) ? m.variants : []; if (!vs.length) return Number(m.price); return Number((vs.find(v => v.name === (vr[m.id] || vs[0].name)) || vs[0]).price); };
+  const total = picked.reduce((a, m) => a + vprice(m) * qty[m.id], 0);
   const bump = (id, d) => setQty(v => ({ ...v, [id]: Math.max(0, Math.min(99, (v[id] || 0) + d)) }));
   const submit = async () => {
     setBusy(true); setErr('');
     try {
-      await api(`${base}/restaurant-orders`, { token, method: 'POST', feedback: false, body: { orderType: kind === 'table' ? 'dine-in' : kind, tableNumber: kind === 'table' ? table : undefined, customerName: f.name, customerPhone: f.phone, deliveryAddress: f.address, note: f.note, items: picked.map(m => ({ id: m.id, qty: qty[m.id] })) } });
+      await api(`${base}/restaurant-orders`, { token, method: 'POST', feedback: false, body: { orderType: kind === 'table' ? 'dine-in' : kind, tableNumber: kind === 'table' ? table : undefined, customerName: f.name, customerPhone: f.phone, deliveryAddress: f.address, note: f.note, items: picked.map(m => ({ id: m.id, qty: qty[m.id], variant: (m.variants && m.variants.length) ? (vr[m.id] || m.variants[0].name) : undefined })) } });
       onDone();
     } catch (e) { setErr(e.message || 'Could not create the order'); setBusy(false); }
   };
@@ -63,7 +65,7 @@ function NewOrder({ kind, table, menu, base, token, onClose, onDone }) {
       {kind === 'delivery' && <input placeholder="Delivery address" value={f.address} onChange={e => setF({ ...f, address: e.target.value })} maxLength={500}/>}
     </div>}
     <input className="tv-search" placeholder="Search menu" value={q} onChange={e => setQ(e.target.value)}/>
-    <ul className="tv-lines tv-menu">{list.slice(0, 80).map(m => <li key={m.id}><span className="n">{m.name}<small>{inr(m.price)}</small></span><span className="q"><button type="button" aria-label={`Remove ${m.name}`} onClick={() => bump(m.id, -1)}><Minus size={14}/></button><b>{qty[m.id] || 0}</b><button type="button" aria-label={`Add ${m.name}`} onClick={() => bump(m.id, 1)}><Plus size={14}/></button></span></li>)}</ul>
+    <ul className="tv-lines tv-menu">{list.slice(0, 80).map(m => <li key={m.id}><span className="n">{m.name}{Array.isArray(m.variants) && m.variants.length > 0 ? <select value={vr[m.id] || m.variants[0].name} onChange={e => setVr({ ...vr, [m.id]: e.target.value })}>{m.variants.map(v => <option key={v.name} value={v.name}>{v.name} - {inr(v.price)}</option>)}</select> : <small>{inr(m.price)}</small>}</span><span className="q"><button type="button" aria-label={`Remove ${m.name}`} onClick={() => bump(m.id, -1)}><Minus size={14}/></button><b>{qty[m.id] || 0}</b><button type="button" aria-label={`Add ${m.name}`} onClick={() => bump(m.id, 1)}><Plus size={14}/></button></span></li>)}</ul>
     <input placeholder="Note for the kitchen (optional)" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} maxLength={200}/>
     {err && <p className="notice error">{err}</p>}
     <div className="tv-cta"><button className="btn btn-outline" onClick={onClose}>Cancel</button><button className="btn btn-green" disabled={busy || !picked.length} onClick={submit}>{busy ? 'Sending…' : `Send to kitchen · ${inr(total)}`}</button></div>

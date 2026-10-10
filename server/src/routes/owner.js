@@ -802,8 +802,10 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
   if (products.length !== ids.length) throw bad(400, 'An item is not on the menu');
   const byId = new Map(products.map(p => [p.id, p]));
   const merged = new Map();
-  for (const e of raw) merged.set(Number(e.id), (merged.get(Number(e.id)) || 0) + Number(e.qty));
-  const items = [...merged].map(([id, qty]) => { const p = byId.get(id); if (p.stock === 0 || (p.stock !== null && qty > p.stock)) throw bad(400, `${p.name}: not enough stock`); return buildLine(p, { id, qty }, qty); });
+  for (const e of raw) { const k = `${Number(e.id)}|${String(e.variant ?? '')}`; const m = merged.get(k) || { id: Number(e.id), variant: String(e.variant ?? ''), qty: 0 }; m.qty += Number(e.qty); merged.set(k, m); }
+  const perProd = new Map();
+  for (const m of merged.values()) perProd.set(m.id, (perProd.get(m.id) || 0) + m.qty);
+  const items = [...merged.values()].map(m => { const p = byId.get(m.id); if (p.stock === 0 || (p.stock !== null && perProd.get(m.id) > p.stock)) throw bad(400, `${p.name}: not enough stock`); return buildLine(p, { id: m.id, qty: m.qty, ...(m.variant ? { variant: m.variant } : {}) }, m.qty); });
   const subtotal = Number(items.reduce((a, i) => a + Number(i.price) * i.qty, 0).toFixed(2));
   const note = cleanNote(req.body?.note, 200);
   const order = await RestaurantOrder.create({ businessId: req.store.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: name || null, customerPhone: phone || null, deliveryAddress: orderType === 'delivery' ? String(deliveryAddress).trim().slice(0, 500) : null, items, subtotal, discount: 0, deliveryFee: 0, total: subtotal, note: note ? `[Staff] ${note}`.slice(0, 300) : '[Staff] entered by staff', status: 'new' });
