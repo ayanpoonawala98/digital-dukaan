@@ -12,6 +12,8 @@ export function staffAllowed(perms, method, route) {
   if (method === 'GET' && /^(?:overview|shop-qr\.pdf)$/.test(route)) return true;
   if (method === 'GET' && /^restaurant-orders(?:\/report\.csv)?$/.test(route)) return has('orders_view');
   if (method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) return has('order_status');
+  if (method === 'GET' && route === 'table-requests') return has('orders_view');
+  if (method === 'PATCH' && /^table-requests\/\d+$/.test(route)) return has('order_status');
   if (method === 'GET' && /^whatsapp-cloud\/(?:status|messages)$/.test(route)) return has('whatsapp');
   if (method === 'POST' && route === 'whatsapp-cloud/send') return has('whatsapp');
   if (method === 'POST' && /^(?:products\/import|customers\/import)\/(?:preview|commit)$/.test(route)) return has('import');

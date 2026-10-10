@@ -58,7 +58,7 @@ test('restaurant ordering handles all three types and rejects invalid or cross-s
     ]) assert.equal((await post('test-restaurant', payload)).status, 400);
     assert.equal((await post('retail-store', { orderType: 'dine-in', tableNumber: 1, items })).status, 404);
     let discounted = await post('test-restaurant', { orderType:'dine-in', tableNumber:1, items, couponCode:'save10' });
-    assert.equal(discounted.status, 201); const result = await discounted.json(); assert.equal(typeof result.trackingToken, 'string'); const { trackingToken, ...details } = result; assert.deepEqual(details, { orderId:904, status:'new', subtotal:250, discount:25, total:225 });
+    assert.equal(discounted.status, 201); const result = await discounted.json(); assert.equal(typeof result.trackingToken, 'string'); const { trackingToken, ...details } = result; assert.deepEqual(details, { orderId:904, status:'new', subtotal:250, discount:25, deliveryFee:0, estimateMinutes:null, total:225 });
     assert.equal(created[3].couponCode, 'SAVE10');
     discounted = await post('test-restaurant', { orderType:'dine-in', tableNumber:1, items, couponCode:'UNKNOWN' });
     assert.equal(discounted.status, 400);

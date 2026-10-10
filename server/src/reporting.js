@@ -1,3 +1,4 @@
+import { RESTAURANT_DONE } from './order-flows.js';
 import { bad } from './utils/core.js';
 // Calendar dates are interpreted in India, never in the server's local timezone.
 export function dateWindow(query = {}) {
@@ -21,7 +22,7 @@ export function dateWhere(query, Op) {
 const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 const indiaDay = date => new Date(+new Date(date) + 330 * 60000).toISOString().slice(0, 10);
 export function summarize(orders, leads, now = new Date()) {
-  const completed = orders.filter(o => o.status === 'served');
+  const completed = orders.filter(o => RESTAURANT_DONE.includes(o.status));
   const todayKey = indiaDay(now), monthKey = todayKey.slice(0, 7);
   const sum = values => values.reduce((n, o) => n + number(o.total), 0);
   const days = new Map(), top = new Map();

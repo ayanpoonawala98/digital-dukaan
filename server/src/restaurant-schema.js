@@ -2,7 +2,7 @@ import {ensurePerformanceIndexes} from './performance-indexes.js';
 import {ensureOrderStockSchema} from './order-stock-schema.js';
 import { ensureOrderNumbers } from './order-numbers.js';
 import { sequelize } from './db.js';
-import { RestaurantOrder, OrderPushSubscription, OwnerPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from './models/index.js';
+import { TableRequest, RestaurantOrder, OrderPushSubscription, OwnerPushSubscription, Coupon, Referral, NotifySecret, PaymentSecret } from './models/index.js';
 import { ensureCrmSchema } from './crm.js';
 let ready;
 export function ensureRestaurantSchema() {
@@ -53,6 +53,16 @@ export function ensureRestaurantSchema() {
     await Coupon.sync(); // New table only.
     await Referral.sync();
     await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "customFields" jsonb NOT NULL DEFAULT '[]'::jsonb`);
+    await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "variants" jsonb NOT NULL DEFAULT '[]'::jsonb`);
+    await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "addonGroups" jsonb NOT NULL DEFAULT '[]'::jsonb`);
+    await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "veg" varchar(8) NOT NULL DEFAULT ''`);
+    await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "tags" jsonb NOT NULL DEFAULT '[]'::jsonb`);
+    await sequelize.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS "soldOutDate" varchar(10)`);
+    await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "prepMinutes" integer`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "deliveryFee" double precision NOT NULL DEFAULT 0`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "note" varchar(300) NOT NULL DEFAULT ''`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "estimateMinutes" integer`);
+    await TableRequest.sync(); // additive table
     await PaymentSecret.sync(); // additive table
     await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paymentStatus" varchar(20) NOT NULL DEFAULT ''`);
     await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paymentLinkId" varchar(60)`);

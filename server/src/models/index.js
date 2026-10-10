@@ -59,6 +59,7 @@ export const Business = sequelize.define('Business', {
   upiId: { type: DataTypes.STRING(60), defaultValue: '' },
   gstin: { type: DataTypes.STRING(15), defaultValue: '' },
   minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } },
+  prepMinutes: { type: DataTypes.INTEGER, allowNull: true },
   featureLocks: { type: DataTypes.JSONB, defaultValue: {} },
   notifySettings: { type: DataTypes.JSONB, defaultValue: {} }
 }, { tableName: 'businesses' });
@@ -84,7 +85,13 @@ export const Product = sequelize.define('Product', {
   stock: { type: DataTypes.INTEGER, allowNull: true, validate: { min: 0 } },
   featured: { type: DataTypes.BOOLEAN, defaultValue: false },
   active: { type: DataTypes.BOOLEAN, defaultValue: true },
-  customFields: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] }
+  customFields: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+  variants: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+  addonGroups: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+  veg: { type: DataTypes.STRING(8), allowNull: false, defaultValue: '' },
+  tags: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
+  soldOutDate: { type: DataTypes.STRING(10), allowNull: true },
+  soldOutToday: { type: DataTypes.VIRTUAL, get() { const d = this.getDataValue('soldOutDate'); return Boolean(d) && d === new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10); } }
 }, { tableName: 'products', indexes: [{ fields: ['businessId', 'categoryId'] }] });
 
 export const Lead = sequelize.define('Lead', {
@@ -186,11 +193,22 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
   referralCode: { type: DataTypes.STRING(24), allowNull: true },
   total: { type: DataTypes.FLOAT, allowNull: false },
   status: { type: DataTypes.STRING(20), defaultValue: 'new', allowNull: false },
+  deliveryFee: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
+  note: { type: DataTypes.STRING(300), allowNull: false, defaultValue: '' },
+  estimateMinutes: { type: DataTypes.INTEGER, allowNull: true },
   paymentStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: '' },
   paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
   paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
   paidAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'restaurant_orders', indexes: [{ fields: ['businessId', 'createdAt'] }] });
+export const TableRequest = sequelize.define('TableRequest', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
+  tableNumber: { type: DataTypes.INTEGER, allowNull: false },
+  kind: { type: DataTypes.STRING(10), allowNull: false }, // waiter | bill
+  status: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'open' } // open | done
+}, { tableName: 'table_requests', indexes: [{ fields: ['businessId', 'status', 'createdAt'] }] });
+
 Business.hasMany(RestaurantOrder, { foreignKey: 'businessId' });
 RestaurantOrder.belongsTo(Business, { foreignKey: 'businessId' });
 RestaurantOrder.hasMany(OrderPushSubscription, { foreignKey: 'orderId', constraints: false }); // orderId also holds retail lead ids, so no FK to restaurant_orders

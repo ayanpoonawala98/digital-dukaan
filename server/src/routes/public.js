@@ -9,7 +9,8 @@ import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { storeUrl } from '../utils/store-domain.js';
 import {shopQrSvg} from '../shop-qr.js';
-import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
+import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
+import { buildLine, cleanNote } from '../menu-options.js';
 import { isLocked } from '../feature-locks.js';
 import { notifyNewOrder } from '../notify.js';
 import { notifyOwnerDevices } from '../order-push-wired.js';
@@ -89,6 +90,19 @@ r.get('/stores/:slug', storefrontCache, wrap(async (req, res) => {
   res.json({ business: publicBusiness(business), categories: populatedCategories(categories, visibleProducts) });
 }));
 
+r.post('/stores/:slug/table-requests', wrap(async (req, res) => {
+  const business = await shop(req.params.slug);
+  if (business.storeType !== 'restaurant') throw bad(404, 'Table requests unavailable');
+  if (blocksOrders(business)) throw bad(409, 'The restaurant is closed right now.');
+  const table = Number(req.body?.tableNumber), kind = req.body?.kind;
+  if (!['waiter', 'bill'].includes(kind)) throw bad(400, 'Choose call waiter or ask for bill');
+  if (!Number.isInteger(table) || table < 1 || table > business.tableCount) throw bad(400, 'Select a valid table number');
+  const open = await TableRequest.findOne({ where: { businessId: business.id, tableNumber: table, kind, status: 'open' } });
+  const request = open || await TableRequest.create({ businessId: business.id, tableNumber: table, kind });
+  res.set('Cache-Control', 'no-store');
+  res.status(201).json({ ok: true, alreadyAsked: Boolean(open) });
+}));
+
 r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
   if (blocksOrders(business)) throw bad(409, 'The shop is closed right now and is not taking orders. Please try again when it opens.');
@@ -103,28 +117,38 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   if (orderType === 'delivery' && (typeof deliveryAddress !== 'string' || !deliveryAddress.trim() || deliveryAddress.trim().length > 500)) throw bad(400, 'Delivery address required');
   const raw = req.body?.items;
   if (!Array.isArray(raw) || raw.length < 1 || raw.length > 50) throw bad(400, 'Select items');
-  const ids = raw.map(e => Number(e.id));
-  if (ids.some(n => !Number.isInteger(n) || n < 1) || new Set(ids).size !== ids.length) throw bad(400, 'Invalid items');
+  const ids = [...new Set(raw.map(e => Number(e?.id)))];
+  if (raw.some(e => !Number.isInteger(Number(e?.id)) || Number(e.id) < 1)) throw bad(400, 'Invalid items');
   const products = await Product.findAll({ where: { id: { [Op.in]: ids }, businessId: business.id, active: true } });
   if (products.length !== ids.length) throw bad(400, 'An item is no longer available');
   const byId = new Map(products.map(p => [p.id, p]));
+  const perProduct = new Map();
   const items = raw.map(entry => {
     const product = byId.get(Number(entry.id)), qty = Number(entry.qty);
-    if (!Number.isInteger(qty) || qty < 1 || qty > 99 || product.stock === 0 || (product.stock !== null && qty > product.stock)) throw bad(400, 'Invalid quantity or insufficient stock');
+    if (product.soldOutToday) throw bad(400, `${product.name} is sold out for today`);
+    perProduct.set(product.id, (perProduct.get(product.id) || 0) + (Number.isInteger(qty) ? qty : 0));
+    if (!Number.isInteger(qty) || qty < 1 || qty > 99 || product.stock === 0 || (product.stock !== null && perProduct.get(product.id) > product.stock)) throw bad(400, 'Invalid quantity or insufficient stock');
     const answers = validateAnswers(product.customFields, entry.answers, product.name);
-    return { productId: product.id, name: product.name, price: product.price, qty, ...(answers.length ? { answers } : {}) };
+    const line = buildLine(product, entry, qty);
+    return { ...line, ...(answers.length ? { answers } : {}) };
   });
-  const subtotal = items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0);
+  const lineKeys = items.map(i => JSON.stringify([i.productId, i.variant || '', (i.addons || []).map(a => a.group + a.name).sort(), i.note || '', i.answers || null]));
+  if (new Set(lineKeys).size !== lineKeys.length) throw bad(400, 'Invalid items');
+  const subtotal = Number(items.reduce((sum, item) => sum + Number(item.price) * item.qty, 0).toFixed(2));
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
   const referral = await checkReferral(business.id, req.body?.referralCode);
-  const total = Number((subtotal - discount).toFixed(2));
-  const order = await RestaurantOrder.create({ businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
+  const freeAbove = business.freeDeliveryAbove;
+  const deliveryFee = orderType === 'delivery' && !(freeAbove !== null && freeAbove !== undefined && subtotal >= freeAbove) ? Number(business.deliveryCharge || 0) : 0;
+  const total = Number((subtotal - discount + deliveryFee).toFixed(2));
+  const orderNote = cleanNote(req.body?.note, 200);
+  const estimateMinutes = orderType === 'takeaway' && business.prepMinutes ? business.prepMinutes : null;
+  const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, referralCode: referral?.code || null, total, status: 'new' });
   void notifyNewOrder(business, 'restaurant', order);
   void notifyOwnerDevices(business, 'restaurant', order);
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
-  res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, total, trackingToken });
+  res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, deliveryFee, estimateMinutes, total, trackingToken });
 }));
 
 const TRACKING_KINDS = { 'restaurant-orders': { kind: 'restaurant', model: () => RestaurantOrder, allowed: b => b.storeType === 'restaurant' }, 'lead-orders': { kind: 'lead', model: () => Lead, allowed: b => b.storeType !== 'restaurant' } };

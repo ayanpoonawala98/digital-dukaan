@@ -15,7 +15,7 @@ const sign = (kind, orderId, businessId) => jwt.sign({ orderId, businessId, kind
 test('flows are per store type', () => {
   assert.deepEqual(flowFor('retail').statuses, ['new', 'confirmed', 'packed', 'shipped', 'out-for-delivery', 'delivered', 'cancelled']);
   assert.deepEqual(flowFor('services').statuses, ['new', 'confirmed', 'in-progress', 'completed', 'cancelled']);
-  assert.deepEqual(flowFor('restaurant').statuses, ['new', 'preparing', 'served', 'cancelled']);
+  assert.deepEqual(flowFor('restaurant').statuses, ['new', 'accepted', 'preparing', 'ready', 'served', 'out-for-delivery', 'delivered', 'picked-up', 'cancelled']);
 });
 
 test('lead tracking, My Orders, and push registration use per-order capabilities', async () => {

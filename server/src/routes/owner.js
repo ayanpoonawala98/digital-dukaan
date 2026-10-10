@@ -27,9 +27,10 @@ import { byoOwnerRoutes, sendOrderStatus as sendOrderStatusWhatsApp } from '../w
 import { crmRoutes } from '../crm.js';
 import webpush from 'web-push';
 import { notifyNewProduct } from '../new-product-push.js';
-import { flowFor } from '../order-flows.js';
+import { flowFor, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaurantStatusAllowed } from '../order-flows.js';
+import { cleanVariants, cleanAddonGroups, cleanVeg, cleanTags, istDay } from '../menu-options.js';
 import { featureForOwnerRoute, isLocked } from '../feature-locks.js';
-import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral } from '../models/index.js';
+import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
 import { validateProductRows } from '../product-import.js';
 import { insights } from '../sales-insights.js';
 import { dateWhere, dateWindow, summarize, ordersCsv, csvCell as reportCell } from '../reporting.js';
@@ -187,7 +188,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -197,6 +198,7 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   if (changes.storeType && changes.storeType !== 'restaurant') changes.tableCount = 0;
   if (changes.name !== undefined && (typeof changes.name !== 'string' || !changes.name.trim())) throw bad(400, 'Shop name required');
   if (changes.whatsapp !== undefined && !validPhone(changes.whatsapp)) throw bad(400, 'WhatsApp number needs country code without +');
+  if (changes.prepMinutes !== undefined) { if (changes.prepMinutes === '' || changes.prepMinutes === null) changes.prepMinutes = null; else { const m = Number(changes.prepMinutes); if (!Number.isInteger(m) || m < 1 || m > 240) throw bad(400, 'Ready-in minutes must be 1 to 240'); changes.prepMinutes = m; } }
   for (const key of ['deliveryCharge', 'freeDeliveryAbove', 'minOrder']) {
     if (changes[key] !== undefined && changes[key] !== null && changes[key] !== '' && !validPrice(Number(changes[key]))) throw bad(400, 'Charges must be non-negative numbers');
     if (changes[key] !== undefined) changes[key] = changes[key] === '' || changes[key] === null ? (key === 'freeDeliveryAbove' ? null : 0) : Number(changes[key]);
@@ -295,6 +297,11 @@ async function productFields(req) {
     if (!validPrice(fields.price)) throw bad(400, 'Price must be a non-negative number');
   }
   if (Object.hasOwn(req.body, 'customFields')) fields.customFields = cleanFieldDefs(req.body.customFields);
+  if (Object.hasOwn(req.body, 'variants')) fields.variants = cleanVariants(req.body.variants);
+  if (Object.hasOwn(req.body, 'addonGroups')) fields.addonGroups = cleanAddonGroups(req.body.addonGroups);
+  if (Object.hasOwn(req.body, 'veg')) fields.veg = cleanVeg(req.body.veg);
+  if (Object.hasOwn(req.body, 'tags')) fields.tags = cleanTags(req.body.tags);
+  if (Object.hasOwn(req.body, 'soldOutToday')) fields.soldOutDate = req.body.soldOutToday ? istDay() : null;
   if (fields.active !== undefined) fields.active = Boolean(fields.active);
   if (fields.featured !== undefined) fields.featured = Boolean(fields.featured);
   if (fields.imageUrl && !(/^https?:\/\//i.test(fields.imageUrl) || fields.imageUrl.startsWith('/uploads/'))) throw bad(400, 'Image must be an HTTP(S) URL or uploaded image');
@@ -357,7 +364,7 @@ r.post('/:storeId/upload', upload.single('image'), wrap(async (req, res) => {
 const listWhere = (req, kind) => {
   const Op = sequelize.Sequelize.Op;
   const where = { businessId: bid(req), ...dateWhere(req.query, Op) };
-  const statuses = kind === 'restaurant' ? ['new','preparing','served','cancelled'] : ['new','confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed','cancelled'];
+  const statuses = kind === 'restaurant' ? ORDER_FLOWS.restaurant.statuses : ['new','confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed','cancelled'];
   if (req.query.status && req.query.status !== 'all') { if (!statuses.includes(req.query.status)) throw bad(400, 'Invalid order status'); where.status = req.query.status; }
   const q = String(req.query.q || '').trim().slice(0,100);
   if (q) { const escaped = q.replace(/[\\%_]/g, '\\$&'); where[Op.or] = [{ customerPhone: { [Op.iLike]: `%${escaped}%` } }, { customerName: { [Op.iLike]: `%${escaped}%` } }, ...(kind === 'restaurant' ? [] : [{ productName: { [Op.iLike]: `%${escaped}%` } }])]; if (/^#?\d+$/.test(q)) where[Op.or].push({ orderNumber: Number(q.replace('#','')) }); }
@@ -692,7 +699,7 @@ r.post('/:storeId/referrals/:id/confirm', ownerOnly, wrap(async (req, res) => {
   if (!['retail','restaurant'].includes(orderKind)) throw bad(400, 'Choose a valid order type');
   const Order = orderKind === 'retail' ? Lead : RestaurantOrder;
   const order = await Order.findOne({ where:{ id:orderId, businessId:bid(req), referralCode:referral.code } });
-  if (!order || !(orderKind === 'retail' ? ['confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed'].includes(order.status) : ['preparing','served'].includes(order.status))) throw bad(400, 'Find a confirmed order linked to this referral first');
+  if (!order || !(orderKind === 'retail' ? ['confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed'].includes(order.status) : RESTAURANT_DEDUCT.includes(order.status))) throw bad(400, 'Find a confirmed order linked to this referral first');
   if (!order.customerPhone || String(order.customerPhone).replace(/\D/g, '') !== referredPhone) throw bad(400, 'A matching customer phone must be attached to the confirmed order');
   const [changed] = await Referral.update({ status:'confirmed', referredPhone, orderId, orderKind }, { where:{ id:referral.id, businessId:bid(req), status:'pending' } });
   if (!changed) throw bad(409, 'Referral was already confirmed');
@@ -732,7 +739,7 @@ const salesReport = async req => {
   const counts=await Promise.all([Lead.count({where}),RestaurantOrder.count({where})]);
   if(counts.some(n=>n>50000)) throw bad(400,'Choose a smaller date range (maximum 50,000 records per type).');
   const [leads, orders] = await Promise.all([Lead.findAll({where,order:[['createdAt','DESC']]}),RestaurantOrder.findAll({where,order:[['createdAt','DESC']]})]);
-  const movement = new Set(orders.filter(o=>o.status === 'served').flatMap(o=>(o.items || []).map(i=>i.name)));
+  const movement = new Set(orders.filter(o=>RESTAURANT_DONE.includes(o.status)).flatMap(o=>(o.items || []).map(i=>i.name)));
   const products = isLocked(req.store,'products') ? [] : await Product.findAll({where:{businessId:bid(req),active:true}});
   return { ...summarize(orders,leads), insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };
@@ -755,13 +762,27 @@ r.get('/:storeId/restaurant-orders/report.csv', wrap(async (req,res) => {
 
 r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
-  if (!['new', 'preparing', 'served', 'cancelled'].includes(req.body?.status)) throw bad(400, 'Invalid order status');
+  if (!ORDER_FLOWS.restaurant.statuses.includes(req.body?.status)) throw bad(400, 'Invalid order status');
+  const existing = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
+  if (!existing) throw bad(404, 'Order not found');
+  if (!restaurantStatusAllowed(existing.orderType, req.body.status, existing.status)) throw bad(400, `A ${existing.orderType} order cannot be set to ${req.body.status}`);
   await ensureOrderStockSchema();
   const result=await updateOrderStock({sequelize,Order:RestaurantOrder,Product,Ledger:OrderStockLedger,businessId:bid(req),orderId:numId(req.params.id),kind:'restaurant',status:req.body.status,deductStatuses:RESTAURANT_DEDUCT,grandfather:order=>historicalOrder('restaurant',order)});
   if(!result)throw bad(404,'Order not found');
   const {order,changed}=result;
   if (changed) await notifyOrderSubscribers(req.store, 'restaurant', order);
-  if (changed) void notifyStatusChange(req.store, 'restaurant', order, { preparing: 'being prepared', served: 'ready and served. Enjoy your meal!', cancelled: 'cancelled' }[order.status]);
+  if (changed && RESTAURANT_STATUS_TEXT[order.status]) void notifyStatusChange(req.store, 'restaurant', order, RESTAURANT_STATUS_TEXT[order.status]);
   res.json({ order });
+}));
+
+// Waiter / bill requests raised from a table QR. Staff with order access can see and clear them.
+r.get('/:storeId/table-requests', wrap(async (req, res) => {
+  if (req.store.storeType !== 'restaurant') throw bad(404, 'Table requests unavailable');
+  res.json({ requests: await TableRequest.findAll({ where: { businessId: bid(req), status: 'open' }, order: [['createdAt', 'ASC']], limit: 100 }) });
+}));
+r.patch('/:storeId/table-requests/:id', wrap(async (req, res) => {
+  if (req.store.storeType !== 'restaurant') throw bad(404, 'Table requests unavailable');
+  const [changed] = await TableRequest.update({ status: 'done' }, { where: { id: numId(req.params.id), businessId: bid(req), status: 'open' } });
+  res.json({ ok: true, changed });
 }));
 export default r;

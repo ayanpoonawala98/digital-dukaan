@@ -38,6 +38,7 @@ export function featureForOwnerRoute(method, route) {
     [/^referrals(?:\/|$)/, 'referrals'],
     [/^staff(?:\/|$)/, 'staff'],
     [/^restaurant-orders(?:\/|$)/, 'restaurant'],
+    [/^table-requests(?:\/|$)/, 'restaurant'],
     [/^push-broadcast$/, 'notifications'],
     [/^push-subscribers$/, 'notifications'],
     [/^whatsapp-cloud(?:\/|$)/, 'whatsappCloud']

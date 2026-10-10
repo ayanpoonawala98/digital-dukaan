@@ -1,6 +1,6 @@
 // Status-driven inventory changes. Managed transaction and order lock prevent repeat deductions.
 export const RETAIL_DEDUCT=['confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed'];
-export const RESTAURANT_DEDUCT=['preparing','served'];
+export const RESTAURANT_DEDUCT=['preparing','ready','served','out-for-delivery','delivered','picked-up'];
 const stockError=message=>Object.assign(Error(message),{status:409});
 export function orderQuantities(order){
  const rows=Array.isArray(order.items)&&order.items.length?order.items:order.productId?[{productId:order.productId,qty:1}]:[];

@@ -50,7 +50,7 @@ export function createBillDocument(shop, order, kind = 'lead', { estimate = fals
     if (shop.gstin) { text(`GSTIN: ${shop.gstin}`, 44, y, 330, 9, muted); y += 18; }
     y += 12; line(y); y += 18;
     text('ORDER DETAILS', 44, y, 200, 8, muted, 'Strong');
-    const labels = { new: 'Placed', confirmed: 'Confirmed', packed: 'Packed', shipped: 'Shipped', 'out-for-delivery': 'Out for delivery', delivered: 'Delivered', cancelled: 'Cancelled', preparing: 'Preparing', served: 'Served', completed: 'Completed', 'in-progress': 'In progress' };
+    const labels = { new: 'Placed', confirmed: 'Confirmed', packed: 'Packed', shipped: 'Shipped', 'out-for-delivery': 'Out for delivery', delivered: 'Delivered', cancelled: 'Cancelled', preparing: 'Preparing', accepted: 'Accepted', ready: 'Ready', 'picked-up': 'Picked up', served: 'Served', completed: 'Completed', 'in-progress': 'In progress' };
     text(labels[order.status] || String(order.status || 'Placed'), 44, y + 19, 190, 11, ink, 'Strong');
     text(estimate ? 'Estimate only' : order.paymentStatus === 'paid' ? 'Paid online' : 'Payment not recorded as paid', 276, y + 19, 275, 10, order.paymentStatus === 'paid' && !estimate ? teal : muted, 'Body', 'right');
     return y + 55;

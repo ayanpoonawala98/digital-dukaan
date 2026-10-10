@@ -1,3 +1,4 @@
+import { RESTAURANT_DONE } from './order-flows.js';
 import { DataTypes, Op } from 'sequelize';
 import { sequelize, Business, User, Lead, RestaurantOrder } from './models/index.js';
 import { dateWhere, dateWindow, csvCell } from './reporting.js';
@@ -16,7 +17,7 @@ export function aggregateSales(stores,owners,leads,orders,rules) {
   for(const o of [...leads.map(o=>({...o,kind:'lead',total:o.price})),...orders.map(o=>({...o,kind:'restaurant'}))]) {
     const row=rows.get(o.businessId);if(!row)continue;
     if(o.status==='cancelled'){row.cancelled++;continue;}
-    const complete=o.kind==='restaurant'?o.status==='served':['delivered','completed'].includes(o.status);
+    const complete=o.kind==='restaurant'?RESTAURANT_DONE.includes(o.status):['delivered','completed'].includes(o.status);
     if(!complete){row.requests++;row.pendingValue+=money(o.total);continue;}
     const total=money(o.total),date=day(o.createdAt);
     const applicable=rules.filter(r=>r.businessId===o.businessId&&r.effectiveFrom<=date).sort((a,b)=>b.effectiveFrom.localeCompare(a.effectiveFrom))[0];
