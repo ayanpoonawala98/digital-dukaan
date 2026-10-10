@@ -151,3 +151,55 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
 .admin-content .ro-type b, .admin-content .ro-type em { color: inherit; }
 .sd .sd-kpi small { opacity: .95; }
 .sd .sd-axis, .sd .sd-donut-l { opacity: .92; }
+
+/* =====================  Round 3 (designer re-score)  ===================== */
+/* Sidebar active item: the accent-foreground (dark ink) must not reach this translucent tint. */
+.admin-layout .sidebar nav button.selected { color: #e5fff0; }
+:root:not([data-theme="dark"]) .admin-layout .sidebar nav button.selected { color: #fff; }
+
+/* Header language select (owner + storefront): 44px */
+.owner-language select,
+.admin-top select { min-height: var(--ui-tap); box-sizing: border-box; }
+
+/* Exact 8px between adjacent action buttons (no stray 3px right margin, no whitespace gap) */
+.admin-content td.row-actions > button { margin-right: 0; }
+.admin-content td.row-actions > button + button { margin-left: var(--ui-gap); }
+.admin-content td:has(> .table-button + .table-button) { font-size: 0; }
+.admin-content td:has(> .table-button + .table-button) > .table-button { font-size: 13px; }
+.admin-content td > .table-button + .table-button { margin-left: var(--ui-gap); }
+
+/* Settings: step-tab container padding, remove-store stack */
+.admin-content .settings-tabs { padding: 8px; }
+.admin-content .remove-store-panel label { margin: 16px 0 0; }
+.admin-content .remove-store-panel > label + .btn { margin-top: 12px; }
+
+/* Sales: bills strip uses the standard card; KPI eyebrows are ink with the coloured bar carrying the hue */
+.bills-strip { background: var(--card); }
+.bills-strip small { color: var(--ink-soft); }
+.sd .sd-kpi-title { color: var(--ink-soft); }
+.stat-card span, .tv-stats > div span { color: var(--ink-soft); }
+
+/* Review stars: gold that reads on white; muted off-stars at 3:1 */
+.stars { color: #a16a00; }
+.stars .off { color: #8a857b; }
+[data-theme="dark"] .stars { color: #e6b422; }
+[data-theme="dark"] .stars .off { color: #7d786d; }
+.star-input button { color: #8a857b; }
+.star-input button.on { color: #a16a00; }
+[data-theme="dark"] .star-input button.on { color: #e6b422; }
+
+/* Storefront: header title link 44px; notify popup close clears the buttons */
+.shop-root .store-header-brand { min-height: var(--ui-tap); }
+.storefront-notify-popup { padding-top: 24px; }
+.sd .sd-hrow small { opacity: .85; }
+
+/* Storefront menu-view Add, header nav links and footer links: 44px targets */
+.shop-root .mc-add { min-height: var(--ui-tap); min-width: var(--ui-tap); box-sizing: border-box; }
+@media (min-width: 761px) { .shop-root .header nav a:not(.btn) { display: inline-flex; align-items: center; min-height: var(--ui-tap); } }
+.shop-root .footer .brand, .shop-root .footer-inner .brand, .shop-root .creator-credit a { display: inline-flex; align-items: center; min-height: var(--ui-tap); }
+
+/* Dark storefront: Add buttons use the accent tint instead of the brightest cream */
+[data-theme="dark"] .shop-root .mc-add,
+[data-theme="dark"] .shop-root .menu-add { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
+[data-theme="dark"] .shop-root .mc-add:hover { background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent)); }
+[data-theme="dark"] .shop-root .menu-add { color: color-mix(in srgb, var(--accent-ink) 70%, #fff); }
