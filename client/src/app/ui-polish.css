@@ -203,3 +203,6 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
 [data-theme="dark"] .shop-root .menu-add { background: var(--accent-soft); color: var(--accent-ink); border-color: var(--accent); }
 [data-theme="dark"] .shop-root .mc-add:hover { background: color-mix(in srgb, var(--accent-soft) 70%, var(--accent)); }
 [data-theme="dark"] .shop-root .menu-add { color: color-mix(in srgb, var(--accent-ink) 70%, #fff); }
+
+/* Storefront header language select: 44px target */
+.header-controls .language-select select { min-height: var(--ui-tap); box-sizing: border-box; }
