@@ -543,7 +543,15 @@ export default function Dashboard() {
   useEffect(() => { if (tab === 'leads' && currentStore?.storeType === 'restaurant') setTab('restaurant'); }, [tab, currentStore?.storeType]);
   const tabLocked = currentStore ? isTabLocked(currentStore, tab) : false;
   const BASE = import.meta.env.VITE_API_URL || '';
-  const updateRestaurantOrder = (order, status) => action(async () => { await api(`/owner/${storeId}/restaurant-orders/${order.id}`, { method: 'PATCH', token, body: { status } }); }, `order-${order.id}`);
+  // Changing one order's status updates only that order's card. No dashboard-wide reload, no list reset, other cards stay usable.
+  const updateRestaurantOrder = async (order, status) => {
+    setError(''); setActionKey(`order-${order.id}`);
+    try {
+      const { order: fresh } = await api(`/owner/${storeId}/restaurant-orders/${order.id}`, { method: 'PATCH', token, body: { status } });
+      list.patchRow(order.id, fresh); setRestaurantOrders(prev => prev.map(x => (x.id === order.id ? { ...x, ...fresh } : x)));
+      return fresh;
+    } catch (e) { setError(e.message); return null; } finally { setActionKey(''); }
+  };
 
   return <AdminShell tab={tab} setTab={setTab} stores={stores} storeId={storeId} setStoreId={setStoreId}><div className="admin-content" key={`${storeId}:${tab}`}>
     {!storeId ? (storeListLoading ? <LoadSkeleton label="Loading your stores" cards={2}/> : <div className="dashboard-panel empty-state">{linkedStore ? 'This store is not available in your account. Sign in with the store owner account.' : 'Create a store to manage your catalog.'}</div>) : <>
