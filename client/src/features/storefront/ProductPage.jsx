@@ -16,6 +16,8 @@ import { useCart, useWishlist } from './shop.js';
 import { Footer, Header } from '../../shared/components/chrome.jsx';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
+import ProductReviews from '../reviews/ProductReviews.jsx';
+import { Stars } from '../reviews/Stars.jsx';
 import { useSeo } from '../../shared/lib/seo.js';
 
 function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
@@ -60,6 +62,7 @@ export default function ProductPage({ hostedSlug }) {
           <span className="kicker">{product.category?.name || 'THE COLLECTION'}</span>
           <h1>{product.name}<span className="accent-dot">.</span></h1>
           <p className="detail-price">{inr(product.price)}</p>
+          {product.ratingCount > 0 && <p><Stars value={product.ratingAvg} count={product.ratingCount} size={16}/></p>}
           <div className="detail-line"/>
           <p className="detail-description">{product.description || (restaurant ? 'Freshly prepared for you.' : 'A lovely find from our collection. Message us to know more.')}</p>
           {!business.isOpen && !business.blocksOrders && <p className="notice warn"><Clock size={15}/> {business.name} is closed right now. Your order will be confirmed when the shop opens{business.openingHours ? ` (${business.openingHours})` : ''}.</p>}
@@ -78,6 +81,7 @@ export default function ProductPage({ hostedSlug }) {
           <p className="detail-small">{restaurant ? 'Add items to your order, then choose dine-in, takeaway or delivery from the menu.' : "Have a question? Tap the button above to talk to us directly. We'd love to help."}</p>
         </div>
       </div>
+    <ProductReviews slug={slug} productId={id}/>
     </div></main>
     <Footer><span>{business.name} · Powered by Digital Shop</span></Footer>
   </div>;

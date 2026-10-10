@@ -1,0 +1,12 @@
+.stars{display:inline-flex;gap:2px;align-items:center;line-height:1;color:#d5a021}
+.stars .off{color:#d6d3cc}
+.stars-text{margin-left:6px;font-size:.85em;color:var(--muted,#6b6b6b)}
+.star-input{display:inline-flex;gap:6px}
+.star-input button{background:none;border:0;padding:4px;font-size:28px;line-height:1;cursor:pointer;color:#d6d3cc;min-width:44px;min-height:44px}
+.star-input button.on{color:#d5a021}
+.reviews{margin-top:32px;display:grid;gap:12px}
+.reviews-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.review-item{border-top:1px solid var(--line,#e8e5de);padding-top:12px;display:grid;gap:4px}
+.review-item p{margin:0}
+.review-form{display:grid;gap:8px;border-top:1px solid var(--line,#e8e5de);padding-top:12px}
+.review-form textarea{min-height:72px}

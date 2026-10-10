@@ -101,6 +101,7 @@ function usePoll(load, active, ms = 30000) {
   }, [load, active, ms]);
 }
 
+import OrderReviews from '../reviews/OrderReviews.jsx';
 export function OrderTracking({ kind = 'restaurant' }) {
   useSeo({ title: 'Track your order - Digital Shop', noindex: true });
   const { slug, id } = useParams();
@@ -131,6 +132,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
       <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={data.order.orderType}/>
       {kind === 'restaurant' && <p>{data.order.orderType}{data.order.tableNumber ? ` · Table ${data.order.tableNumber}` : ''}</p>}
       <OrderBody order={data.order}/>
+      {token && flow.done.includes(data.order.status) && <OrderReviews slug={slug} kind={kind} id={id} token={token}/>}
       <PushControl slug={slug} orders={token ? [...saved, ...loadSavedOrders(slug).filter(o => !(o.kind === kind && o.id === Number(id)))] : []}/>
       <p><small>Last checked: {updated ? updated.toLocaleTimeString('en-IN') : '-'} · updates automatically while open</small></p>
       <div className="tracking-actions"><button className="btn btn-outline btn-small" onClick={load}>Refresh</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? 'Copied' : 'Copy tracking link'}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>My orders</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Back to store</Link></div>

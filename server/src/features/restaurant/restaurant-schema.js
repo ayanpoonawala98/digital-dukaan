@@ -4,6 +4,7 @@ import { ensureOrderNumbers } from '../orders/order-numbers.js';
 import { sequelize } from '../../config/db.js';
 import { TableRequest, RestaurantOrder, OrderPushSubscription, OwnerPushSubscription, Coupon, NotifySecret, PaymentSecret } from '../../models/index.js';
 import { ensureCrmSchema } from '../crm/crm.js';
+import { ensureReviewsSchema } from '../reviews/reviews.js';
 let ready;
 export function ensureRestaurantSchema() {
   if (!ready) ready = (async () => {
@@ -84,6 +85,7 @@ export function ensureRestaurantSchema() {
     await sequelize.query('CREATE INDEX IF NOT EXISTS products_business_active_featured_idx ON products ("businessId", active, featured DESC, "createdAt" DESC)');
     await ensurePerformanceIndexes(sequelize);
     await ensureCrmSchema();
+    await ensureReviewsSchema();
     await ensureOrderNumbers();
     await ensureOrderStockSchema();
   })().catch(e => { ready = null; throw e; });

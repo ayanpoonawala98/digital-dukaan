@@ -12,6 +12,7 @@ import { storeUrl } from '../shared/utils/store-domain.js';
 import {shopQrSvg} from '../features/stores/shop-qr.js';
 import { recordCustomerOrder, attachCustomerDevice, removeCustomerDevice } from '../features/crm/customer-sync.js';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
+import { reviewPublicRoutes } from '../features/reviews/reviews.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { isLocked } from '../features/platform/feature-locks.js';
 import { notifyNewOrder } from '../features/notifications/notify.js';
@@ -29,6 +30,7 @@ r.post('/stores/:slug/enquire-cart', ...orderLimits);
 r.post('/stores/:slug/table-requests', ...tableRequestLimits);
 r.post('/shop-requests', shopRequestLimit);
 r.use(campaignPublicRoutes);
+r.use(reviewPublicRoutes);
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
 const storefrontCache = (req, res, next) => { res.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=10'); next(); };
 const shop = async slug => { const b = await Business.findOne({ where: { slug, active: true, deletedAt: null } }); if (!b) throw bad(404, 'Shop not found'); return b; };
