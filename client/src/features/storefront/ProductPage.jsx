@@ -40,6 +40,7 @@ export default function ProductPage({ hostedSlug }) {
   const [data, setData] = useState(null), [error, setError] = useFeedbackState(''), [copied, setCopied] = useState(false), [sheet, setSheet] = useState(false), [qty, setQtyState] = useState(1), [answers, setAnswers] = useState({});
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
+  useEffect(() => { if (data?.business && data?.product) document.title = `${data.product.name} - ${data.business.name}`; return () => { document.title = 'Digital Shop - Your shop, one link away'; }; }, [data]);
   if (error) return <><Header/><div className="container empty-state page-fade">{error}</div></>;
   if (!data) return <BrandLoader label="Loading product"/>;
   const { business, product } = data;

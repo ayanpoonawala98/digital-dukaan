@@ -84,12 +84,13 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
     const noun = services ? 'booking requests' : 'enquiries', one = services ? 'request' : 'enquiry', topTitle = services ? 'Most requested services' : 'Most enquired products', f = ins.fulfilment || {};
     const doneRate = f.total ? Math.round((f.done / f.total) * 100) : 0, c = ins.customers || {};
     return <div className="sales-analytics sd">
-      <div className="sd-kpis">
+      <div className="sd-kpis six">
         <Kpi i={0} title={services ? 'Booking requests' : 'WhatsApp enquiries'} value={r.whatsappEnquiries || 0} note="Requests received in the selected date range" spark={sparkOf(series, 'enquiries')}><Delta cur={w.last7.enquiries} prev={w.prev7.enquiries}/></Kpi>
         <Kpi i={1} title={`${services ? 'Request' : 'Enquiry'} value`} value={inr(r.enquiryValue)} note="Requests only, not confirmed sales" spark={sparkOf(series, 'enquiryValue')}><Delta cur={w.last7.enquiryValue} prev={w.prev7.enquiryValue}/></Kpi>
-        <Kpi i={2} title={`Average ${one}`} value={inr(ins.avgEnquiry)} note="Value of a typical request" spark={sparkOf(series, 'enquiries')}/>
-        <Kpi i={3} title={services ? 'Completed' : 'Delivered'} value={`${doneRate}%`} note={`${f.done || 0} of ${f.total || 0} ${noun} reached the end`}/>
-        <Kpi i={4} title="Repeat customers" value={c.repeat || 0} note={`${c.identified || 0} customers left a phone number`}/>
+        <Kpi i={2} title="Earnings" value={inr(r.recordedTotal)} note={`${r.retailDelivered || 0} ${services ? 'completed' : 'delivered'} ${services ? (r.retailDelivered === 1 ? 'booking' : 'bookings') : (r.retailDelivered === 1 ? 'order' : 'orders')} in this range`} spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
+        <Kpi i={3} title={`Average ${one}`} value={inr(ins.avgEnquiry)} note="Value of a typical request" spark={sparkOf(series, 'enquiries')}/>
+        <Kpi i={4} title={services ? 'Completed' : 'Delivered'} value={`${doneRate}%`} note={`${f.done || 0} of ${f.total || 0} ${noun} reached the end`}/>
+        <Kpi i={5} title="Repeat customers" value={c.repeat || 0} note={`${c.identified || 0} customers left a phone number`}/>
       </div>
       <div className="sd-grid-2">
         <Panel wide title={`${services ? 'Booking requests' : 'Enquiries'} over time`} sub={`Daily ${noun} (bars) and their value (line), last ${ins.seriesDays} days, IST`}>{series.some(s => s.enquiries) ? <TrendChart series={series} valueKey="enquiryValue" countKey="enquiries" valueLabel={`${one[0].toUpperCase()}${one.slice(1)} value`} countLabel={noun}/> : <Empty>No {noun} in this date range.</Empty>}</Panel>
@@ -107,7 +108,7 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
 
   return <div className="sales-analytics sd">
     <div className="sd-kpis">
-      <Kpi i={0} title="Recorded order value" value={inr(r.recordedTotal)} note="Served orders, not verified payments" spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
+      <Kpi i={0} title="Earnings" value={inr(r.recordedTotal)} note="Served orders, not verified payments" spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
       <Kpi i={1} title="Served orders" value={r.completedOrders || 0} note="In the selected order-created date range" spark={sparkOf(series, 'servedOrders')}><Delta cur={w.last7.servedOrders} prev={w.prev7.servedOrders}/></Kpi>
       <Kpi i={2} title="Average served order" value={inr(r.averageOrder)} note="Recorded value divided by served orders"/>
       <Kpi i={3} title="Today / this month" value={inr(r.today)} note={`${inr(r.month)} so far this month`}/>

@@ -20,6 +20,7 @@ import { AdminShell } from '../dashboard/Dashboard.jsx';
 export default function SuperAdmin() {
   const { session } = useAuth(), token = session.token;
   const [resetOwner,setResetOwner]=useState(null);
+  useEffect(() => { document.title = 'Super admin - Digital Shop'; return () => { document.title = 'Digital Shop - Your shop, one link away'; }; }, []);
   const [tab, setTabState] = useState(() => ['overview','sales','businesses','users','requests'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || 'overview');
   const setTab = next => { setTabState(next); try { if (typeof next === 'string') history.replaceState(null, '', `${location.pathname}${location.search}#${next}`); } catch { /* optional */ } };
   const [filters,setFilters]=useState({q:''});
