@@ -1426,3 +1426,58 @@ footer { background:#101d15; }
   .rorder-card .rorder-actions .table-button{width:100%}
   .rorder-card .rorder-actions>div,.rorder-card .rorder-actions>span{width:100%;display:flex;flex-direction:column;gap:10px}
 }
+
+/* ===== Alignment polish (mobile) ===== */
+@media (max-width:760px){
+  .data-toolbar > label:first-child{grid-column:1/-1}
+  .data-toolbar > .btn,.data-toolbar > button{grid-column:1/-1;width:100%}
+}
+@media (max-width:640px){
+  .page-title-actions{flex-direction:column;align-items:stretch;width:100%;margin-top:14px}
+  .page-title-actions .btn{width:100%;justify-content:center}
+  .qr-download-panel .btn{display:flex;width:100%;justify-content:center;margin:0}
+  .qr-download-panel .btn + .btn,.qr-download-panel p + .btn{margin-top:10px}
+  .dashboard-panel > .btn,.status-creative-panel > .btn{display:flex;width:100%;justify-content:center}
+  .rorder-views{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%}
+  .rorder-views .btn{width:100%;justify-content:center}
+  .rorder-views .btn:nth-child(n+3){grid-column:1/-1}
+  .catalog-head{align-items:flex-end}
+  .catalog-head > span{max-width:none;white-space:nowrap;padding-bottom:6px}
+  .order-stepper li:last-child:nth-child(odd){grid-column:1/-1}
+}
+
+/* ===== Motion: premium, short, transform/opacity only ===== */
+@media (prefers-reduced-motion:no-preference){
+  @keyframes ddRoute{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+  @keyframes ddBump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+  @keyframes ddFlash{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 14%,var(--surface,#fff))}100%{box-shadow:0 0 0 12px transparent;background:var(--surface,#fff)}}
+  @keyframes ddStepOn{0%{transform:scale(.6);opacity:.4}60%{transform:scale(1.15)}100%{transform:scale(1);opacity:1}}
+  @keyframes ddRing{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 40%,transparent)}100%{box-shadow:0 0 0 10px transparent}}
+  @keyframes ddSheetUp{from{transform:translate3d(0,40px,0);opacity:0}to{transform:none;opacity:1}}
+  /* route / page transitions */
+  #root main,#root .admin-content,#root .store-shell>main{animation:ddRoute .32s var(--ease) backwards}
+  /* menu list */
+  .menu-card{animation:ddRise .38s var(--ease) backwards;transition:box-shadow .25s ease,transform .25s var(--ease),border-color .25s ease}
+  .menu-card:nth-child(2){animation-delay:40ms}.menu-card:nth-child(3){animation-delay:80ms}.menu-card:nth-child(4){animation-delay:120ms}.menu-card:nth-child(n+5){animation-delay:150ms}
+  @media (hover:hover){.menu-card:hover{box-shadow:0 10px 26px rgba(0,0,0,.08);transform:translate3d(0,-2px,0)}}
+  .menu-add{transition:transform .15s var(--ease),background-color .2s ease}
+  .menu-add:active{transform:scale(.93)}
+  /* add-to-cart feedback */
+  .cart-bump{animation:ddBump .38s var(--ease)}
+  .item-sheet{animation:ddSheetUp .3s var(--ease)}
+  /* button press */
+  .btn,.table-button,.filter-tabs button{transition:transform .15s var(--ease),box-shadow .2s ease,background-color .2s ease,border-color .2s ease,opacity .2s ease}
+  .btn:not(:disabled):active,.table-button:not(:disabled):active{transform:scale(.97)}
+  /* order status steps */
+  .order-stepper li{transition:background-color .35s ease,border-color .35s ease,color .35s ease}
+  .order-stepper li.complete .step-mark{animation:ddStepOn .45s var(--ease) backwards}
+  .order-stepper li.active .step-mark{animation:ddRing 1.8s ease-out infinite}
+  .order-stepper li{animation:ddRise .35s var(--ease) backwards}
+  .order-stepper li:nth-child(2){animation-delay:50ms}.order-stepper li:nth-child(3){animation-delay:100ms}.order-stepper li:nth-child(4){animation-delay:150ms}.order-stepper li:nth-child(5){animation-delay:200ms}
+  .track-item{animation:ddRise .35s var(--ease) backwards}
+  /* kitchen + owner orders: new cards highlight once */
+  .kitchen-card,.rorder-card{animation:ddRise .35s var(--ease) backwards}
+  .kitchen-col:first-child .kitchen-card,.rorders .rorder-card:has(.status-pill.new,.badge-new){animation:ddRise .35s var(--ease) backwards,ddFlash 1.6s ease-out .2s 1}
+  .table-requests > *{animation:ddRise .3s var(--ease) backwards}
+}
+@media (max-width:760px){ .data-toolbar > label:has(select){grid-column:1/-1} .data-toolbar > label:has(select) select{width:100%} }

@@ -360,7 +360,7 @@ export default function ShopPage({ hostedSlug }) {
     </main>
     <div className="container store-install-footer"><InstallApp name={business.name} t={t}/></div>
     <Footer><span>{business.name} · Powered by Digital Shop</span></Footer>
-    {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span className="cart-badge">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
+    {cart.count > 0 && !cartOpen && <button className="cart-fab anim-pop" onClick={() => setCartOpen(true)} aria-label="Open cart"><ShoppingBag size={22}/><span key={cart.count} className="cart-badge cart-bump">{cart.count}</span><b>{inr(cart.subtotal)}</b></button>}
     {offerOpen && <OfferPopup business={business} onClose={dismissOffer}/>}
     {business.storeType === 'restaurant' ? <RestaurantCheckout slug={slug} business={business} cart={cart} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/> : <CartDrawer slug={slug} business={business} cart={cart} orders={orders} open={cartOpen} onClose={() => setCartOpen(false)} lang={lang}/>}
     <WishlistDrawer slug={slug} wishlist={wishlist} open={wishOpen} onClose={() => setWishOpen(false)}/>
