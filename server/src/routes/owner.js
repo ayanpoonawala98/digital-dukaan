@@ -73,6 +73,7 @@ const numId = (value, label = 'ID') => {
 };
 
 r.get('/stores', wrap(async (req, res) => res.json({ stores: await Business.findAll({ where: req.user.role === 'staff' ? { id: req.user.staffBusinessId, ownerId: req.user.managerId, deletedAt: null } : { ownerId: req.user.id, deletedAt: null }, order: [['createdAt', 'DESC']] }) })));
+r.get('/plan', wrap(async (req, res) => { if (req.user.role !== 'owner') throw bad(403, 'Only the shop owner can see the plan'); res.json(await ownerPlan(req.user)); }));
 r.get('/deleted-stores', ownerOnly, wrap(async (req, res) => {
   const stores = await Business.findAll({ where: { ownerId: req.user.id, deletedAt: { [sequelize.Sequelize.Op.ne]: null } }, order: [['deletedAt', 'DESC']] });
   res.json({ stores: stores.map(store => ({ id: store.id, name: store.name, slug: store.slug, deletedAt: store.deletedAt, restoreUntil: restoreUntil(store.deletedAt) })) });
@@ -181,7 +182,6 @@ r.patch('/:storeId/staff/:id', ownerOnly, wrap(async (req, res) => {
   res.json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:staff.active, permissions:staffPerms(staff) } });
 }));
 
-r.get('/plan', wrap(async (req, res) => { if (req.user.role !== 'owner') throw bad(403, 'Only the shop owner can see the plan'); res.json(await ownerPlan(req.user)); }));
 r.get('/:storeId/overview', wrap(async (req, res) => {
   if (req.user.role === 'staff') return res.json({ business:req.store, products:0, categories:0, leads:0, subscribers:0, topProducts:[], lowStock:[] });
   const [products, categories, leads, subscribers] = await Promise.all([

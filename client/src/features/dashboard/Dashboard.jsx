@@ -42,7 +42,7 @@ import { isTabLocked } from '../../shared/lib/feature-locks.js';
 // Read-only plan, trial and payment status for the owner. Admin changes it in Clients; this only shows it.
 function PlanCard({ token }) {
   const [plan, setPlan] = useState(null);
-  useEffect(() => { let live = true; api('/owner/plan', { token }).then(p => { if (live) setPlan(p); }).catch(() => {}); return () => { live = false; }; }, [token]);
+  useEffect(() => { let live = true; api('/owner/plan', { token, feedback: false }).then(p => { if (live) setPlan(p); }).catch(() => {}); return () => { live = false; }; }, [token]);
   if (!plan) return null;
   const quiet = plan.tone === 'info' && plan.status !== 'trial';
   return <div className={`notice plan-card ${plan.tone === 'info' ? '' : plan.tone}`} role={plan.tone === 'error' ? 'alert' : 'status'}><div><strong>{plan.plan} plan{plan.monthlyFee ? ` · ${inr(plan.monthlyFee)}/month` : ''}.</strong> {plan.text}{!quiet && <small className="muted"> Questions about billing? Contact Digital Shop.</small>}</div></div>;
