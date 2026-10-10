@@ -1351,7 +1351,7 @@ footer { background:#101d15; }
 .table-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;margin:10px auto;border-radius:12px;background:var(--surface-2,#f1efe9);position:sticky;top:0;z-index:5}
 .table-bar span{display:flex;gap:8px;flex-wrap:wrap}
 .restaurant-catalog .filter-tabs,.filter-tabs{scrollbar-width:none}
-.item-sheet-overlay{display:flex;align-items:flex-end;justify-content:center;z-index:60}
+.item-sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:flex-end;justify-content:center;z-index:1000}
 .item-sheet{background:var(--surface,#fff);width:min(560px,100%);max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;position:relative}
 @media(min-width:700px){.item-sheet-overlay{align-items:center}.item-sheet{border-radius:20px}}
 .item-sheet-close{position:absolute;top:10px;right:10px;background:#fff;z-index:2}
@@ -1392,3 +1392,10 @@ footer { background:#101d15; }
 .opt-edit-row input[type=text],.opt-edit-row input:not([type]){flex:1;min-width:120px}
 .addon-group-edit{border:1px dashed var(--line,#ccc);border-radius:10px;padding:8px;display:grid;gap:6px}
 .tag-picker{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+
+.item-sheet label.opt-row,.item-sheet .opt-row{display:flex;flex-direction:row;align-items:center;gap:10px;grid-template-columns:none}
+.item-sheet .opt-row input{width:auto;flex:none;margin:0}
+.item-sheet .opt-row b{margin-left:auto;font-weight:600}
+.item-sheet .opt-note{display:grid}
+.item-sheet fieldset{min-width:0}
+.item-sheet-foot .qty-stepper{display:flex;align-items:center;gap:10px}

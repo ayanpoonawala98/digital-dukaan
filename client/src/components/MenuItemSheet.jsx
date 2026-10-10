@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Minus, Plus, X } from 'lucide-react';
 import { imageSrc, inr } from '../lib/api.js';
 import { storeImage } from '../lib/store-image.js';
@@ -27,7 +28,7 @@ export default function MenuItemSheet({ product, onClose, onAdd }) {
     if (missing) { setError(`Please choose ${missing.name}`); return; }
     onAdd(qty, { variant, addons: picked, addonList, note: note.trim(), unitPrice: unit });
   };
-  return <div className="drawer-overlay item-sheet-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+  return createPortal(<div className="item-sheet-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <div className="item-sheet anim-slide" role="dialog" aria-label={product.name}>
       <button className="icon-btn item-sheet-close" onClick={onClose} aria-label="Close"><X size={20}/></button>
       {product.imageUrl && <img className="item-sheet-img" src={storeImage(imageSrc(product.imageUrl), 720)} alt={product.name}/>}
@@ -48,5 +49,5 @@ export default function MenuItemSheet({ product, onClose, onAdd }) {
         </div>
       </div>
     </div>
-  </div>;
+  </div>, document.body);
 }
