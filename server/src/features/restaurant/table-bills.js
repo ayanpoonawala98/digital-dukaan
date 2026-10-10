@@ -89,7 +89,7 @@ export async function tablesState(store) {
   const reqOf = n => { const k = reqs.filter(r => Number(r.tableNumber) === n).map(r => r.kind); return k.includes('bill') ? 'bill' : k.length ? 'waiter' : null; };
   const holds = new Set((await TableHold.findAll({ where: { businessId: store.id }, attributes: ['tableNumber'], raw: true })).map(h => h.tableNumber));
   const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number), held: holds.has(t.number), occupied: t.occupied || holds.has(t.number) }));
-  return { hiddenOrders: Math.max(0, openCount - orders.length), tableCount: count, menu, name: store.name, gstin: store.gstin || '', gstMode: store.gstMode || null, gstRate: store.gstRate ?? null, tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
+  return { hiddenOrders: Math.max(0, openCount - orders.length), tableCount: count, menu, name: store.name, address: store.location || '', phone: store.whatsapp || '', gstin: store.gstin || '', gstMode: store.gstMode || null, gstRate: store.gstRate ?? null, tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
 export async function billHistory(store, { channel, table, limit = 50, date }) {

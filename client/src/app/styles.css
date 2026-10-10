@@ -1802,3 +1802,18 @@ div.row-actions { display: flex; flex-wrap: wrap; gap: var(--gap-1); }
 .sidebar-bottom .sidebar-theme span { font-weight: 600; font-size: 14px; }
 .overview-stats .stat-card > span { min-height: 2.8em; }
 .mnav-account .mnav-theme { font: inherit; font-weight: 700; cursor: pointer; }
+
+/* Cart drawer: totals and the checkout button stay visible while the form scrolls */
+.drawer-foot { position: sticky; bottom: -24px; margin: var(--gap-3) -24px -24px; padding: var(--gap-3) 24px calc(var(--gap-3) + env(safe-area-inset-bottom, 0px)); background: var(--bg); border-top: 1px solid var(--line); box-shadow: 0 -10px 20px -14px rgba(0,0,0,.25); z-index: 2; }
+.drawer-foot .drawer-totals { margin-top: 0; border-top: 0; padding-top: 0; }
+.drawer-foot .btn.full { margin-top: var(--gap-2); width: 100%; }
+.drawer-foot .drawer-hint { margin: var(--gap-1) 0 0; text-align: center; }
+.mnav-grid button { justify-content: flex-start; }
+.tv-shopinfo { font-size: 12px; line-height: 1.4; }
+
+/* Superadmin Businesses: actions wrap instead of pushing the table past the screen */
+.biz-actions { align-items: flex-start; }
+.biz-actions .admin-delete-inline { display: flex; flex: 1 1 100%; gap: var(--gap-1); flex-wrap: wrap; margin: 0; }
+.biz-actions .admin-delete-inline input { flex: 1 1 140px; min-width: 0; max-width: 200px; }
+.table-wrap td a { overflow-wrap: anywhere; word-break: break-word; }
+.table-wrap td:last-child { min-width: 0; }

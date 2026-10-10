@@ -1,3 +1,4 @@
+import { SALES_BASIS } from '../../shared/lib/owner-ui.js';
 import React from 'react';
 import { inr } from '../../shared/lib/api.js';
 import './sales-dashboard.css';
@@ -108,19 +109,19 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
 
   return <div className="sales-analytics sd">
       {r.bills?.count > 0 && <div className="bills-strip" role="group" aria-label="Table bills settled">
-        <div><small>Bills settled in range</small><b>{r.bills.count}</b></div>
-        <div><small>Billed total</small><b>{inr(r.bills.total)}</b></div>
+        <div><small>Bills paid in range</small><b>{r.bills.count}</b></div>
+        <div><small>Billed total (paid bills)</small><b>{inr(r.bills.total)}</b></div>
         <div><small>GST</small><b>{inr(r.bills.gst)}</b></div>
         <div><small>Extra charges</small><b>{inr(r.bills.charges)}</b></div>
         <div><small>Discounts</small><b>{inr(r.bills.discounts)}</b></div>
         {r.bills.byMode && <><div><small>Cash</small><b>{inr(r.bills.byMode.cash)}</b></div><div><small>UPI</small><b>{inr(r.bills.byMode.upi)}</b></div><div><small>Card</small><b>{inr(r.bills.byMode.card)}</b></div></>}
-        <p className="muted">Full bill history is under Tables.</p>
+        <p className="muted">{SALES_BASIS.billed} {SALES_BASIS.differ} Full bill history is under Tables.</p>
       </div>}
     <div className="sd-kpis">
-      <Kpi i={0} title="Earnings" value={inr(r.recordedTotal)} note="Served orders, not verified payments" spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
+      <Kpi i={0} title="Earnings" value={inr(r.recordedTotal)} note="Served value by order date, not verified payments" spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
       <Kpi i={1} title="Served orders" value={r.completedOrders || 0} note="In the selected order-created date range" spark={sparkOf(series, 'servedOrders')}><Delta cur={w.last7.servedOrders} prev={w.prev7.servedOrders}/></Kpi>
       <Kpi i={2} title="Average served order" value={inr(r.averageOrder)} note="Recorded value divided by served orders"/>
-      <Kpi i={3} title="Today / this month" value={inr(r.today)} note={`${inr(r.month)} so far this month`}/>
+      <Kpi i={3} title="Today / this month" value={inr(r.today)} note={`${inr(r.month)} so far this month. Served value by order date.`}/>
       <Kpi i={4} title="Open right now" value={r.restaurantPending || 0} note={`${r.cancelledOrders || 0} cancelled in this range`}/>
     </div>
     <div className="sd-grid-2">

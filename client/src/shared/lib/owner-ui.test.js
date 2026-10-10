@@ -19,3 +19,9 @@ test('services use booking words, others keep order words', () => {
   assert.equal(verticalWords('retail').orders, 'Orders');
   assert.equal(verticalWords(undefined).recent, 'Recent enquiries');
 });
+test('every owner tab is reachable from a named mobile group', () => {
+  const keys = ['leads', 'restaurant', 'tables', 'sales', 'products', 'categories', 'coupons', 'imports', 'customers', 'reviews', 'notifications', 'campaigns', 'broadcast', 'whatsapp-cloud', 'settings', 'staff'];
+  const { groups } = groupNavItems([['overview'], ...keys.map(k => [k])]);
+  assert.deepEqual(groups.flatMap(g => g.items.map(i => i[0])).sort(), [...keys].sort());
+  assert.ok(!groups.some(g => g.id === 'more'));
+});

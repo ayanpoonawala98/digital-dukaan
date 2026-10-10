@@ -23,3 +23,10 @@ export function groupNavItems(items) {
 export const verticalWords = storeType => storeType === 'services'
   ? { orders: 'Bookings', requests: 'Booking requests', recent: 'Recent booking requests', requestsNote: 'Booking requests are not confirmed appointments until you confirm them.' }
   : { orders: 'Orders', requests: 'WhatsApp enquiries', recent: 'Recent enquiries', requestsNote: 'Enquiries are requests, not confirmed sales.' };
+
+// One shared definition of the two money bases shown to restaurant owners, so Overview and Sales say the same thing.
+export const SALES_BASIS = {
+  served: 'Served value: orders that are served, delivered or picked up, counted on the day the order was placed (IST). Not proof of payment.',
+  billed: 'Billed total: table bills settled in this range, counted on the day the bill was paid. Includes GST and extra charges, after discounts.',
+  differ: 'The two can differ: a bill is counted when it is paid, a served order when it was placed, and a bill adds GST and charges.'
+};

@@ -182,18 +182,20 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
             <button className="icon-btn danger" onClick={() => cart.setQty(item.id, 0)} aria-label={`Remove ${item.name}`}><Trash2 size={16}/></button>
           </div>)}
         </div>
-        <div className="drawer-totals">
-          <div><span>{t('subtotal')}</span><b>{inr(cart.subtotal)}</b></div>
-          <div><span>{t('deliveryLbl')} {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
-          <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
-        </div>
         <ContactFields contact={contact} onChange={setContact}/>
         <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder="SAVE10"/></label>
         {couponCode && <p className="drawer-hint">The shop verifies the code before opening WhatsApp. Total above does not include a possible discount.</p>}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">Minimum order is {inr(business.minOrder)}. Add {inr(business.minOrder - cart.subtotal)} more.</p>}
         {error && <p className="notice error">{error}</p>}
+        <div className="drawer-foot">
+        <div className="drawer-totals">
+          <div><span>{t('subtotal')}</span><b>{inr(cart.subtotal)}</b></div>
+          <div><span>{t('deliveryLbl')} {freeAbove ? `(free above ${inr(freeAbove)})` : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
+          <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
+        </div>
         <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered) || business.blocksOrders} onClick={checkout}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
         <p className="drawer-hint">{t('noCharge')}</p>
+        </div>
       </>}
     </aside>
   </div>;
