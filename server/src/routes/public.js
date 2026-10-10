@@ -395,6 +395,18 @@ r.get('/bill/:kind(lead|restaurant)/:id/:sig', wrap(async (req, res) => {
   await streamBill(res, shopRow, order, req.params.kind);
 }));
 
+// Preview data for the shareable bill page. Same signature gate as the PDF. Store name, image, bill number and total
+// only: never customer name, phone, address or items.
+r.get('/bill/:kind(lead|restaurant)/:id/:sig/meta', wrap(async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id) || id < 1 || !invoiceSigValid(req.params.kind, id, req.params.sig)) throw bad(404, 'Bill not found');
+  const order = await (req.params.kind === 'lead' ? Lead : RestaurantOrder).findByPk(id);
+  const shopRow = order && await Business.findByPk(order.businessId, { attributes: ['name', 'logoUrl', 'coverUrl', 'deletedAt'] });
+  if (!order || !shopRow || shopRow.deletedAt) throw bad(404, 'Bill not found');
+  res.set('Cache-Control', 'private, no-store');
+  res.json({ store: { name: shopRow.name, logoUrl: shopRow.logoUrl || '', coverUrl: shopRow.coverUrl || '' }, number: order.orderNumber ?? order.id, total: Number(req.params.kind === 'restaurant' ? order.total : order.price) || 0 });
+}));
+
 r.get('/stores/:slug/qr', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
   const table = Number(req.query.table);
