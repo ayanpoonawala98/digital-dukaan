@@ -1,4 +1,4 @@
-import { runDailyJobs } from './reports.js';
+import { runDailyJobs } from './features/platform/reports.js';
 import dotenv from 'dotenv';
 import { fileURLToPath as envFilePath } from 'node:url';
 import { dirname as envDirname, resolve as envResolve } from 'node:path';
@@ -13,9 +13,9 @@ import authRoutes from './routes/auth.js';
 import publicRoutes from './routes/public.js';
 import ownerRoutes from './routes/owner.js';
 import adminRoutes from './routes/admin.js';
-import { purgeExpiredStore } from './retention.js';
-import { whatsappWebhook } from './whatsapp-cloud.js';
-import { byoWebhook } from './whatsapp-byo.js';
+import { purgeExpiredStore } from './shared/retention.js';
+import { whatsappWebhook } from './features/whatsapp/whatsapp-cloud.js';
+import { byoWebhook } from './features/whatsapp/whatsapp-byo.js';
 
 const app = express();
 app.disable('x-powered-by');
