@@ -64,3 +64,23 @@ export function BroadcastPanel({ token, storeId, total, devices, onClose }) {
     <p className="muted"><small>Email and SMS to everyone: {channels?.email.configured || channels?.sms.configured ? 'use Email & SMS offers, which records consent and opt-out links.' : 'connect your own provider in Notifications, then use Email & SMS offers.'}</small></p>
     <button className="btn btn-outline" onClick={onClose}>Close</button></div>;
 }
+
+// Email or SMS to the customers ticked in the list. Only opted-in customers with an address are sent to; the rest are skipped.
+export function BulkMessagePanel({ token, storeId, channel, selected, onClose, onDone }) {
+  const [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const label = channel === 'sms' ? 'SMS' : 'email';
+  const eligible = selected.filter(c => c.optInStatus === 'opted_in' && (channel === 'sms' ? c.phone : c.email));
+  const send = async (f, reset) => {
+    if (busy) return; setBusy(true); setError(''); setNotice('');
+    try {
+      const r = await api(`/owner/${storeId}/customers/broadcast/message`, { token, method: 'POST', body: { channel, customerIds: selected.map(c => c.id), subject: f.subject, message: f.body, confirmCosts: f.confirmCosts }, feedback: false });
+      setNotice(`Sent to ${r.sent} customer(s)${r.failed ? `; ${r.failed} not accepted by your provider` : ''}${r.skipped.length ? `; ${r.skipped.length} skipped (not opted in, no ${channel === 'sms' ? 'phone' : 'email'}, or no provider)` : ''}.`);
+      reset(); onDone?.();
+    } catch (e) { setError(e.message || 'Could not send'); } finally { setBusy(false); }
+  };
+  return <div className="customer-form"><h3>{channel === 'sms' ? 'SMS' : 'Email'} to {selected.length} selected customer(s)</h3>
+    <p className="muted">{eligible.length} of {selected.length} can receive this {label} (opted in and have {channel === 'sms' ? 'a phone number' : 'an email'}). The others are skipped. Sent through your own {label} provider, which may charge you. Up to 100 customers and 5 bulk sends an hour.</p>
+    {error && <p className="notice error" role="alert">{error}</p>}{notice && <p className="notice" role="status">{notice}</p>}
+    <Composer title="Message" channel={channel} limit={channel === 'sms' ? 160 : 2000} busy={busy} onSend={send}/>
+    <button type="button" className="btn btn-outline" onClick={onClose}>Close</button></div>;
+}

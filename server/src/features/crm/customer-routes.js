@@ -82,6 +82,37 @@ customerRoutes.post('/broadcast/push', ownerOnly, wrap(async (req, res) => {
   res.json({ customers, devices: devices.length, sent: result.sent, failed: result.failed });
 }));
 
+// Bulk email or SMS to customers the owner ticked. Same rules as one-to-one: owner only, the shop's OWN provider, recorded opt-in,
+// explicit charge confirmation. Customers who do not qualify are skipped and listed with the reason, never messaged.
+const BULK_MAX = 100;
+customerRoutes.post('/broadcast/message', ownerOnly, wrap(async (req, res) => {
+  const channel = req.body?.channel;
+  if (!['email', 'sms'].includes(channel)) throw bad(400, 'Choose email or SMS');
+  if (req.body?.confirmCosts !== true) throw bad(400, 'Confirm that your own provider may charge for these messages');
+  const ids = [...new Set((Array.isArray(req.body?.customerIds) ? req.body.customerIds : []).map(Number))];
+  if (!ids.length || ids.length > BULK_MAX || ids.some(n => !Number.isInteger(n) || n < 1)) throw bad(400, `Select 1 to ${BULK_MAX} customers`);
+  const message = String(req.body?.message ?? '').trim(), subject = String(req.body?.subject ?? '').trim();
+  if (!message || message.length > (channel === 'sms' ? 160 : 2000)) throw bad(400, channel === 'sms' ? 'Message is required, up to 160 characters' : 'Message is required, up to 2000 characters');
+  if (channel === 'email' && (!subject || subject.length > 150 || /[\r\n]/.test(subject))) throw bad(400, 'Subject is required, up to 150 characters');
+  const hour = new Date(Date.now() - 3600e3);
+  if (await CustomerMessage.count({ where: { businessId: req.store.id, channel, audience: 'selected', createdAt: { [Op.gte]: hour } } }) >= 5) throw bad(429, 'You can send up to 5 bulk messages an hour. Try again later.');
+  const deps = await resolveDeps(req.store);
+  if (!(channel === 'email' ? deps.providers.email : deps.providers.sms)) throw bad(409, `Connect your own ${channel === 'email' ? 'email' : 'SMS'} provider in Notifications first`);
+  const customers = await Customer.findAll({ where: { id: { [Op.in]: ids }, businessId: req.store.id, archivedAt: null } });
+  const text = `${message}\n- ${req.store.name}\nReply STOP and the shop will stop messaging you.`;
+  let sent = 0, failed = 0; const skipped = [];
+  for (const id of ids) if (!customers.some(c => c.id === id)) skipped.push({ id, reason: 'Customer not found' });
+  for (const c of customers) {
+    const state = channelAvailability(c, 0, { email: deps.providers.email, sms: deps.providers.sms })[channel];
+    if (!state.enabled) { skipped.push({ id: c.id, reason: state.reason }); continue; }
+    let ok = false;
+    try { const r = channel === 'email' ? await sendEmail({ to: c.email, subject, text, store: req.store.name }, deps) : await sendSms({ to: c.phone, text, store: req.store.name }, deps); ok = Boolean(r?.ok); } catch { ok = false; }
+    if (ok) sent++; else failed++;
+  }
+  await log(req, { channel, audience: 'selected', title: subject, body: message, recipients: sent + failed, sent, failed });
+  res.json({ selected: ids.length, sent, failed, skipped });
+}));
+
 customerRoutes.get('/:id', wrap(async (req, res) => {
   const customer = await load(req);
   const [devices, orders, messages, p] = await Promise.all([
