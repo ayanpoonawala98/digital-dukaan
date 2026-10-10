@@ -1,0 +1,29 @@
+.clients { display: grid; gap: 18px; }
+.client-search { width: 100%; max-width: 420px; margin: 4px 0 12px; }
+.client-list { display: grid; gap: 12px; }
+.client-card { border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 14px; background: var(--card); overflow: hidden; }
+.client-card.warn { border-left-color: #e0a100; } .client-card.bad { border-left-color: var(--danger); }
+.client-head { display: flex; justify-content: space-between; gap: 14px; padding: 14px 16px; cursor: pointer; flex-wrap: wrap; align-items: center; }
+.client-id { display: grid; gap: 2px; min-width: 0; }
+.client-id span, .client-id small { color: var(--muted); overflow-wrap: anywhere; font-size: 13px; }
+.client-facts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.client-meta { font-size: 13px; color: var(--muted); }
+.pay-pill { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 800; background: var(--bg-soft); }
+.pay-pill.paid { background: var(--accent-soft); color: var(--accent-ink); } .pay-pill.due { background: #fff1c9; color: #7a5600; }
+.pay-pill.overdue { background: var(--danger-soft); color: var(--danger); }
+:root[data-theme="dark"] .pay-pill.due, [data-theme="dark"] .pay-pill.due { background: #3a2f10; color: #f1cf6b; }
+.client-body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; padding: 4px 16px 16px; border-top: 1px solid var(--line); }
+.client-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; align-content: start; padding-top: 12px; }
+.client-form label { display: grid; gap: 4px; font-size: 13px; font-weight: 700; min-width: 0; }
+.client-form .wide { grid-column: 1 / -1; } .client-form button { grid-column: 1 / -1; justify-self: start; }
+.client-pay { padding-top: 12px; min-width: 0; } .client-pay h4 { margin: 0 0 8px; }
+.client-pay-add { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.client-pay-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 6px; }
+.client-pay-list li { display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; flex-wrap: wrap; }
+.client-pay-list li span { color: var(--muted); font-size: 13px; flex: 1 1 140px; }
+.client-alerts p { margin: 4px 0; } .alert-bad strong { color: var(--danger); } .alert-warn strong { color: #b27a00; }
+.client-foot { margin-top: 12px; font-size: 13px; }
+@media (max-width: 760px) { .client-body { grid-template-columns: minmax(0, 1fr); } .client-form { grid-template-columns: minmax(0, 1fr); } }
+.clients, .clients > *, .client-list, .client-card, .client-body, .client-pay { min-width: 0; max-width: 100%; }
+.client-form input, .client-form select, .client-pay-add input, .client-search { min-width: 0; width: 100%; box-sizing: border-box; }
+.client-pay-add input[type="month"] { flex: 1 1 160px; width: auto; }

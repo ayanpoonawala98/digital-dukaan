@@ -13,6 +13,7 @@ import { bad, slugify, validEmail, validPhone, wrap } from '../shared/utils/core
 import { restoreDeadline } from '../shared/retention.js';
 import { LOCKABLE_FEATURES, LOCKABLE_KEYS, locksOf } from '../features/platform/feature-locks.js';
 import { alertState, saveAlertKeys, saveAlertSettings, sendAlertTest } from '../features/platform/platform-alerts.js';
+import { clientList, updateClient, clientPayments, markPaid, undoPayment, sendPaymentMail, sendDigest } from '../features/platform/subscriptions.js';
 const r = Router();
 r.use(auth, roles('superadmin'));
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
@@ -176,4 +177,12 @@ r.post('/commission-rules', wrap(async(req,res)=>{
  if(!created)throw bad(409,'A rate already exists for this store on that date. Choose a later effective date; saved history is not overwritten.');
  res.status(201).json({rule});
 }));
+// Clients: trial, plan, store limit and manual monthly payment tracking (no gateway).
+r.get('/clients', wrap(async (req, res) => res.json(await clientList({ q: req.query.q, status: req.query.status }))));
+r.patch('/clients/:id', wrap(async (req, res) => res.json({ subscription: await updateClient(numId(req.params.id), req.body) })));
+r.get('/clients/:id/payments', wrap(async (req, res) => res.json({ payments: await clientPayments(numId(req.params.id)) })));
+r.post('/clients/:id/payments', wrap(async (req, res) => res.status(201).json({ payment: await markPaid(numId(req.params.id), req.body) })));
+r.delete('/clients/:id/payments/:paymentId', wrap(async (req, res) => { await undoPayment(numId(req.params.id), numId(req.params.paymentId)); res.json({ ok: true }); }));
+r.post('/clients/:id/payment-mail', wrap(async (req, res) => res.json(await sendPaymentMail(numId(req.params.id)))));
+r.post('/clients-digest', wrap(async (_, res) => res.json(await sendDigest())));
 export default r;

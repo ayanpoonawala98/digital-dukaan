@@ -8,4 +8,7 @@ if (!process.env.DATABASE_URL || !process.env.JWT_SECRET || process.env.JWT_SECR
 }
 await sequelize.authenticate();
 await ensureRestaurantSchema();
+import { maybeSendMonthlyDigest } from './features/platform/subscriptions.js';
+const digestTick = () => maybeSendMonthlyDigest().then(r => r.sent && console.log('Monthly clients digest sent', r.month)).catch(() => {});
+setTimeout(digestTick, 2 * 60 * 1000); setInterval(digestTick, 60 * 60 * 1000).unref?.();
 app.listen(Number(process.env.PORT || 4000), () => console.log(`API on port ${process.env.PORT || 4000}`));

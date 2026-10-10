@@ -1,3 +1,4 @@
+import { assertCanCreateStore } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
 import { customerOrderPushTitle } from '../features/orders/customer-order-push.js';
@@ -80,6 +81,7 @@ r.post('/stores', ownerOnly, wrap(async (req, res) => {
   const shopSlug = slugify(slug || name);
   if (!name?.trim() || !shopSlug || !validPhone(whatsapp)) throw bad(400, 'Store name and WhatsApp number with country code required');
   storeDomain(shopSlug);
+  await assertCanCreateStore(req.user);
   const store = await Business.create({ ownerId: req.user.id, name: name.trim(), slug: shopSlug, whatsapp, description, location, storeType, tableCount: storeType === 'restaurant' ? Number(tableCount) : 0, active: false });
   try {
     await registerStoreDomain(shopSlug);

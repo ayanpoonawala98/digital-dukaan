@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { maybeSendMonthlyDigest } from './features/platform/subscriptions.js';
 import { clientIp } from './shared/abuse-limits.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -44,7 +45,7 @@ app.get('/api/internal/purge-expired-stores', async (req, res, next) => {
 app.get('/api/internal/daily-alerts', async (req, res, next) => {
   const secret = process.env.CRON_SECRET;
   if (!secret || req.headers.authorization !== `Bearer ${secret}`) return res.status(401).json({ error: 'Unauthorized' });
-  try { res.json(await runDailyJobs()); } catch (err) { next(err); }
+  try { const jobs = await runDailyJobs(); res.json({ ...jobs, clientsDigest: await maybeSendMonthlyDigest() }); } catch (err) { next(err); }
 });
 app.get('/api/health', (_, res) => res.json({ status: 'ok' }));
 app.use('/api', (req, res) => res.status(404).json({ error: 'Not found' }));
