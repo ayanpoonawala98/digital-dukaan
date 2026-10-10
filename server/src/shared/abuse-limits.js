@@ -6,7 +6,7 @@ const skip = () => process.env.DISABLE_ABUSE_LIMITS === '1'; // tests place many
 const base = { skip, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false } };
 const make = (windowMs, limit, key, error) => rateLimit({ ...base, windowMs, limit, keyGenerator: key, message: { error } });
 // The API sits behind Cloudflare, so req.ip is a rotating edge address; the visitor address is in cf-connecting-ip.
-const clientIp = req => String(req.headers['cf-connecting-ip'] || req.ip || '').trim();
+export const clientIp = req => String(req.headers['cf-connecting-ip'] || req.ip || '').trim();
 const ip = req => `ip:${clientIp(req)}`;
 const slug = req => `store:${req.params.slug}`;
 const phone = req => {

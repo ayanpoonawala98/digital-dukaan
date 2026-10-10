@@ -7,6 +7,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import { clientIp } from './shared/abuse-limits.js';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import authRoutes from './routes/auth.js';
@@ -27,12 +28,12 @@ app.use(cors({ origin(origin, callback) {
   callback(null, false);
 } }));
 app.use('/api/integrations/whatsapp/webhook', whatsappWebhook);
-app.use('/api/integrations/whatsapp-byo', rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false } }), byoWebhook);
+app.use('/api/integrations/whatsapp-byo', rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), byoWebhook);
 app.use(express.json({ limit: '100kb' }));
 app.use('/uploads', express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../uploads')));
-app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false } }), authRoutes);
-app.use('/api/public', rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false } }), publicRoutes);
-const apiLimit = max => rateLimit({ windowMs: 60 * 1000, limit: max, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false }, message: { error: 'Too many requests. Slow down and try again shortly.' } });
+app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), authRoutes);
+app.use('/api/public', rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), publicRoutes);
+const apiLimit = max => rateLimit({ windowMs: 60 * 1000, limit: max, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}`, message: { error: 'Too many requests. Slow down and try again shortly.' } });
 app.use('/api/owner', apiLimit(600), ownerRoutes);
 app.use('/api/admin', apiLimit(300), adminRoutes);
 app.get('/api/internal/purge-expired-stores', async (req, res, next) => {
