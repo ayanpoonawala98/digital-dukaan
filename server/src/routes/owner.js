@@ -829,7 +829,7 @@ r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
     const subtotal = Number(current.reduce((a, i) => a + Number(i.price) * Number(i.qty), 0).toFixed(2));
     // Delivery charge follows the shop's current rule for the new subtotal (free-delivery threshold may now be met).
     const freeAbove = req.store.freeDeliveryAbove;
-    const deliveryFee = order.orderType === 'delivery' ? (freeAbove !== null && freeAbove !== undefined && subtotal >= freeAbove ? 0 : Number(order.deliveryFee || 0) || Number(req.store.deliveryCharge || 0)) : Number(order.deliveryFee || 0);
+    const deliveryFee = order.orderType === 'delivery' ? (freeAbove !== null && freeAbove !== undefined && subtotal >= freeAbove ? 0 : Number(order.deliveryFee || 0)) : Number(order.deliveryFee || 0);
     const total = Number((subtotal - Number(order.discount || 0) + deliveryFee).toFixed(2));
     // A ready order that grows goes back to preparing so the Kitchen cooks the new items.
     await order.update({ items: current, subtotal, deliveryFee, total, ...(order.status === 'ready' ? { status: 'preparing' } : {}) }, { transaction: t });

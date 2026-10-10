@@ -13,7 +13,7 @@ export async function recordCustomerOrder(businessId, order) {
     if (customer.archivedAt) return null; // admin removed this person; do not bring them back
     const changes = { lastOrderAt: new Date() };
     if (!customer.name && name) changes.name = name;
-    if (email) changes.email = email;
+    if (email && !customer.email) changes.email = email; // never overwrite: anyone can type someone else's phone at checkout
     await customer.increment({ orderCount: 1, totalSpent: orderAmount(order) });
     await customer.update(changes);
     return customer;
