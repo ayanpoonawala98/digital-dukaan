@@ -12,6 +12,8 @@ export function ensureRestaurantSchema() {
     await sequelize.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS "passwordChangedAt" timestamp with time zone');
     await sequelize.query("ALTER TABLE businesses ADD COLUMN IF NOT EXISTS \"storeType\" varchar(20) NOT NULL DEFAULT 'retail'");
     await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "notifyImageUrl" varchar(255) NOT NULL DEFAULT ''`);
+    await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "gstMode" varchar(10)');
+    await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "gstRate" double precision');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "latitude" double precision');
     await sequelize.query('ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "longitude" double precision');
     await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "area" varchar(80) NOT NULL DEFAULT ''`);

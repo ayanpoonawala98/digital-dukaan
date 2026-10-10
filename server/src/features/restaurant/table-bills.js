@@ -2,6 +2,7 @@
 import { Op, DataTypes } from 'sequelize';
 import { sequelize, Product, RestaurantOrder, TableRequest } from '../../models/index.js';
 import { bad } from '../../shared/utils/core.js';
+import { gstSetting, billTotals, GST_RATES } from './gst.js';
 
 export const TableBill = sequelize.define('TableBill', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
@@ -16,6 +17,7 @@ export const TableBill = sequelize.define('TableBill', {
   chargesTotal: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   discount: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   gstPct: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
+  gstMode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'exclusive' },
   cgst: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   sgst: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   total: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
@@ -43,6 +45,7 @@ export function ensureTableBillSchema() {
   if (!ready) ready = (async () => {
     await TableBill.sync(); // new table only
     await TableHold.sync();
+    await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "gstMode" varchar(10) NOT NULL DEFAULT 'exclusive'`);
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "billId" integer');
     await sequelize.query('CREATE INDEX IF NOT EXISTS restaurant_orders_open_idx ON restaurant_orders ("businessId", "billId")');
   })().catch(e => { ready = null; throw e; });
@@ -72,7 +75,7 @@ export async function tablesState(store) {
   const reqOf = n => { const k = reqs.filter(r => Number(r.tableNumber) === n).map(r => r.kind); return k.includes('bill') ? 'bill' : k.length ? 'waiter' : null; };
   const holds = new Set((await TableHold.findAll({ where: { businessId: store.id }, attributes: ['tableNumber'], raw: true })).map(h => h.tableNumber));
   const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number), held: holds.has(t.number), occupied: t.occupied || holds.has(t.number) }));
-  return { tableCount: count, menu, name: store.name, gstin: store.gstin || '', tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
+  return { tableCount: count, menu, name: store.name, gstin: store.gstin || '', gstMode: store.gstMode || null, gstRate: store.gstRate ?? null, tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
 export async function billHistory(store, { channel, table, limit = 50, date }) {
@@ -142,16 +145,15 @@ export async function settleBill(store, body, setDone) {
   let discount = d.type === 'pct' ? subtotal * Number(d.value || 0) / 100 : Number(d.value || 0);
   if (!Number.isFinite(discount) || discount < 0 || (d.type === 'pct' && Number(d.value) > 100)) throw bad(400, 'Invalid discount');
   discount = round2(Math.min(discount, subtotal + chargesTotal));
-  const gstPct = Number(body.gstPct ?? 0);
-  if (![0, 5, 12, 18, 28].includes(gstPct)) throw bad(400, 'Choose a valid GST rate');
-  const taxable = round2(subtotal + chargesTotal - discount);
-  const half = round2(taxable * gstPct / 200);
-  const total = Math.round(taxable + half * 2);
+  const g = gstSetting(store, body.gstPct);
+  const gstPct = g.rate;
+  if (!GST_RATES.includes(gstPct)) throw bad(400, 'Choose a valid GST rate');
+  const { half, total } = billTotals({ subtotal, chargesTotal, discount, mode: g.mode, rate: gstPct });
   const paymentMode = ['cash', 'upi', 'card'].includes(body.paymentMode) ? body.paymentMode : 'cash';
   const bill = await sequelize.transaction(async t => {
     await sequelize.query('SELECT pg_advisory_xact_lock(:k)', { replacements: { k: 770000 + store.id }, transaction: t });
     const [{ n }] = await sequelize.query('SELECT COALESCE(MAX("billNo"),0)+1 AS n FROM table_bills WHERE "businessId"=:b', { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT, transaction: t });
-    const row = await TableBill.create({ businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, cgst: half, sgst: half, total, paymentMode, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
+    const row = await TableBill.create({ businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, total, paymentMode, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
     if (orderIds.length) {
       const [, count] = await sequelize.query('UPDATE restaurant_orders SET "billId"=:id WHERE id IN (:ids) AND "businessId"=:b AND "billId" IS NULL', { replacements: { id: row.id, ids: orderIds, b: store.id }, transaction: t });
       if ((count?.rowCount ?? orderIds.length) !== orderIds.length) throw bad(409, 'An order on this bill was just billed elsewhere');

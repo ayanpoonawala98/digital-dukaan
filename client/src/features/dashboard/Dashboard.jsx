@@ -319,7 +319,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
   useEffect(() => {
     setForm(business ? {
       name: business.name, description: business.description || '', location: business.location || '', whatsapp: business.whatsapp,
-      gstin: business.gstin || '', upiId: business.upiId || '',
+      gstin: business.gstin || '', gstMode: business.gstMode || '', gstRate: business.gstRate ?? 5, upiId: business.upiId || '',
       bannerText: business.bannerText || '', bannerActive: Boolean(business.bannerActive), offerPopupActive: Boolean(business.offerPopupActive), offerPopupText: business.offerPopupText || '', offerPopupTitle: business.offerPopupTitle || '', offerPopupCtaText: business.offerPopupCtaText || '', offerPopupCtaUrl: business.offerPopupCtaUrl || '', offerPopupImageUrl: business.offerPopupImageUrl || '',
       isOpen: business.isOpen !== false, autoHours: Boolean(business.autoHours), blockWhenClosed: business.blockWhenClosed ?? business.storeType === 'restaurant', openTime: business.openTime || '09:00', closeTime: business.closeTime || '21:00', openingHours: business.openingHours || '', storeType: business.storeType || 'retail', tableCount: business.tableCount || 0,
       deliveryCharge: business.deliveryCharge ?? 0, freeDeliveryAbove: business.freeDeliveryAbove ?? '', minOrder: business.minOrder ?? 0, prepMinutes: business.prepMinutes ?? '',
@@ -362,6 +362,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
       <label>Location<input value={form.location} onChange={e => set('location', e.target.value)} placeholder="Mumbai, India"/></label>
       <label>WhatsApp number <small>(country code, no +)</small><input value={form.whatsapp} onChange={e => set('whatsapp', e.target.value)} required/></label>
       <label>GSTIN <small>(optional, shown on estimates)</small><input value={form.gstin} onChange={e => set('gstin', e.target.value)} placeholder="27ABCDE1234F1Z5" maxLength={15}/></label>
+      {form.storeType === 'restaurant' && <div className="gst-setting"><label>Bill GST<select value={form.gstMode} onChange={e => set('gstMode', e.target.value)}><option value="">Choose per bill (as before)</option><option value="off">Off - no GST on bills</option><option value="inclusive">Inclusive - prices already include GST</option><option value="exclusive">Exclusive - GST added on top</option></select></label>{(form.gstMode === 'inclusive' || form.gstMode === 'exclusive') && <label>GST rate<select value={form.gstRate} onChange={e => set('gstRate', Number(e.target.value))}>{[5, 12, 18, 28].map(r => <option key={r} value={r}>{r}%</option>)}</select></label>}<p className="muted">Your GSTIN above is printed on every receipt. A fixed setting applies to every new bill; saved bills never change.</p></div>}
       <p className="muted">Your shop link: {storeLink(business.slug)}</p>
     </div>
     <div className="dashboard-panel settings-panel settings-page" hidden={settingsSection!=='storefront'}>

@@ -58,6 +58,8 @@ export const Business = sequelize.define('Business', {
   accentColor: { type: DataTypes.STRING(9), defaultValue: '', validate: { is: /^$|^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$/ } },
   upiId: { type: DataTypes.STRING(60), defaultValue: '' },
   gstin: { type: DataTypes.STRING(15), defaultValue: '' },
+  gstMode: { type: DataTypes.STRING(10), allowNull: true },
+  gstRate: { type: DataTypes.FLOAT, allowNull: true },
   minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } },
   prepMinutes: { type: DataTypes.INTEGER, allowNull: true },
   featureLocks: { type: DataTypes.JSONB, defaultValue: {} },

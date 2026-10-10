@@ -193,7 +193,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'gstMode', 'gstRate', 'minOrder', 'storeType', 'tableCount'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -247,6 +247,14 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   for (const key of ['bannerActive', 'offerPopupActive', 'isOpen', 'autoHours', 'blockWhenClosed']) if (changes[key] !== undefined) changes[key] = Boolean(changes[key]);
   if (changes.accentColor !== undefined && !/^$|^#[0-9a-fA-F]{6}$/.test(changes.accentColor)) throw bad(400, 'Accent color must be a hex color like #0e9f6e');
   if (changes.upiId !== undefined) changes.upiId = String(changes.upiId || '').slice(0, 60);
+  if (changes.gstMode !== undefined) {
+    if (changes.gstMode === '' || changes.gstMode === null) changes.gstMode = null;
+    else if (!['off', 'inclusive', 'exclusive'].includes(changes.gstMode)) throw bad(400, 'Choose off, inclusive or exclusive GST');
+  }
+  if (changes.gstRate !== undefined) {
+    if (changes.gstRate === '' || changes.gstRate === null) changes.gstRate = null;
+    else { changes.gstRate = Number(changes.gstRate); if (![0, 5, 12, 18, 28].includes(changes.gstRate)) throw bad(400, 'Choose a valid GST rate'); }
+  }
   if (changes.gstin !== undefined) {
     changes.gstin = String(changes.gstin || '').toUpperCase().trim();
     if (changes.gstin && !/^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(changes.gstin)) throw bad(400, 'Enter a valid 15-character GSTIN or leave it blank');
