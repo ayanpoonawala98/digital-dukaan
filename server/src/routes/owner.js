@@ -1,6 +1,6 @@
 import { makeKot, makeLeadKot } from '../features/restaurant/kot.js';
 import { tablesState, billHistory, billsSummary, daySummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
-import { assertCanCreateStore } from '../features/platform/subscriptions.js';
+import { assertCanCreateStore, ownerPlan } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
 import { statusPush } from '../features/orders/customer-order-push.js';
@@ -181,6 +181,7 @@ r.patch('/:storeId/staff/:id', ownerOnly, wrap(async (req, res) => {
   res.json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:staff.active, permissions:staffPerms(staff) } });
 }));
 
+r.get('/plan', wrap(async (req, res) => { if (req.user.role !== 'owner') throw bad(403, 'Only the shop owner can see the plan'); res.json(await ownerPlan(req.user)); }));
 r.get('/:storeId/overview', wrap(async (req, res) => {
   if (req.user.role === 'staff') return res.json({ business:req.store, products:0, categories:0, leads:0, subscribers:0, topProducts:[], lowStock:[] });
   const [products, categories, leads, subscribers] = await Promise.all([

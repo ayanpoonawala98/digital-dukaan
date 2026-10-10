@@ -8,7 +8,7 @@ const EMPTY = { q: '', status: 'all', from: '', to: '', page: 1 };
 const when = value => new Date(value).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 
 const PAGE_SIZE = 10;
-export default function EnquiriesPanel({ token, storeId, slug, refreshKey = 0 }) {
+export default function EnquiriesPanel({ token, storeId, slug, refreshKey = 0, title = 'Recent enquiries' }) {
   const [filters, setFilters] = useState(EMPTY), [typed, setTyped] = useState(''), [rows, setRows] = useState([]), [total, setTotal] = useState(0), [pageSize, setPageSize] = useState(PAGE_SIZE), [loading, setLoading] = useState(true), [error, setError] = useState(''), [exporting, setExporting] = useState(false);
   useEffect(() => { setFilters(EMPTY); setTyped(''); }, [storeId]);
   // Wait for typing to pause so every keystroke does not hit the server.
@@ -26,7 +26,7 @@ export default function EnquiriesPanel({ token, storeId, slug, refreshKey = 0 })
   const exportCsv = async () => { setExporting(true); try { const p = query(); p.delete('page'); await download(`/owner/${storeId}/leads/report.csv?${p}`, `enquiries-${slug || 'store'}.csv`, token); } catch (e) { setError(e.message); } finally { setExporting(false); } };
   const filtered = filters.q || filters.from || filters.to || (filters.status && filters.status !== 'all');
   return <div className="dashboard-panel enquiries-panel">
-    <div className="enquiries-head"><h3>Recent enquiries</h3><span className="muted">{total} {filtered ? 'matching' : 'total'}</span></div>
+    <div className="enquiries-head"><h3>{title}</h3><span className="muted">{total} {filtered ? 'matching' : 'total'}</span></div>
     <FilterBar value={{ ...filters, q: typed }} onChange={onFilters} dates statuses={STATUSES} searchPlaceholder="Customer, phone, product or #id..." onReport={exportCsv} reportBusy={exporting}/>
     {error && <p className="notice error">{error}</p>}
     {rows.length ? <div className={`table-wrap enquiry-table${loading ? ' is-loading' : ''}`}><table><thead><tr><th>Customer</th><th>Phone</th><th>Product</th><th>Price</th><th>Status</th><th>When</th></tr></thead><tbody>{rows.map(l => <tr key={l.id}>

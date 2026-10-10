@@ -108,6 +108,21 @@ export async function updateClient(userId, body = {}) {
   return sub;
 }
 
+// Read-only view of the owner's own plan for their dashboard. Never exposes other clients or admin notes.
+export function planMessage(sub, st) {
+  if (st.effectiveStatus === 'suspended') return { tone: 'error', text: 'Your plan is suspended. Contact Digital Shop to turn your shop back on.' };
+  if (st.inTrial) return { tone: st.trialEndingSoon ? 'warn' : 'info', text: `Free trial: ${st.trialDaysLeft} day${st.trialDaysLeft === 1 ? '' : 's'} left (ends ${sub.trialEnd}).` };
+  if (st.monthPayment === 'due') return { tone: st.overdue ? 'error' : 'warn', text: `${st.overdue ? 'Payment overdue' : 'Payment due'} for ${st.month}. Due ${st.dueDate}. Pay Digital Shop and they will mark it paid.` };
+  if (st.monthPayment === 'paid') return { tone: 'info', text: `Paid for ${st.month}. Thank you.` };
+  return { tone: 'info', text: 'Your plan is active.' };
+}
+export async function ownerPlan(user) {
+  const sub = await subFor(user);
+  const paid = (await SubscriptionPayment.findAll({ where: { userId: user.id } })).map(p => p.month);
+  const st = computeState(sub, paid);
+  return { plan: sub.plan, monthlyFee: Number(sub.monthlyFee) || 0, storeLimit: sub.storeLimit, trialEnd: sub.trialEnd, status: st.effectiveStatus, trialDaysLeft: st.inTrial ? st.trialDaysLeft : null, monthPayment: st.monthPayment, dueDate: st.dueDate, ...planMessage(sub, st) };
+}
+
 export async function clientPayments(userId) {
   await ensureSubscriptionSchema();
   return SubscriptionPayment.findAll({ where: { userId }, order: [['month', 'DESC']] });

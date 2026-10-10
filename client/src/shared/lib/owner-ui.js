@@ -18,3 +18,8 @@ export function groupNavItems(items) {
   if (other.length) groups.push({ id: 'more', label: 'More', keys: other.map(i => i[0]), items: other });
   return { home: home[0] || null, groups };
 }
+
+// Owner-facing words per store type. Services take booking requests, not orders.
+export const verticalWords = storeType => storeType === 'services'
+  ? { orders: 'Bookings', requests: 'Booking requests', recent: 'Recent booking requests', requestsNote: 'Booking requests are not confirmed appointments until you confirm them.' }
+  : { orders: 'Orders', requests: 'WhatsApp enquiries', recent: 'Recent enquiries', requestsNote: 'Enquiries are requests, not confirmed sales.' };
