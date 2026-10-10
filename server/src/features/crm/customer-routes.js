@@ -37,9 +37,10 @@ const log = (req, fields) => CustomerMessage.create({ businessId: req.store.id, 
 
 customerRoutes.get('/channels', wrap(async (req, res) => {
   const p = await providers(req.store);
-  const known = new Set((await CustomerDevice.findAll({ where: { businessId: req.store.id, channel: 'push' }, attributes: ['endpoint'], limit: 5000 }).catch(() => [])).map(d => d.endpoint));
-  const subs = await PushSubscription.count({ where: { businessId: req.store.id, ...(known.size ? { endpoint: { [Op.notIn]: [...known] } } : {}) } }).catch(() => 0);
-  res.json({ pushDevices: known.size + subs, push: { configured: pushConfigured() }, email: { configured: p.email.configured, label: p.email.label }, sms: { configured: p.sms.configured, label: p.sms.label } });
+  const allEndpoints = new Set((await CustomerDevice.findAll({ where: { businessId: req.store.id }, attributes: ['endpoint'], limit: 20000 }).catch(() => [])).map(d => d.endpoint));
+  const reachable = await CustomerDevice.count({ where: { businessId: req.store.id, channel: 'push' }, include: [{ model: Customer, required: true, where: { archivedAt: null, optInStatus: { [Op.ne]: 'opted_out' } }, attributes: [] }] }).catch(() => 0);
+  const subs = (await PushSubscription.findAll({ where: { businessId: req.store.id }, attributes: ['endpoint'], limit: 5000 }).catch(() => [])).filter(p => !allEndpoints.has(p.endpoint)).length;
+  res.json({ pushDevices: reachable + subs, push: { configured: pushConfigured() }, email: { configured: p.email.configured, label: p.email.label }, sms: { configured: p.sms.configured, label: p.sms.label } });
 }));
 customerRoutes.get('/messages', wrap(async (req, res) => {
   res.json({ messages: await CustomerMessage.findAll({ where: { businessId: req.store.id }, order: [['id', 'DESC']], limit: 30 }) });
@@ -78,7 +79,8 @@ customerRoutes.post('/broadcast/push', ownerOnly, wrap(async (req, res) => {
   if (await CustomerMessage.count({ where: { businessId: req.store.id, channel: 'push', audience: 'all', createdAt: { [Op.gte]: hour } } }) >= 5) throw bad(429, 'You can send up to 5 broadcasts an hour. Try again later.');
   const devices = await CustomerDevice.findAll({ where: { businessId: req.store.id, channel: 'push' }, include: [{ model: Customer, required: true, where: { archivedAt: null, optInStatus: { [Op.ne]: 'opted_out' } }, attributes: [] }], limit: 5000 });
   // Visitors who tapped "Notify me" on the storefront without ordering are store subscribers, not customer rows. They are reachable too.
-  const have = new Set(devices.map(d => d.endpoint));
+  // Any endpoint that belongs to a customer row (even an opted-out or archived one) is NOT a stranger: that customer's choice wins.
+  const have = new Set((await CustomerDevice.findAll({ where: { businessId: req.store.id }, attributes: ['endpoint'], limit: 20000 })).map(d => d.endpoint));
   const strangers = (await PushSubscription.findAll({ where: { businessId: req.store.id }, limit: 5000 })).filter(p => !have.has(p.endpoint));
   const all = [...devices, ...strangers];
   if (!all.length) return res.json({ customers: 0, devices: 0, sent: 0, failed: 0 });
