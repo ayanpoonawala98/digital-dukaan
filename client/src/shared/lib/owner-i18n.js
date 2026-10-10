@@ -1,5 +1,5 @@
-let ownerMessages = {};
-export function registerOwnerMessages(messages) { ownerMessages = messages; }
+let ownerMessages = new Map();
+export function registerOwnerMessages(messages) { ownerMessages = new Map(Object.entries(messages)); }
 export const OWNER_LANGUAGES = ['en', 'hi', 'mr'];
 const listeners = new Set();
 const preferences = new Map();
@@ -13,20 +13,46 @@ export function readOwnerLanguage(user, storage) {
 function currentUser() {
   try { return JSON.parse(localStorage.getItem('dd-session'))?.user; } catch { return null; }
 }
-export function ownerLanguageSnapshot() {
-  if (typeof window === 'undefined' || !/^\/dashboard(?:\/|$)/.test(window.location.pathname)) return 'en';
-  try { const user = currentUser(), key = ownerLanguageKey(user); return preferences.get(key) || readOwnerLanguage(user, localStorage); } catch { return 'en'; }
+let cachedLanguage = 'en';
+let cachedKey = null;
+let dashboardActive = false;
+export function refreshOwnerLanguage(user = currentUser()) {
+  const previous = cachedLanguage;
+  dashboardActive = typeof window !== 'undefined' && /^\/dashboard(?:\/|$)/.test(window.location.pathname);
+  cachedKey = ownerLanguageKey(user);
+  try { cachedLanguage = dashboardActive ? preferences.get(cachedKey) || readOwnerLanguage(user, localStorage) : 'en'; } catch { cachedLanguage = 'en'; }
+  if (previous !== cachedLanguage) listeners.forEach(fn => fn());
+  return cachedLanguage;
 }
-export const subscribeOwnerLanguage = fn => { listeners.add(fn); return () => listeners.delete(fn); };
+refreshOwnerLanguage();
+export function deactivateOwnerLanguage() { dashboardActive = false; cachedLanguage = 'en'; }
+export const ownerLanguageSnapshot = () => cachedLanguage;
+export const subscribeOwnerLanguage = fn => {
+  refreshOwnerLanguage();
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+};
 export function setOwnerLanguage(language, user = currentUser()) {
   const key = ownerLanguageKey(user);
   if (!key) return;
-  preferences.set(key, valid(language));
-  try { localStorage.setItem(key, valid(language)); } catch { /* Private browsing may disallow persistence. */ }
+  const next = valid(language);
+  preferences.set(key, next);
+  try { localStorage.setItem(key, next); } catch { /* Private browsing may disallow persistence. */ }
+  refreshOwnerLanguage(user);
   listeners.forEach(fn => fn());
 }
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', event => {
+    if (event.key !== null && event.key !== 'dd-session' && event.key !== cachedKey) return;
+    if (event.key === cachedKey || event.key === null) preferences.delete(cachedKey);
+    refreshOwnerLanguage();
+    listeners.forEach(fn => fn());
+  });
+  window.addEventListener('popstate', () => { refreshOwnerLanguage(); listeners.forEach(fn => fn()); });
+}
 export function translateOwner(language, text, variables = {}) {
-  const translated = ownerMessages[text]?.[language] || text;
+  const translated = ownerMessages.get(text)?.[language] || text;
+  if (!Object.keys(variables).length) return String(translated);
   return String(translated).replace(/(?<!\{)\{(\w+)\}(?!\})/g, (match, key) => Object.hasOwn(variables, key) ? String(variables[key]) : match);
 }
 // Used only for presentation. Never translate stored identifiers, API values or customer data.

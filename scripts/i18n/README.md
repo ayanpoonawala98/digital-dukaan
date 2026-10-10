@@ -12,7 +12,7 @@ npm test
 VITE_WHATSAPP_INTEGRATION_UI_ENABLED=true npm run build
 ```
 
-The baseline server suite has 230 passing tests and three failures: the real Postgres CRM integration, and two store-purge tests. These are unchanged by this client-only branch.
+The baseline server suite has 233 passing tests and three failures: the real Postgres CRM integration, and two store-purge tests. These are unchanged by this client-only branch.
 
 ## Local visual and interaction checks
 

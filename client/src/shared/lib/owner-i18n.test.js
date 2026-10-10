@@ -57,3 +57,24 @@ test('known action IDs and enum comparisons stay untranslated', async () => {
   const files = ['../../features/dashboard/Dashboard.jsx','../../features/restaurant/TablesView.jsx','../../features/dashboard/OfferCampaigns.jsx','../../features/dashboard/CustomerReach.jsx'];
   for(const relative of files){const text=fs.readFileSync(new URL(relative,import.meta.url),'utf8');assert.doesNotMatch(text,/===\s*ot\(/,relative);assert.doesNotMatch(text,/(?:value|channel)=\{ot\(/,relative);assert.doesNotMatch(text,/className=\{`[^`]*statusLabel\(/,relative);}
 });
+
+test('render translations use cached locale; storage events and user changes refresh it', async () => {
+  const previousWindow = globalThis.window, previousStorage = globalThis.localStorage;
+  const handlers = new Map(); let reads = 0;
+  const values = new Map([['dd-session', JSON.stringify({user:{id:1}})], ['dd-owner-language:1','hi'], ['dd-owner-language:2','mr']]);
+  globalThis.window = {location:{pathname:'/dashboard'}, addEventListener:(name,fn)=>handlers.set(name,fn)};
+  globalThis.localStorage = {getItem:key=>{reads++;return values.get(key)||null;},setItem:(key,value)=>values.set(key,value)};
+  try {
+    const runtime = await import(`./owner-i18n.js?cache-test`);
+    runtime.registerOwnerMessages(ownerMessages);
+    const count = reads;
+    for(let i=0;i<1000;i++) assert.equal(runtime.ot('Close'), ownerMessages.Close.hi);
+    assert.equal(reads,count,'ot must not read storage per label');
+    values.set('dd-owner-language:1','mr'); handlers.get('storage')({key:'dd-owner-language:1'});
+    assert.equal(runtime.ot('Close'),ownerMessages.Close.mr);
+    runtime.setOwnerLanguage('hi',{id:1}); assert.equal(runtime.ot('Close'),ownerMessages.Close.hi);
+    values.set('dd-session', JSON.stringify({user:{id:2}})); handlers.get('storage')({key:'dd-session'});
+    assert.equal(runtime.ot('Close'),ownerMessages.Close.mr);
+    runtime.deactivateOwnerLanguage(); assert.equal(runtime.ot('Close'),'Close');
+  } finally { globalThis.window=previousWindow;globalThis.localStorage=previousStorage; }
+});

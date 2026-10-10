@@ -1,5 +1,5 @@
 import React, { useEffect, useSyncExternalStore } from 'react';
-import { ownerLanguageSnapshot, setOwnerLanguage, subscribeOwnerLanguage, validationMessage, ot } from '../lib/owner-i18n.js';
+import { ownerLanguageSnapshot, setOwnerLanguage, subscribeOwnerLanguage, validationMessage, ot, refreshOwnerLanguage, deactivateOwnerLanguage } from '../lib/owner-i18n.js';
 import { useAuth } from '../../app/auth.jsx';
 export function useOwnerLanguage() {
   return useSyncExternalStore(subscribeOwnerLanguage, ownerLanguageSnapshot, () => 'en');
@@ -7,6 +7,7 @@ export function useOwnerLanguage() {
 export function OwnerLanguage() {
   const language = useOwnerLanguage();
   const { session } = useAuth();
+  useEffect(() => { refreshOwnerLanguage(session?.user); return deactivateOwnerLanguage; }, [session?.user]);
   useEffect(() => {
     const previous = document.documentElement.lang;
     document.documentElement.lang = language;

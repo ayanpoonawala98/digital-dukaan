@@ -109,21 +109,21 @@ export default function SalesAnalytics({ report, products = [], storeType = 'ret
   }
 
   return <div className="sales-analytics sd">
-      {r.bills?.count > 0 && <div className="bills-strip" role="group" aria-label="Table bills settled">
-        <div><small>Bills paid in range</small><b>{r.bills.count}</b></div>
-        <div><small>Billed total (paid bills)</small><b>{inr(r.bills.total)}</b></div>
-        <div><small>GST</small><b>{inr(r.bills.gst)}</b></div>
-        <div><small>Extra charges</small><b>{inr(r.bills.charges)}</b></div>
-        <div><small>Discounts</small><b>{inr(r.bills.discounts)}</b></div>
-        {r.bills.byMode && <><div><small>Cash</small><b>{inr(r.bills.byMode.cash)}</b></div><div><small>UPI</small><b>{inr(r.bills.byMode.upi)}</b></div><div><small>Card</small><b>{inr(r.bills.byMode.card)}</b></div></>}
-        <p className="muted">{SALES_BASIS.billed} {SALES_BASIS.differ} Full bill history is under Tables.</p>
+      {r.bills?.count > 0 && <div className="bills-strip" role="group" aria-label={ot("Table bills settled")}>
+        <div><small>{ot("Bills paid in range")}</small><b>{r.bills.count}</b></div>
+        <div><small>{ot("Billed total (paid bills)")}</small><b>{inr(r.bills.total)}</b></div>
+        <div><small>{ot("GST")}</small><b>{inr(r.bills.gst)}</b></div>
+        <div><small>{ot("Extra charges")}</small><b>{inr(r.bills.charges)}</b></div>
+        <div><small>{ot("Discounts")}</small><b>{inr(r.bills.discounts)}</b></div>
+        {r.bills.byMode && <><div><small>{ot("Cash")}</small><b>{inr(r.bills.byMode.cash)}</b></div><div><small>{ot("UPI")}</small><b>{inr(r.bills.byMode.upi)}</b></div><div><small>{ot("Card")}</small><b>{inr(r.bills.byMode.card)}</b></div></>}
+        <p className="muted">{ot(SALES_BASIS.billed)} {ot(SALES_BASIS.differ)} {ot("Full bill history is under Tables.")}</p>
       </div>}
     <div className="sd-kpis">
-      <Kpi i={0} title="Earnings" value={inr(r.recordedTotal)} note="Served value by order date, not verified payments" spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
-      <Kpi i={1} title="Served orders" value={r.completedOrders || 0} note="In the selected order-created date range" spark={sparkOf(series, 'servedOrders')}><Delta cur={w.last7.servedOrders} prev={w.prev7.servedOrders}/></Kpi>
-      <Kpi i={2} title="Average served order" value={inr(r.averageOrder)} note="Recorded value divided by served orders"/>
-      <Kpi i={3} title="Today / this month" value={inr(r.today)} note={`${inr(r.month)} so far this month. Served value by order date.`}/>
-      <Kpi i={4} title="Open right now" value={r.restaurantPending || 0} note={`Not yet served (new, accepted, preparing, ready). ${r.cancelledOrders || 0} cancelled in this range`}/>
+      <Kpi i={0} title={ot("Earnings")} value={inr(r.recordedTotal)} note={ot("Served value by order date, not verified payments")} spark={sparkOf(series, 'servedValue')}><Delta cur={w.last7.servedValue} prev={w.prev7.servedValue}/></Kpi>
+      <Kpi i={1} title={ot("Served orders")} value={r.completedOrders || 0} note={ot("In the selected order-created date range")} spark={sparkOf(series, 'servedOrders')}><Delta cur={w.last7.servedOrders} prev={w.prev7.servedOrders}/></Kpi>
+      <Kpi i={2} title={ot("Average served order")} value={inr(r.averageOrder)} note={ot("Recorded value divided by served orders")}/>
+      <Kpi i={3} title={ot("Today / this month")} value={inr(r.today)} note={ot("{v0} so far this month. Served value by order date.", {v0:inr(r.month)})}/>
+      <Kpi i={4} title={ot("Open right now")} value={r.restaurantPending || 0} note={ot("Not yet served (new, accepted, preparing, ready). {v0} cancelled in this range", {v0:r.cancelledOrders || 0})}/>
     </div>
     <div className="sd-grid-2">
       <Panel wide title={ot("Served order value over time")} sub={ot("Recorded value (line) and all orders placed (bars), last {v0} days, IST", {v0: ins.seriesDays})}>{series.some(s => s.orders || s.servedOrders) ? <TrendChart series={series} valueKey="servedValue" countKey="orders" valueLabel={ot("Served value")} countLabel={ot("orders placed")}/> : <Empty>{ot("No orders in this date range.")}</Empty>}</Panel>
