@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api, imageSrc } from '../../shared/lib/api.js';
 import { loadLeaflet, TILE_URL, TILE_ATTR, geocode, currentPosition } from '../../shared/lib/leaflet.js';
+import { useSeo } from '../../shared/lib/seo.js';
 import './nearby.css';
 
 const TYPES = [['', 'All'], ['retail', 'Shops'], ['restaurant', 'Restaurants'], ['services', 'Services']];
@@ -34,6 +35,7 @@ function NearbyMap({ me, shops }) {
 }
 
 export default function Nearby() {
+  useSeo({ title: 'Shops, restaurants and services near you - Digital Shop', description: 'Find local shops, restaurants and services near you on Digital Shop. See who is open now, get directions and order on WhatsApp.', path: '/near' });
   const [me, setMe] = useState(null), [q, setQ] = useState(''), [type, setType] = useState(''), [openNow, setOpenNow] = useState(false), [radius, setRadius] = useState(25), [view, setView] = useState('list');
   const [shops, setShops] = useState(null), [busy, setBusy] = useState(false), [err, setErr] = useState('');
 

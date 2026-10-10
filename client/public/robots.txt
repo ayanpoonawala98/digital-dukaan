@@ -3,4 +3,10 @@ Allow: /
 Disallow: /dashboard
 Disallow: /superadmin
 Disallow: /login
+Disallow: /set-password
+Disallow: /offers/
+Disallow: /store/*/order/
+Disallow: /store/*/orders
+Disallow: /*?*ref=
+
 Sitemap: https://digitalshop.website/sitemap.xml

@@ -6,8 +6,10 @@ import { useAuth } from '../../app/auth.jsx';
 import { safeDashboardReturn } from '../restaurant/order-panel.js';
 import { api } from '../../shared/lib/api.js';
 import { Logo, Notice } from '../../shared/components/chrome.jsx';
+import { useSeo } from '../../shared/lib/seo.js';
 
 export default function Access({ mode }) {
+  useSeo({ title: 'Sign in - Digital Shop', noindex: true });
   const nav = useNavigate(), { save } = useAuth();
   const location = useLocation();
   const [form, setForm] = useState({ name: '', email: '', password: '' });
