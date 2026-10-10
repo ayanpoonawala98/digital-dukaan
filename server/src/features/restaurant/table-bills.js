@@ -2,6 +2,7 @@
 import { Op, DataTypes } from 'sequelize';
 import { sequelize, Product, RestaurantOrder, TableRequest } from '../../models/index.js';
 import { bad } from '../../shared/utils/core.js';
+import { orderLine, addedLine } from './bill-lines.js';
 import { gstSetting, billTotals, GST_RATES } from './gst.js';
 
 export const TableBill = sequelize.define('TableBill', {
@@ -117,8 +118,7 @@ export async function settleBill(store, body, setDone) {
   }
   const raw = Array.isArray(body.lines) ? body.lines : [];
   if (raw.length > 200) throw bad(400, 'Too many bill lines');
-  const orderPrice = new Map();
-  for (const o of orders) for (const it of o.items || []) orderPrice.set(`${o.id}|${it.name}`, Number(it.price));
+  const orderMap = new Map(orders.map(o => [o.id, o]));
   const productIds = [...new Set(raw.filter(l => !l.orderId && l.productId).map(l => Number(l.productId)))];
   const products = productIds.length ? await Product.findAll({ where: { id: { [Op.in]: productIds }, businessId: store.id } }) : [];
   const pmap = new Map(products.map(p => [p.id, p]));
@@ -127,13 +127,13 @@ export async function settleBill(store, body, setDone) {
     const qty = Number(l?.qty);
     if (!Number.isInteger(qty) || qty < 1 || qty > 999) throw bad(400, 'Invalid quantity');
     if (l.orderId) {
-      const price = orderPrice.get(`${Number(l.orderId)}|${l.name}`);
-      if (price === undefined) throw bad(400, 'Bill line does not match its order');
-      lines.push({ name: cleanText(l.name, 120), price, qty, orderId: Number(l.orderId), productId: l.productId ? Number(l.productId) : null });
+      const o = orderMap.get(Number(l.orderId));
+      if (!o) throw bad(400, 'Bill line does not match its order');
+      lines.push(orderLine(l, o, qty));
     } else {
       const p = pmap.get(Number(l.productId));
       if (!p) throw bad(400, 'Added item not found on this menu');
-      lines.push({ name: p.name, price: Number(p.price), qty, productId: p.id });
+      lines.push(addedLine(l, p, qty));
     }
   }
   if (!lines.length) throw bad(400, 'Add at least one item to the bill');

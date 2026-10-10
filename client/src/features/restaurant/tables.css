@@ -88,3 +88,4 @@
 .tv-menu select{display:block;margin-top:4px;padding:5px 8px;border-radius:10px;border:1.5px solid var(--line,#d1d5db);background:transparent;color:inherit;font:inherit;font-size:13px;max-width:100%}
 .tv-click{cursor:pointer}.tv-click:hover{box-shadow:var(--shadow-md);transform:translateY(-1px)}
 .tv-date{display:flex;align-items:center;gap:10px;padding:6px 0}.tv-date input{padding:7px 10px;border-radius:10px;border:1.5px solid var(--line,#d1d5db);background:transparent;color:inherit;font:inherit}.tv-add{margin-top:8px;padding:6px 10px;font-size:12.5px}
+.tv-lines .n small.tv-opt, .tv-receipt .tv-opt { display: block; font-weight: 500; font-size: 12px; opacity: .8; }
