@@ -47,7 +47,7 @@ const r = Router();
 import { restoreDeadline } from '../shared/retention.js';
 import { mergePaymentKeys, paymentView, createPaymentLink, fetchPaymentLink, verifyKeys } from '../features/billing/razorpay.js';
 import { cleanFieldDefs } from '../features/catalog/custom-fields.js';
-import { invoiceUrl } from '../features/billing/invoice.js';
+import { billShareUrl } from '../features/billing/invoice.js';
 import { sendWeeklyReport } from '../features/platform/reports.js';
 import { notifyStatusChange, providerStatus, resolveStoreProviders, cleanSettings, saveSettings, sendEmail, sendSms } from '../features/notifications/notify.js';
 import { NotifySecret, PaymentSecret } from '../models/index.js';
@@ -461,7 +461,7 @@ function payWhatsapp(store, order) {
 r.get('/:storeId/:kind(leads|restaurant-orders)/:id/bill-link', wrap(async (req, res) => {
   const Model = orderModel(req.params.kind), order = await Model.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
   if (!order) throw bad(404, 'Order not found');
-  const url = invoiceUrl(apiBase(req), req.params.kind === 'leads' ? 'lead' : 'restaurant', order.id), phone = String(order.customerPhone || '').replace(/\D/g, '');
+  const url = billShareUrl(clientBase(), req.params.kind === 'leads' ? 'lead' : 'restaurant', order.id), phone = String(order.customerPhone || '').replace(/\D/g, '');
   res.json({ url, whatsappUrl: phone ? `https://wa.me/${phone}?text=${encodeURIComponent(`Hi! Here is your bill for order #${order.id} from ${req.store.name}: ${url}`)}` : '' });
 }));
 r.post('/:storeId/notifications/report', ownerOnly, wrap(async (req, res) => {
@@ -514,7 +514,7 @@ r.post('/:storeId/leads/:leadId/status', wrap(async (req, res) => {
   let url = '';
   if (status && status !== 'new' && (lead.customerPhone||lead.customerEmail)) {
     const labels = { confirmed: 'confirmed', packed: 'packed and getting ready', shipped: 'shipped', 'out-for-delivery': 'out for delivery', delivered: 'delivered. Thank you for shopping with us!', 'in-progress': 'in progress', completed: 'completed. Thank you!', cancelled: 'cancelled. Sorry for the inconvenience.' };
-    const billable = !['new', 'cancelled'].includes(status), billLink = billable ? invoiceUrl(apiBase(req), 'lead', lead.id) : '';
+    const billable = !['new', 'cancelled'].includes(status), billLink = billable ? billShareUrl(clientBase(), 'lead', lead.id) : '';
     if (statusChanged && labels[status]) void notifyStatusChange(req.store, 'lead', lead, labels[status], undefined, billLink);
     const items = Array.isArray(lead.items) && lead.items.length ? lead.items.map(i => `${i.qty} x ${i.name}`).join(', ') : lead.productName;
     const text = `Hi! Update on your order from ${req.store.name} (${items}): your order is ${labels[status]}. Total: Rs.${Number(lead.price).toFixed(2)}${billLink ? `. Your bill: ${billLink}` : ''}`;

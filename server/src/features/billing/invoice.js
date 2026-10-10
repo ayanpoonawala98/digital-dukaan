@@ -16,6 +16,13 @@ export function invoiceSigValid(kind, id, sig) {
 export const invoiceUrl = (base, kind, id) => `${String(base).replace(/\/$/, '')}/api/public/bill/${kind}/${id}/${invoiceSig(kind, id)}?design=2`;
 
 // A single layout for customer bills and owner estimates. Stored totals stay authoritative.
+// Shareable link on the web app domain: its edge page carries the store's name and photo for chat previews, then opens the PDF.
+// The signature is the same one the API link uses; the old /api/public/bill/... links keep working.
+export const billShareUrl = (webBase, kind, id) => {
+  const sig = invoiceSig(kind, id);
+  const root = process.env.BILL_SUBDOMAIN_READY === 'true' ? String(process.env.BILL_BASE_URL || '').replace(/\/$/, '') : '';
+  return root ? `${root}/${kind}/${id}/${sig}` : `${String(webBase).replace(/\/$/, '')}/bill/${kind}/${id}/${sig}`;
+};
 export function billModel(order, kind = 'lead') {
   const source = Array.isArray(order.items) && order.items.length ? order.items : [{ name: order.productName, qty: 1, price: order.price }];
   const items = source.map(it => ({ name: String(it.name || 'Item') + (Array.isArray(it.answers) && it.answers.length ? '\n' + it.answers.filter(a=>a?.label && a?.value).map(a=>`${a.label}: ${a.value}`).join(' · ') : ''), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }));
