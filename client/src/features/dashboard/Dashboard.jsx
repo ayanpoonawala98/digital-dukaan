@@ -419,7 +419,8 @@ export default function Dashboard() {
   const [error, setError] = useFeedbackState(''), [success, setSuccess] = useState('');
   const [editing, setEditing] = useState(null), [busy, setBusy] = useState(false), [deleteProductId, setDeleteProductId] = useState(null);
   const [categoryEdit, setCategoryEdit] = useState(null), [categoryName, setCategoryName] = useState('');
-  const [stores, setStores] = useState([]), [storeId, setStoreId] = useState(''), [deletedStores, setDeletedStores] = useState([]), [restoreSlug, setRestoreSlug] = useState({});
+  const setStoreId = useCallback(next => { setStoreIdState(prev => { const v = typeof next === 'function' ? next(prev) : next; try { if (v) localStorage.setItem('dd-store', String(v)); } catch { /* optional */ } return v; }); }, []);
+  const [stores, setStores] = useState([]), [storeId, setStoreIdState] = useState(() => { try { return localStorage.getItem('dd-store') || ''; } catch { return ''; } }), [deletedStores, setDeletedStores] = useState([]), [restoreSlug, setRestoreSlug] = useState({});
   const [newStore, setNewStore] = useState({ name: '', slug: '', whatsapp: '', storeType: 'retail', tableCount: 0 });
   const [notify, setNotify] = useState({ title: '', body: '', link: '', productId: '' }), [notifyImg, setNotifyImg] = useState(''), [notifyImgBusy, setNotifyImgBusy] = useState(false), [notifyResult, setNotifyResult] = useState('');
   const [broadcastText, setBroadcastText] = useState(''), [broadcastRecipients, setBroadcastRecipients] = useState('');
