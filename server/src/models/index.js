@@ -93,6 +93,8 @@ export const Product = sequelize.define('Product', {
   veg: { type: DataTypes.STRING(8), allowNull: false, defaultValue: '' },
   tags: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
   soldOutDate: { type: DataTypes.STRING(10), allowNull: true },
+  ratingAvg: { type: DataTypes.DOUBLE, allowNull: false, defaultValue: 0 },
+  ratingCount: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
   soldOutToday: { type: DataTypes.VIRTUAL, get() { const d = this.getDataValue('soldOutDate'); return Boolean(d) && d === new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10); } }
 }, { tableName: 'products', indexes: [{ fields: ['businessId', 'categoryId'] }] });
 
