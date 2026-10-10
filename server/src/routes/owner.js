@@ -784,7 +784,6 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
 // Staff-created order (phone / walk-in / no QR). Lands in Kitchen exactly like a customer order (status new, same table/channel rules).
 r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
   if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
-  await ensureTableBillSchema();
   const { orderType, tableNumber, customerName, customerPhone, deliveryAddress } = req.body || {};
   if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
   const table = Number(tableNumber);
