@@ -1,3 +1,4 @@
+import { sendPush } from '../shared/safe-push.js';
 import { isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { makeKot, makeLeadKot } from '../features/restaurant/kot.js';
 import { tablesState, billHistory, billsSummary, daySummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
@@ -360,7 +361,7 @@ r.post('/:storeId/products', wrap(async (req, res) => {
   if (fields.price === undefined) throw bad(400, 'Price required');
   if (!fields.categoryId) throw bad(400, 'Choose one of your shop categories');
   const product = await Product.create({ ...fields, businessId: bid(req) });
-  void notifyNewProduct({ store: req.store, product, PushSubscription, send: (sub, payload) => webpush.sendNotification(sub, payload), configured: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), log: (msg, m) => console.error(msg, m) });
+  void notifyNewProduct({ store: req.store, product, PushSubscription, send: (sub, payload) => sendPush(sub, payload), configured: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), log: (msg, m) => console.error(msg, m) });
   res.status(201).json({ product });
 }));
 r.patch('/:storeId/products/:id', wrap(async (req, res) => {
@@ -369,7 +370,7 @@ r.patch('/:storeId/products/:id', wrap(async (req, res) => {
   if (!product) throw bad(404, 'Product not found');
   const wasLive = product.active;
   await product.update(fields);
-  if (!wasLive && product.active) void notifyNewProduct({ store: req.store, product, PushSubscription, send: (sub, payload) => webpush.sendNotification(sub, payload), configured: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), log: (msg, m) => console.error(msg, m) });
+  if (!wasLive && product.active) void notifyNewProduct({ store: req.store, product, PushSubscription, send: (sub, payload) => sendPush(sub, payload), configured: Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY), log: (msg, m) => console.error(msg, m) });
   res.json({ product });
 }));
 r.delete('/:storeId/products/:id', wrap(async (req, res) => {
@@ -509,7 +510,7 @@ async function notifyOrderSubscribers(store, kind, order) {
     const subs = await OrderPushSubscription.findAll({ where: { orderType: kind, orderId: order.id, businessId: store.id } });
     await Promise.allSettled(subs.map(async sub => {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify(statusPush({ store, order, flow: kind === 'restaurant' ? 'restaurant' : flowKey(store.storeType), label, returnPath: sub.returnPath, icon: pushIcon(store), image: pushImage(store) })));
+        await sendPush({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify(statusPush({ store, order, flow: kind === 'restaurant' ? 'restaurant' : flowKey(store.storeType), label, returnPath: sub.returnPath, icon: pushIcon(store), image: pushImage(store) })));
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) await sub.destroy();
         console.error('Customer status push failed', { category: err.statusCode ? 'push-service' : 'transport-or-config', statusCode: Number(err.statusCode) || null, businessId: store.id, orderType: kind, orderId: order.id });
@@ -709,7 +710,7 @@ r.post('/:storeId/push-broadcast', wrap(async (req, res) => {
   let sent = 0, gone = 0;
   await Promise.all(subs.map(async sub => {
     try {
-      await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, payload);
+      await sendPush({ endpoint: sub.endpoint, keys: sub.keys }, payload);
       sent += 1;
     } catch (err) {
       if (err.statusCode === 404 || err.statusCode === 410) { gone += 1; await sub.destroy(); }
