@@ -1,6 +1,6 @@
 import { makeKot, makeLeadKot } from '../features/restaurant/kot.js';
 import { tablesState, billHistory, billsSummary, daySummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
-import { assertCanCreateStore } from '../features/platform/subscriptions.js';
+import { assertCanCreateStore, ownerPlan } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
 import { statusPush } from '../features/orders/customer-order-push.js';
@@ -36,6 +36,7 @@ import { notifyNewProduct } from '../features/notifications/new-product-push.js'
 import { flowFor, flowKey, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaurantStatusAllowed } from '../features/orders/order-flows.js';
 import { cleanVariants, cleanAddonGroups, cleanVeg, cleanTags, istDay } from '../features/restaurant/menu-options.js';
 import { featureForOwnerRoute, isLocked } from '../features/platform/feature-locks.js';
+import { cleanCouponLimits } from '../features/coupons/coupon-rules.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
 import { validateProductRows } from '../features/catalog/product-import.js';
@@ -180,6 +181,7 @@ r.patch('/:storeId/staff/:id', ownerOnly, wrap(async (req, res) => {
   res.json({ staff:{ id:staff.id, name:staff.name, email:staff.email, active:staff.active, permissions:staffPerms(staff) } });
 }));
 
+r.get('/plan', wrap(async (req, res) => { if (req.user.role !== 'owner') throw bad(403, 'Only the shop owner can see the plan'); res.json(await ownerPlan(req.user)); }));
 r.get('/:storeId/overview', wrap(async (req, res) => {
   if (req.user.role === 'staff') return res.json({ business:req.store, products:0, categories:0, leads:0, subscribers:0, topProducts:[], lowStock:[] });
   const [products, categories, leads, subscribers] = await Promise.all([
@@ -708,7 +710,7 @@ r.post('/:storeId/coupons', wrap(async (req, res) => {
   const code = String(req.body?.code || '').trim().toUpperCase();
   const percentOff = Number(req.body?.percentOff);
   if (!/^[A-Z0-9-]{3,24}$/.test(code) || !Number.isInteger(percentOff) || percentOff < 1 || percentOff > 90) throw bad(400, 'Code must be 3-24 letters/numbers and discount 1-90%');
-  const [coupon, created] = await Coupon.findOrCreate({ where: { businessId: bid(req), code }, defaults: { percentOff, active: true } });
+  const [coupon, created] = await Coupon.findOrCreate({ where: { businessId: bid(req), code }, defaults: { percentOff, active: true, ...cleanCouponLimits(req.body) } });
   if (!created) throw bad(409, 'Coupon code already exists');
   res.status(201).json({ coupon });
 }));

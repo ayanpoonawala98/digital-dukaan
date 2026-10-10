@@ -224,7 +224,11 @@ export const Coupon = sequelize.define('Coupon', {
   businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
   code: { type: DataTypes.STRING(24), allowNull: false },
   percentOff: { type: DataTypes.INTEGER, allowNull: false },
-  active: { type: DataTypes.BOOLEAN, defaultValue: true, allowNull: false }
+  active: { type: DataTypes.BOOLEAN, defaultValue: true, allowNull: false },
+  minOrder: { type: DataTypes.DOUBLE, allowNull: true },
+  maxDiscount: { type: DataTypes.DOUBLE, allowNull: true },
+  usageLimit: { type: DataTypes.INTEGER, allowNull: true },
+  expiresOn: { type: DataTypes.DATEONLY, allowNull: true }
 }, { tableName: 'coupons', indexes: [{ unique: true, fields: ['businessId', 'code'] }] });
 Business.hasMany(Coupon, { foreignKey: 'businessId' });
 Coupon.belongsTo(Business, { foreignKey: 'businessId' });
