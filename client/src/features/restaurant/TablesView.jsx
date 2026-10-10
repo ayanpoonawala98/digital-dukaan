@@ -16,6 +16,25 @@ const money = (lines, charges, disc, gst) => {
   return { sub, ch, d, half, total: Math.round(taxable + half * 2) };
 };
 
+const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// Prints through an isolated iframe holding only the receipt, so mobile browsers never print the app page (which came out blank).
+function printReceipt(bill, lines, charges, store, saved) {
+  const gst = bill.gstPct, row = (a, b, cls = '') => `<div class="r ${cls}"><span>${esc(a)}</span><span>${esc(b)}</span></div>`;
+  const body = `<h1>${esc(store.name)}</h1><p class="c">${esc(bill.title)}${saved ? ' - Bill #' + esc(bill.billNo) : ''}<br>${esc(new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))}</p><hr>`
+    + lines.map(l => row(`${l.qty} x ${l.name}`, inr(l.qty * l.price))).join('') + '<hr>' + row('Subtotal', inr(bill.subtotal))
+    + charges.map(c => row(c.label, inr(c.amount))).join('') + (bill.discount > 0 ? row('Discount', '-' + inr(bill.discount)) : '')
+    + (gst > 0 ? row(`CGST ${gst / 2}%`, inr(bill.cgst)) + row(`SGST ${gst / 2}%`, inr(bill.sgst)) : '') + '<hr>' + row('TOTAL', inr(bill.total), 'big')
+    + (saved ? `<p class="c">Paid by ${esc(String(bill.paymentMode).toUpperCase())}</p>` : '') + `<p class="c">${store.gstin ? 'GSTIN ' + esc(store.gstin) + '<br>' : ''}Thank you, visit again!</p>`;
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:13px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:16px;text-align:center;margin:0 0 4px}.c{text-align:center;margin:4px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.r{display:flex;justify-content:space-between;gap:8px}.r span:first-child{flex:1;min-width:0;word-break:break-word}.big{font-size:16px;font-weight:700}</style></head><body>${body}</body></html>`;
+  const f = document.createElement('iframe');
+  f.setAttribute('aria-hidden', 'true');
+  f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  document.body.appendChild(f);
+  const doc = f.contentWindow.document; doc.open(); doc.write(html); doc.close();
+  const go = () => { try { f.contentWindow.focus(); f.contentWindow.print(); } catch { window.print(); } setTimeout(() => f.remove(), 60000); };
+  if (doc.readyState === 'complete') setTimeout(go, 150); else f.onload = () => setTimeout(go, 150);
+}
+
 function Receipt_({ bill, lines, charges, store, onClose, saved }) {
   const gst = bill.gstPct;
   return <div className="tv-modal" role="dialog" aria-label="Bill" onClick={onClose}><div className="tv-receipt" onClick={e => e.stopPropagation()}>
@@ -29,7 +48,7 @@ function Receipt_({ bill, lines, charges, store, onClose, saved }) {
     <div className="r big"><span>TOTAL</span><span>{inr(bill.total)}</span></div>
     {saved && <p className="c">Paid by {bill.paymentMode.toUpperCase()}</p>}
     <p className="c">{store.gstin ? `GSTIN ${store.gstin} · ` : ''}Thank you, visit again!</p>
-    <div className="tv-cta no-print"><button className="btn btn-outline" onClick={onClose}>Close</button><button className="btn btn-green" onClick={() => window.print()}><Printer size={16}/> Print (80mm)</button></div>
+    <div className="tv-cta no-print"><button className="btn btn-outline" onClick={onClose}>Close</button><button className="btn btn-green" onClick={() => printReceipt(bill, lines, charges, store, saved)}><Printer size={16}/> Print (80mm)</button></div>
   </div></div>;
 }
 
