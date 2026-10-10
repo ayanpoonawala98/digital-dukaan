@@ -57,3 +57,53 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
 /* Categories list actions */
 .admin-content .category-list button { min-height: var(--ui-tap); box-sizing: border-box; }
 .admin-content .category-list > * > div:last-child:has(> button + button) { display: flex; gap: var(--ui-gap); flex-wrap: wrap; }
+
+/* =====================  Storefront  ===================== */
+/* Cards | Menu: 8px between the two segments (thumb follows the same maths). */
+.shop-root .view-switch { gap: var(--ui-gap); }
+.shop-root .view-switch-thumb { width: calc(50% - 8px); }
+.shop-root .view-switch[data-view="menu"] .view-switch-thumb { transform: translate3d(calc(100% + 8px), 0, 0); }
+.shop-root .view-switch button { min-height: var(--ui-tap); box-sizing: border-box; }
+
+/* Touch targets */
+.shop-root .menu-add { min-height: var(--ui-tap); min-width: var(--ui-tap); box-sizing: border-box; }
+.shop-root .filter-tabs button { min-height: var(--ui-tap); box-sizing: border-box; }
+.shop-root .theme-toggle,
+.shop-root .header-menu-toggle { width: var(--ui-tap); height: var(--ui-tap); }
+.shop-root .language-select select, .shop-root .header-controls select { min-height: var(--ui-tap); box-sizing: border-box; }
+.shop-root .chip-btn,
+.shop-root .store-install-footer .chip-btn,
+.install-app .chip-btn { min-height: var(--ui-tap); box-sizing: border-box; }
+/* Round icon buttons keep their look; only the hit area grows to 44px. */
+.shop-root .cart-add,
+.shop-root .round-arrow { position: relative; }
+.shop-root .cart-add::after,
+.shop-root .round-arrow::after,
+.shop-root .heart-btn::after { content: ""; position: absolute; inset: -4px; }
+
+/* Header: controls 8px apart, never hugging the screen edge */
+@media (max-width: 760px) { .shop-root .header-inner { padding-inline: max(16px, env(safe-area-inset-left)); } }
+/* Desktop storefront had no way to switch theme. */
+@media (min-width: 761px) { .shop-root .header-controls .theme-toggle { display: grid; place-items: center; } }
+.shop-root .header-controls { gap: var(--ui-gap); }
+
+/* Hero: tidy Share / Favorites row and the Open-now pill spacing */
+.shop-root .store-banner-actions { gap: var(--ui-gap); }
+.shop-root .store-banner .open-pill { margin-top: 8px; }
+
+/* "Stay updated" popup: 16px off the edge, never trapping content.
+   While it is open the page gets bottom padding so the last items can scroll clear of it. */
+.storefront-notify-popup { bottom: 16px; }
+.shop-root:has(.storefront-notify-popup) { padding-bottom: 232px; }
+@media (min-width: 761px) {
+  .storefront-notify-popup { left: auto; right: 24px; bottom: 24px; max-width: 320px; padding: 16px; }
+  .storefront-notify-popup .push-text span { display: none; }
+  .storefront-notify-popup > .btn { width: auto; flex: 1 1 0; margin-top: 0; }
+  .storefront-notify-popup .notify-later { flex: 0 0 auto; }
+  body:has(.cart-fab) .storefront-notify-popup { bottom: 96px; }
+  .shop-root:has(.storefront-notify-popup) { padding-bottom: 0; }
+}
+@media (max-width: 480px) {
+  .storefront-notify-popup { left: 16px; right: 16px; bottom: 16px; max-width: none; }
+  .notify-fab { bottom: 16px; }
+}
