@@ -39,9 +39,27 @@ function useBeep() {
   }, []);
 }
 
+// Waiter call / bill request: a longer, softer two-tone bell, repeated, so it differs from the short new-order beep and is hard to miss.
+function useRing() {
+  const ctx = useRef(null);
+  return useCallback(kind => {
+    try {
+      ctx.current = ctx.current || new (window.AudioContext || window.webkitAudioContext)();
+      const c = ctx.current, t0 = c.currentTime + 0.02;
+      const notes = kind === 'bill' ? [659, 784, 988] : [784, 988];
+      for (let r = 0; r < 4; r++) notes.forEach((f, i) => {
+        const o = c.createOscillator(), g = c.createGain(), start = t0 + r * 0.95 + i * 0.32;
+        o.type = 'sine'; o.frequency.value = f; o.connect(g); g.connect(c.destination);
+        g.gain.setValueAtTime(0.0001, start); g.gain.exponentialRampToValueAtTime(0.22, start + 0.03); g.gain.exponentialRampToValueAtTime(0.0001, start + 0.9);
+        o.start(start); o.stop(start + 0.95);
+      });
+    } catch { /* sound is optional */ }
+  }, []);
+}
+
 function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
   const [orders, setOrders] = useState([]), [requests, setRequests] = useState([]), [sound, setSound] = useState(false), [err, setErr] = useState('');
-  const seen = useRef(null), beep = useBeep(), soundRef = useRef(false);
+  const seen = useRef(null), seenReq = useRef(null), beep = useBeep(), ring = useRing(), soundRef = useRef(false);
   soundRef.current = sound;
   const load = useCallback(async () => {
     try {
@@ -50,8 +68,11 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
       const ids = new Set(open.map(x => x.id));
       if (seen.current && [...ids].some(id => !seen.current.has(id)) && soundRef.current) beep();
       seen.current = ids; setOrders(open); setRequests(r.requests || []); setErr('');
+      const reqIds = new Set((r.requests || []).map(x => x.id));
+      if (seenReq.current && soundRef.current) { const fresh = (r.requests || []).filter(x => !seenReq.current.has(x.id)); if (fresh.length) ring(fresh.some(x => x.kind === 'waiter') ? 'waiter' : 'bill'); }
+      seenReq.current = reqIds;
     } catch (e) { setErr(e.message); }
-  }, [storeId, token, beep]);
+  }, [storeId, token, beep, ring]);
   useEffect(() => { load(); const t = setInterval(load, 12000); return () => clearInterval(t); }, [load]);
   const clearRequest = async r => { try { await api(`/owner/${storeId}/table-requests/${r.id}`, { method: 'PATCH', token }); load(); } catch (e) { setErr(e.message); } };
   const cols = [['new', 'New'], ['accepted', 'Accepted'], ['preparing', 'Preparing'], ['ready', 'Ready']];
