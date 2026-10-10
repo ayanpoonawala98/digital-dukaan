@@ -112,7 +112,6 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
    The default green theme (#0e9f6e) ships inline accent values tuned for light mode only, and white on
    #0e9f6e is 3.4:1. Light: deepen the fill to #0b7d57 (white 5.6:1). Dark: keep the bright green fill with dark ink. */
 :root:not([data-theme="dark"]) [style*="--accent-ink: #0b7d57"] { --accent: #0b7d57 !important; }
-[data-theme="dark"] { --accent-foreground: #0b1f17; }
 [data-theme="dark"] [style*="--accent-ink: #0b7d57"] {
   --accent-ink: #4fd6a7 !important;
   --accent-soft: #16352a !important;
