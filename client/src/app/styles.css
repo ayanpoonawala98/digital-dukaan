@@ -1664,6 +1664,8 @@ label.perm-check input[type=checkbox]{width:18px;height:18px;min-width:18px;marg
   .store-banner h1{font-size:clamp(28px,8vw,36px)}
   .store-banner p{font-size:15px;margin-bottom:10px}
   .notify-fab{left:auto;right:14px;bottom:16px;width:44px;height:44px;opacity:.95}
+}
+
 /* Owner mobile navigation: bottom bar + task sheet. Desktop keeps the sidebar. */
 .mnav, .mnav-layer { display:none; }
 @media(max-width:760px) {
