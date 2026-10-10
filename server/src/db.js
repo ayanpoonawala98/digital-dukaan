@@ -1,3 +1,4 @@
+import './load-env.js';
 import 'pg';
 import 'pg-hstore';
 import { Sequelize } from 'sequelize';
