@@ -1,3 +1,4 @@
+process.env.DISABLE_ABUSE_LIMITS = '1';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -28,7 +29,7 @@ test('lead tracking, My Orders, and push registration use per-order capabilities
   const registered = [], destroyed = [];
   OrderPushSubscription.findOne = async ({where}) => registered.find(r => r.businessId===where.businessId && r.orderType===where.orderType && r.orderId===where.orderId && r.endpoint===where.endpoint) || null;
   OrderPushSubscription.findOrCreate = async ({ where, defaults }) => { registered.push({ ...where, ...defaults }); return [{ update: async () => {} }, true]; };
-  OrderPushSubscription.findAll = async ({ where }) => (where.endpoint === 'https://push.example.com/e1' ? [{ orderType: 'lead', orderId: 11, returnPath: '/store/shop/order/lead/11#token=x' }] : []);
+  OrderPushSubscription.findAll = async ({ where }) => (where.endpoint === 'https://fcm.googleapis.com/e1' ? [{ orderType: 'lead', orderId: 11, returnPath: '/store/shop/order/lead/11#token=x' }] : []);
   OrderPushSubscription.destroy = async ({ where }) => { destroyed.push(where); };
   const server = app.listen(0);
   const base = `http://127.0.0.1:${server.address().port}/api/public/stores`;
@@ -43,12 +44,12 @@ test('lead tracking, My Orders, and push registration use per-order capabilities
     assert.equal((await fetch(`${base}/shop/lead-orders/11`, { headers: auth(sign('restaurant', 11, 5)) })).status, 404, 'restaurant token cannot read a lead');
     assert.equal((await fetch(`${base}/shop/lead-orders/12`, { headers: auth(tok) })).status, 404, 'token is bound to its order');
     assert.equal((await fetch(`${base}/salon/lead-orders/11`, { headers: auth(tok) })).status, 404, 'token is bound to its store');
-    const sub = { endpoint: 'https://push.example.com/e1', keys: { p256dh: 'p', auth: 'a' } };
+    const sub = { endpoint: 'https://fcm.googleapis.com/e1', keys: { p256dh: 'p', auth: 'a' } };
     r = await fetch(`${base}/shop/lead-orders/11/push-subscription`, { method: 'POST', headers: auth(tok), body: JSON.stringify(sub) });
     assert.equal(r.status, 201);
     let enrollment = await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`, {headers:auth(tok)});
     assert.equal(enrollment.status,200);assert.equal((await enrollment.json()).enrolled,true);
-    enrollment = await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=https%3A%2F%2Fpush.example.com%2Fother`, {headers:auth(tok)});
+    enrollment = await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=https%3A%2F%2Ffcm.googleapis.com%2Fother`, {headers:auth(tok)});
     assert.equal((await enrollment.json()).enrolled,false);
     assert.equal((await fetch(`${base}/shop/lead-orders/11/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`)).status,404);
     assert.equal((await fetch(`${base}/salon/lead-orders/11/push-subscription?endpoint=${encodeURIComponent(sub.endpoint)}`, {headers:auth(tok)})).status,404);
@@ -58,10 +59,10 @@ test('lead tracking, My Orders, and push registration use per-order capabilities
     r = await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ orders: [{ kind: 'lead', id: 11, token: tok }, { kind: 'lead', id: 12, token: sign('lead', 12, 6) }, { kind: 'lead', id: 11, token: 'junk' }] }) });
     let mine = (await r.json()).orders;
     assert.deepEqual(mine.map(o => o.id), [11]); assert.ok(mine[0].path.endsWith(`#token=${tok}`));
-    r = await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ endpoint: 'https://push.example.com/e1' }) });
+    r = await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/e1' }) });
     mine = (await r.json()).orders;
     assert.deepEqual(mine.map(o => o.id), [11]); assert.equal(mine[0].path, '/store/shop/order/lead/11#token=x');
-    r = await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ endpoint: 'https://push.example.com/unknown' }) });
+    r = await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/unknown' }) });
     assert.deepEqual((await r.json()).orders, []);
     r = await fetch(`${base}/salon/my-orders`, { method: 'POST', headers: auth(tok), body: JSON.stringify({ orders: [{ kind: 'lead', id: 11, token: tok }] }) });
     assert.deepEqual((await r.json()).orders, [], 'tokens from another store return nothing');

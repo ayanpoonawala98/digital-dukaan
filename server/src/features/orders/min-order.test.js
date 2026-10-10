@@ -1,3 +1,4 @@
+process.env.DISABLE_ABUSE_LIMITS = '1';
 import test from 'node:test';import assert from 'node:assert/strict';
 process.env.DATABASE_URL||='postgres://local:local@localhost:5432/test';process.env.JWT_SECRET||='test-secret-must-be-at-least-32-characters-long';process.env.CLIENT_URL='http://localhost:5175';
 const {default:app}=await import('../../app.js');const m=await import('../../models/index.js');

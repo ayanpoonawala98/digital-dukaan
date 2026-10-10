@@ -4,6 +4,7 @@ import {shopCardPdf} from '../features/stores/shop-card-pdf.js';
 import {campaignPublicRoutes} from '../features/notifications/campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../features/stores/hours.js';
 import { Router } from 'express';
+import { orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { haversineKm } from '../shared/utils/geo.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
@@ -21,6 +22,11 @@ import { orderBotEnabledFor, withOrderRef } from '../features/whatsapp/whatsapp-
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { notifyShopRequest } from '../features/platform/platform-alerts.js';
 const r = Router();
+r.post('/stores/:slug/restaurant-orders', ...orderLimits);
+r.post('/stores/:slug/products/:id/enquire', ...orderLimits);
+r.post('/stores/:slug/enquire-cart', ...orderLimits);
+r.post('/stores/:slug/table-requests', ...tableRequestLimits);
+r.post('/shop-requests', shopRequestLimit);
 r.use(campaignPublicRoutes);
 // The storefront is edited by its owner. Keep this short so pauses and stock changes propagate quickly.
 const storefrontCache = (req, res, next) => { res.set('Cache-Control', 'public, s-maxage=20, stale-while-revalidate=10'); next(); };
@@ -177,7 +183,7 @@ const validPushBody = body => {
   let url;
   try { url = new URL(endpoint); } catch { return null; }
   const keys = body?.keys;
-  if (url.protocol !== 'https:' || endpoint.length > 1000 || !keys || typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string' || !keys.p256dh || !keys.auth || keys.p256dh.length > 300 || keys.auth.length > 300) return null;
+  if (url.protocol !== 'https:' || !isAllowedPushEndpoint(endpoint) || endpoint.length > 1000 || !keys || typeof keys.p256dh !== 'string' || typeof keys.auth !== 'string' || !keys.p256dh || !keys.auth || keys.p256dh.length > 300 || keys.auth.length > 300) return null;
   return { endpoint, keys: { p256dh: keys.p256dh, auth: keys.auth } };
 };
 const savePushSubscription = async (business, kind, orderId, token, push) => {
@@ -408,7 +414,9 @@ r.get('/stores/:slug/push-key', wrap(async (req, res) => {
 r.post('/stores/:slug/push-subscription', wrap(async (req, res) => {
   const business = await shop(req.params.slug);
   const { endpoint, keys } = req.body || {};
-  if (typeof endpoint !== 'string' || !endpoint.startsWith('https://') || typeof keys?.p256dh !== 'string' || typeof keys?.auth !== 'string') throw bad(400, 'Invalid push subscription');
+  if (typeof endpoint !== 'string' || !isAllowedPushEndpoint(endpoint) || typeof keys?.p256dh !== 'string' || typeof keys?.auth !== 'string') throw bad(400, 'Invalid push subscription');
+  const existing = await PushSubscription.findOne({ where: { endpoint: endpoint.slice(0, 1000) } });
+  if (existing && existing.businessId !== business.id) return res.status(201).json({ ok: true }); // never re-point another store's subscription
   await PushSubscription.upsert({ businessId: business.id, endpoint: endpoint.slice(0, 1000), keys: { p256dh: keys.p256dh, auth: keys.auth } });
   res.status(201).json({ ok: true });
 }));

@@ -1,3 +1,4 @@
+process.env.DISABLE_ABUSE_LIMITS = '1';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -70,7 +71,7 @@ test('restaurant ordering handles all three types and rejects invalid or cross-s
     assert.equal(r2.status, 200); assert.equal((await r2.json()).order.status, 'new');
     assert.equal((await fetch(`${base}/test-restaurant/restaurant-orders/904`, { headers: { authorization: `Bearer ${badToken}` } })).status, 404);
     assert.equal((await fetch(`${base}/test-restaurant/restaurant-orders/904`)).status, 404);
-    const sub = { endpoint: 'https://push.example.com/sub/abc', keys: { p256dh: 'p', auth: 'a' }, returnPath: '/store/test-restaurant/order/904#token=' + token };
+    const sub = { endpoint: 'https://fcm.googleapis.com/sub/abc', keys: { p256dh: 'p', auth: 'a' }, returnPath: '/store/test-restaurant/order/904#token=' + token };
     r2 = await fetch(`${base}/test-restaurant/restaurant-orders/904/push-subscription`, { method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${token}` }, body: JSON.stringify(sub) });
     assert.equal(r2.status, 201); assert.equal(upserted.length, 1); assert.equal(upserted[0].orderId, 904); assert.equal(upserted[0].endpoint, sub.endpoint); assert.equal(upserted[0].orderType, 'restaurant'); assert.ok(upserted[0].returnPath.endsWith('#token=' + token));
     assert.equal((await fetch(`${base}/test-restaurant/restaurant-orders/904/push-subscription`, { method: 'POST', headers: { 'Content-Type': 'application/json', authorization: `Bearer ${badToken}` }, body: JSON.stringify(sub) })).status, 404);
