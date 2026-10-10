@@ -75,11 +75,12 @@ export async function tablesState(store) {
   return { tableCount: count, menu, name: store.name, gstin: store.gstin || '', tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
-export async function billHistory(store, { channel, table, limit = 50 }) {
+export async function billHistory(store, { channel, table, limit = 50, date }) {
   await ensureTableBillSchema();
   const where = { businessId: store.id };
   if (channel) where.channel = channel;
   if (table !== undefined && table !== null && table !== '') where.tableNumber = Number(table);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(date || ''))) { const a = new Date(`${date}T00:00:00+05:30`); if (!Number.isNaN(a.getTime())) where.paidAt = { [Op.gte]: a, [Op.lt]: new Date(a.getTime() + 86400000) }; }
   const rows = await TableBill.findAll({ where, order: [['paidAt', 'DESC'], ['id', 'DESC']], limit: Math.min(200, Math.max(1, Number(limit) || 50)) });
   return { bills: rows.map(r => r.toJSON()) };
 }

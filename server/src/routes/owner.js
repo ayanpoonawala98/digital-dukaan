@@ -811,6 +811,33 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
   const order = await RestaurantOrder.create({ businessId: req.store.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: name || null, customerPhone: phone || null, deliveryAddress: orderType === 'delivery' ? String(deliveryAddress).trim().slice(0, 500) : null, items, subtotal, discount: 0, deliveryFee: 0, total: subtotal, note: note ? `[Staff] ${note}`.slice(0, 300) : '[Staff] entered by staff', status: 'new' });
   res.status(201).json({ order });
 }));
+// Staff adds more items to an open (unbilled) order; the Kitchen sees the new lines on the same order.
+r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
+  if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
+  const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: req.store.id } });
+  if (!order) throw bad(404, 'Order not found');
+  if (order.billId) throw bad(409, 'This order is already billed');
+  if (['cancelled', 'delivered', 'picked-up', 'served'].includes(order.status)) throw bad(409, `A ${order.status} order cannot take more items`);
+  const raw = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (raw.length < 1 || raw.length > 50) throw bad(400, 'Add at least one item');
+  if (raw.some(e => !Number.isInteger(Number(e?.id)) || Number(e.id) < 1 || !Number.isInteger(Number(e?.qty)) || Number(e.qty) < 1 || Number(e.qty) > 99)) throw bad(400, 'Invalid items');
+  const ids = [...new Set(raw.map(e => Number(e.id)))];
+  const { Op: SOp } = sequelize.Sequelize;
+  const products = await Product.findAll({ where: { id: { [SOp.in]: ids }, businessId: req.store.id, active: true } });
+  if (products.length !== ids.length) throw bad(400, 'An item is not on the menu');
+  const byId = new Map(products.map(p => [p.id, p]));
+  const current = Array.isArray(order.items) ? order.items.map(i => ({ ...i })) : [];
+  for (const e of raw) {
+    const p = byId.get(Number(e.id)); const qty = Number(e.qty);
+    const line = buildLine(p, { id: p.id, qty, ...(e.variant ? { variant: String(e.variant) } : {}) }, qty);
+    const same = current.find(i => i.productId === line.productId && (i.variant || '') === (line.variant || '') && !(i.addons || []).length && !(line.addons || []).length && !i.note && !line.note);
+    if (same) same.qty = Number(same.qty) + qty; else current.push(line);
+  }
+  const subtotal = Number(current.reduce((a, i) => a + Number(i.price) * Number(i.qty), 0).toFixed(2));
+  const total = Number((subtotal - Number(order.discount || 0) + Number(order.deliveryFee || 0)).toFixed(2));
+  await order.update({ items: current, subtotal, total });
+  res.json({ order });
+}));
 // Tables view: live status per table/channel, settle a bill (append-only history).
 const restaurantOnly = req => { if (req.store.storeType !== 'restaurant') throw bad(404, 'Tables unavailable'); };
 r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.json(await tablesState(req.store)); }));

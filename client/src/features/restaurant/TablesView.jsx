@@ -36,7 +36,7 @@ function printReceipt(bill, lines, charges, store, saved) {
 }
 
 
-function NewOrder({ kind, table, menu, base, token, onClose, onDone }) {
+function NewOrder({ kind, table, menu, base, token, onClose, onDone, addTo }) {
   const [f, setF] = useState({ name: '', phone: '', address: '', note: '' });
   const [qty, setQty] = useState({});
   const [vr, setVr] = useState({});
@@ -51,15 +51,15 @@ function NewOrder({ kind, table, menu, base, token, onClose, onDone }) {
   const submit = async () => {
     setBusy(true); setErr('');
     try {
-      await api(`${base}/restaurant-orders`, { token, method: 'POST', feedback: false, body: { orderType: kind === 'table' ? 'dine-in' : kind, tableNumber: kind === 'table' ? table : undefined, customerName: f.name, customerPhone: f.phone, deliveryAddress: f.address, note: f.note, items: picked.map(m => ({ id: m.id, qty: qty[m.id], variant: (m.variants && m.variants.length) ? (vr[m.id] || m.variants[0].name) : undefined })) } });
+      await api(addTo ? `${base}/restaurant-orders/${addTo.id}/items` : `${base}/restaurant-orders`, { token, method: 'POST', feedback: false, body: addTo ? { items: picked.map(m => ({ id: m.id, qty: qty[m.id], variant: (m.variants && m.variants.length) ? (vr[m.id] || m.variants[0].name) : undefined })) } : { orderType: kind === 'table' ? 'dine-in' : kind, tableNumber: kind === 'table' ? table : undefined, customerName: f.name, customerPhone: f.phone, deliveryAddress: f.address, note: f.note, items: picked.map(m => ({ id: m.id, qty: qty[m.id], variant: (m.variants && m.variants.length) ? (vr[m.id] || m.variants[0].name) : undefined })) } });
       onDone();
     } catch (e) { setErr(e.message || 'Could not create the order'); setBusy(false); }
   };
-  const title = kind === 'table' ? `New order - Table ${table}` : `New ${kind} order`;
+  const title = addTo ? `Add items - Order #${addTo.orderNumber || addTo.id}` : kind === 'table' ? `New order - Table ${table}` : `New ${kind} order`;
   return <div className="tv-modal" role="dialog" aria-label={title} onClick={onClose}><div className="tv-receipt tv-new" onClick={e => e.stopPropagation()}>
     <h4>{title}</h4>
-    <p className="tv-note">Goes to the Kitchen like a customer order.</p>
-    {kind !== 'table' && <div className="tv-form">
+    <p className="tv-note">{addTo ? 'New items are added to this order and show in the Kitchen.' : 'Goes to the Kitchen like a customer order.'}</p>
+    {!addTo && kind !== 'table' && <div className="tv-form">
       <input placeholder="Customer name" value={f.name} onChange={e => setF({ ...f, name: e.target.value })} maxLength={100}/>
       <input placeholder={kind === 'delivery' ? 'Phone (required)' : 'Phone (optional)'} inputMode="tel" value={f.phone} onChange={e => setF({ ...f, phone: e.target.value })} maxLength={20}/>
       {kind === 'delivery' && <input placeholder="Delivery address" value={f.address} onChange={e => setF({ ...f, address: e.target.value })} maxLength={500}/>}
@@ -68,7 +68,7 @@ function NewOrder({ kind, table, menu, base, token, onClose, onDone }) {
     <ul className="tv-lines tv-menu">{list.slice(0, 80).map(m => <li key={m.id}><span className="n">{m.name}{Array.isArray(m.variants) && m.variants.length > 0 ? <select value={vr[m.id] || m.variants[0].name} onChange={e => setVr({ ...vr, [m.id]: e.target.value })}>{m.variants.map(v => <option key={v.name} value={v.name}>{v.name} - {inr(v.price)}</option>)}</select> : <small>{inr(m.price)}</small>}</span><span className="q"><button type="button" aria-label={`Remove ${m.name}`} onClick={() => bump(m.id, -1)}><Minus size={14}/></button><b>{qty[m.id] || 0}</b><button type="button" aria-label={`Add ${m.name}`} onClick={() => bump(m.id, 1)}><Plus size={14}/></button></span></li>)}</ul>
     <input placeholder="Note for the kitchen (optional)" value={f.note} onChange={e => setF({ ...f, note: e.target.value })} maxLength={200}/>
     {err && <p className="notice error">{err}</p>}
-    <div className="tv-cta"><button className="btn btn-outline" onClick={onClose}>Cancel</button><button className="btn btn-green" disabled={busy || !picked.length} onClick={submit}>{busy ? 'Sending…' : `Send to kitchen · ${inr(total)}`}</button></div>
+    <div className="tv-cta"><button className="btn btn-outline" onClick={onClose}>Cancel</button><button className="btn btn-green" disabled={busy || !picked.length} onClick={submit}>{busy ? 'Sending…' : addTo ? `Add to order · ${inr(total)}` : `Send to kitchen · ${inr(total)}`}</button></div>
   </div></div>;
 }
 
@@ -103,6 +103,8 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const [hist, setHist] = useState(null);
   const [busy, setBusy] = useState(false);
   const [newOrd, setNewOrd] = useState(false);
+  const [addTo, setAddTo] = useState(null);
+  const [hDate, setHDate] = useState('');
   const [cfg, setCfg] = useState(null);
   const base = `/owner/${storeId}`;
   const selRef = useRef(sel); selRef.current = sel;
@@ -128,7 +130,8 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   };
   const clearTable = async () => { if (!orders.length || !window.confirm(`Cancel ${orders.length} open order${orders.length > 1 ? 's' : ''} and free this table? Use "Paid" instead if the customer paid.`)) return; setBusy(true); try { for (const o of orders) await api(`${base}/restaurant-orders/${o.id}`, { token, method: 'PATCH', body: { status: 'cancelled' }, feedback: false } ); await load(); } catch (e) { setErr(e.message || 'Could not clear'); } finally { setBusy(false); } };
   const holdTable = async held => { setBusy(true); try { await api(`${base}/tables/${sel.n}/hold`, { token, method: 'POST', body: { held }, feedback: false }); await load(); } catch (e) { setErr(e.message || 'Could not update the table'); } finally { setBusy(false); } };
-  const openHist = async () => { setTab('history'); setHist(null); try { const q = sel.kind === 'table' ? `channel=table&table=${sel.n}` : `channel=${sel.kind}`; setHist((await api(`${base}/tables/history?${q}`, { token, feedback: false })).bills); } catch (e) { setHist([]); setErr(e.message); } };
+  const loadHist = async (d) => { setHist(null); try { const q = (sel.kind === 'table' ? `channel=table&table=${sel.n}` : `channel=${sel.kind}`) + (d ? `&date=${d}` : ''); setHist((await api(`${base}/tables/history?${q}`, { token, feedback: false })).bills); } catch (e) { setHist([]); setErr(e.message); } };
+  const openHist = () => { setTab('history'); loadHist(hDate); };
   const saveCount = async () => { const n = Number(cfg); if (!Number.isInteger(n) || n < 1 || n > 100) { setErr('Tables must be 1 to 100'); return; } try { await api(`${base}/business`, { token, method: 'PATCH', body: { tableCount: n }, feedback: false }); setCfg(null); await load(); } catch (e) { setErr(e.message); } };
 
   if (!data) return <div className="tv"><div className="tv-main">{err ? <p className="notice error">{err}</p> : <p className="tv-empty">Loading tables…</p>}</div></div>;
@@ -141,8 +144,8 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
     {canBill && sel.kind !== 'counter' && <div className="tv-addrow"><button type="button" className="btn btn-outline" onClick={() => setNewOrd(true)}><Plus size={15}/> New order{sel.kind === 'table' ? ` for Table ${sel.n}` : ''}</button>{sel.kind === 'table' && orders.length > 0 && <button type="button" className="btn btn-outline" onClick={clearTable}>Vacate table (cancel orders)</button>}{sel.kind === 'table' && orders.length === 0 && !cur?.held && <button type="button" className="btn btn-outline" onClick={() => holdTable(true)}>Mark occupied</button>}{sel.kind === 'table' && cur?.held && <button type="button" className="btn btn-outline" onClick={() => holdTable(false)}>Free table</button>}</div>}
     {tab === 'bill' && perOrder && allOrders.length > 0 && <div className="tv-pick" role="group" aria-label="Choose order to bill"><small>Each {sel.kind} order gets its own bill</small><div>{allOrders.map(o => <button key={o.id} type="button" className={o.id === orders[0]?.id ? 'on' : ''} onClick={() => setSel({ kind: sel.kind, oid: o.id })}>#{o.orderNumber || o.id} · {inr(o.total)} · <em className={`tv-st ${o.status}`}>{o.status}</em></button>)}</div></div>}
     <div className="tv-tabs"><button className={tab === 'orders' ? 'on' : ''} onClick={() => setTab('orders')}><ShoppingBag size={14}/> Orders</button><button className={tab === 'bill' ? 'on' : ''} onClick={() => setTab('bill')}><Receipt size={14}/> Bill</button><button className={tab === 'history' ? 'on' : ''} onClick={openHist}><History size={14}/> History</button></div>
-    {tab === 'orders' && <div className="tv-orders">{allOrders.length > 0 && <p className="tv-note">{perOrder ? 'Tap an order to bill it.' : 'Tap an order to open the bill.'}</p>}{allOrders.map(o => <div className="tv-order tv-click" role="button" tabIndex={0} key={o.id} onClick={() => { if (perOrder) setSel({ kind: sel.kind, oid: o.id }); setTab('bill'); }}><div><strong>Order #{o.orderNumber || o.id}</strong><span className={`tv-st ${o.status}`}>{o.status}</span></div><p>{(o.items || []).map(i => `${i.qty}× ${i.name}`).join(', ')}</p>{(o.customerName || o.deliveryAddress) && <small>{[o.customerName, o.customerPhone, o.deliveryAddress].filter(Boolean).join(' · ')}</small>}{o.note && <small>Note: {o.note}</small>}</div>)}{!orders.length && <p className="tv-empty">No open orders. Use New order above, or add items from the Bill tab.</p>}</div>}
-    {tab === 'history' && <div className="tv-orders"><p className="tv-note">Every billed order stays here and in Sales. Nothing is deleted.</p>{hist === null && <p className="tv-empty">Loading…</p>}{hist?.length === 0 && <p className="tv-empty">No bills yet.</p>}{hist?.map(h => <button className="tv-hist" key={h.id} onClick={() => setPreview({ saved: true, bill: { ...h, title: label(sel) }, lines: h.lines, charges: h.charges })}><strong>#{h.billNo}</strong><span>{when(h.paidAt)} · {h.paymentMode.toUpperCase()}</span><b>{inr(h.total)}</b></button>)}</div>}
+    {tab === 'orders' && <div className="tv-orders">{allOrders.length > 0 && <p className="tv-note">{perOrder ? 'Tap an order to bill it.' : 'Tap an order to open the bill.'}</p>}{allOrders.map(o => <div className="tv-order tv-click" role="button" tabIndex={0} key={o.id} onClick={() => { if (perOrder) setSel({ kind: sel.kind, oid: o.id }); setTab('bill'); }}><div><strong>Order #{o.orderNumber || o.id}</strong><span className={`tv-st ${o.status}`}>{o.status}</span></div><p>{(o.items || []).map(i => `${i.qty}× ${i.name}`).join(', ')}</p>{canBill && !['cancelled','delivered','picked-up','served'].includes(o.status) && <button type="button" className="btn btn-outline tv-add" onClick={e => { e.stopPropagation(); setAddTo(o); }}><Plus size={14}/> Add items</button>}{(o.customerName || o.deliveryAddress) && <small>{[o.customerName, o.customerPhone, o.deliveryAddress].filter(Boolean).join(' · ')}</small>}{o.note && <small>Note: {o.note}</small>}</div>)}{!orders.length && <p className="tv-empty">No open orders. Use New order above, or add items from the Bill tab.</p>}</div>}
+    {tab === 'history' && <div className="tv-orders"><div className="tv-date"><label>Date <input type="date" value={hDate} max={new Date().toISOString().slice(0, 10)} onChange={e => { setHDate(e.target.value); loadHist(e.target.value); }}/></label>{hDate && <button type="button" className="tv-link" onClick={() => { setHDate(''); loadHist(''); }}>All dates</button>}</div><p className="tv-note">Every billed order stays here and in Sales. Nothing is deleted.</p>{hist === null && <p className="tv-empty">Loading…</p>}{hist?.length === 0 && <p className="tv-empty">{hDate ? 'No bills on this date.' : 'No bills yet.'}</p>}{hist?.map(h => <button className="tv-hist" key={h.id} onClick={() => setPreview({ saved: true, bill: { ...h, title: label(sel) }, lines: h.lines, charges: h.charges })}><strong>#{h.billNo}</strong><span>{when(h.paidAt)} · {h.paymentMode.toUpperCase()}</span><b>{inr(h.total)}</b></button>)}</div>}
     {tab === 'bill' && <div className="tv-bill">
       {canBill && <div className="tv-add"><Search size={15}/><select value={pick} onChange={e => addItem(e.target.value)} aria-label="Add item"><option value="">Add item to bill…</option>{data.menu.map(p => <option key={p.id} value={p.id}>{p.name} · {inr(p.price)}</option>)}</select></div>}
       <ul className="tv-lines">{lines.map(l => <li key={l.key}><span className="n">{l.name}<small>{inr(l.price)} each</small></span><span className="q">{canBill ? <><button onClick={() => setQty(l, -1)} aria-label="Less"><Minus size={14}/></button><b>{l.qty}</b><button onClick={() => setQty(l, 1)} aria-label="More"><Plus size={14}/></button></> : <b>{l.qty}</b>}</span><span className="a">{inr(l.qty * l.price)}</span>{canBill && <button className="rm" onClick={() => setQty(l, -l.qty)} aria-label={`Remove ${l.name}`}><Trash2 size={15}/></button>}</li>)}{!lines.length && <li className="tv-empty">No items yet.</li>}</ul>
@@ -169,7 +172,8 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
       <div className="tv-grid">{data.tables.map(t => <button key={t.number} className={`tv-table ${t.occupied ? 'occ' : 'vac'} ${sel?.kind === 'table' && sel.n === t.number ? 'sel' : ''}`} onClick={() => { setSel({ kind: 'table', n: t.number }); setTab('orders'); }}><span className="no">{t.number}</span>{t.request && <i className={`tv-dot ${t.request}`} title={t.request === 'bill' ? 'Wants the bill' : 'Calling waiter'} aria-label={t.request === 'bill' ? 'Wants the bill' : 'Calling waiter'}/>}<span className="st">{t.occupied ? 'Occupied' : 'Vacant'}</span>{t.occupied ? <><b>{inr(t.total)}</b><small>{ago(t.since)}</small></> : <small>Tap to open</small>}</button>)}</div>
     </div>
     {Panel}
-    {newOrd && sel && data && <NewOrder kind={sel.kind} table={sel.n} menu={data.menu || []} base={base} token={token} onClose={() => setNewOrd(false)} onDone={() => { setNewOrd(false); load(); }}/>}
+    {addTo && sel && data && <NewOrder kind={sel.kind} table={sel.n} addTo={addTo} menu={data.menu || []} base={base} token={token} onClose={() => setAddTo(null)} onDone={() => { setAddTo(null); load(); }}/>}
+      {newOrd && sel && data && <NewOrder kind={sel.kind} table={sel.n} menu={data.menu || []} base={base} token={token} onClose={() => setNewOrd(false)} onDone={() => { setNewOrd(false); load(); }}/>}
       {preview && <Receipt_ {...preview} store={data} onClose={() => setPreview(null)}/>}
   </div>;
 }
