@@ -156,11 +156,11 @@ export function digestText(data, today = istDay()) {
   const s = data.summary;
   return `Digital Shop clients - ${today.slice(0, 7)}\n\nClients: ${s.total} | Trial: ${s.trial} | Active: ${s.active} | Past due: ${s.pastDue} | Suspended: ${s.suspended}\nPaid this month: ${s.paidThisMonth} | Due this month: ${s.dueThisMonth} | Monthly recurring: ${inr(s.monthlyRecurring)}\n\n${lines.join('\n') || 'No clients yet.'}\n\nOpen https://digitalshop.website/superadmin#clients to mark payments.`;
 }
-export async function sendDigest(now = new Date()) {
+export async function sendDigest(now = new Date(), tag = '') {
   await ensureSubscriptionSchema();
   const today = istDay(now);
-  const r = await platformMail({ to: DIGEST_EMAIL, subject: `Digital Shop clients - payment status ${today.slice(0, 7)}`, text: digestText(await clientList(), today) });
-  await PlatformKv.upsert({ key: 'digest_last_month', value: today.slice(0, 7) });
+  const r = await platformMail({ to: DIGEST_EMAIL, subject: `${tag}Digital Shop clients - payment status ${today.slice(0, 7)}`, text: digestText(await clientList(), today) });
+  if (!tag) await PlatformKv.upsert({ key: 'digest_last_month', value: today.slice(0, 7) });
   return r;
 }
 // Runs from the daily job, an hourly in-process timer and the cron endpoint. Sends once per month, on the 1st IST
@@ -170,7 +170,7 @@ export async function maybeSendMonthlyDigest(now = new Date()) {
   const month = istDay(now).slice(0, 7);
   const last = await PlatformKv.findByPk('digest_last_month');
   if (last?.value === month) return { sent: false, reason: 'already sent' };
-  try { await sendDigest(now); return { sent: true, month }; } catch (e) { return { sent: false, reason: e.message }; }
+  try { await sendDigest(now, ''); return { sent: true, month }; } catch (e) { return { sent: false, reason: e.message }; }
 }
 export async function sendPaymentMail(userId) {
   const user = await User.findOne({ where: { id: userId, role: 'owner' } });

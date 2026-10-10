@@ -184,5 +184,5 @@ r.get('/clients/:id/payments', wrap(async (req, res) => res.json({ payments: awa
 r.post('/clients/:id/payments', wrap(async (req, res) => res.status(201).json({ payment: await markPaid(numId(req.params.id), req.body) })));
 r.delete('/clients/:id/payments/:paymentId', wrap(async (req, res) => { await undoPayment(numId(req.params.id), numId(req.params.paymentId)); res.json({ ok: true }); }));
 r.post('/clients/:id/payment-mail', wrap(async (req, res) => res.json(await sendPaymentMail(numId(req.params.id)))));
-r.post('/clients-digest', wrap(async (_, res) => res.json(await sendDigest())));
+r.post('/clients-digest', wrap(async (req, res) => res.json(await sendDigest(new Date(), req.body?.test ? '[TEST] ' : '[Manual] '))));
 export default r;
