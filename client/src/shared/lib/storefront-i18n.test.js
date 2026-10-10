@@ -31,3 +31,8 @@ test('operational enums, storage names and customer values are not translated',(
  for(const f of ['../../features/storefront/ShopPage.jsx','../../features/storefront/ProductPage.jsx','../../features/storefront/OrderTracking.jsx','../../features/restaurant/RestaurantCheckout.jsx','../../features/restaurant/MenuItemSheet.jsx']){const s=fs.readFileSync(new URL(f,import.meta.url),'utf8');assert.doesNotMatch(s,/===\s*st\(/);assert.doesNotMatch(s,/(?:value|className)=\{st\(/);assert.doesNotMatch(s,/notify\(st\(/);assert.doesNotMatch(s,/st\((?:product|business|item|r)\.(?:name|description|text)/);}
 });
 test('localized HTML validation preserves constraint values',()=>{const prior=globalThis.localStorage;globalThis.localStorage={getItem:()=> 'hi'};try{refreshStorefrontLanguage(true,{id:9});assert.equal(storefrontValidationMessage({valueMissing:true},{}),'यह फ़ील्ड भरें।');assert.match(storefrontValidationMessage({rangeUnderflow:true},{min:12}),/12/);}finally{globalThis.localStorage=prior;refreshStorefrontLanguage(false,null)}});
+
+test('known dynamic server errors preserve amounts and customer names, unknown errors remain unchanged', async()=>{
+ const {storefrontError}=await import('./storefront-i18n.js');const prior=globalThis.localStorage;globalThis.localStorage={getItem:()=> 'mr'};
+ try{refreshStorefrontLanguage(true,{id:7});assert.match(storefrontError('Only 4 left in stock for Customer Rice'),/Customer Rice/);assert.match(storefrontError('Minimum order is Rs.350'),/350/);assert.match(storefrontError('Add items worth Rs.500 or more to use this coupon'),/500/);assert.equal(storefrontError('Unknown error 123'),'Unknown error 123');}finally{globalThis.localStorage=prior;refreshStorefrontLanguage(false,null)}
+});

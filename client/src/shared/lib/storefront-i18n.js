@@ -47,3 +47,17 @@ export function storefrontValidationMessage(validity, field) {
   if(validity.patternMismatch) return st('Please use the requested format.');
   return st('Please enter a valid value.');
 }
+
+export function storefrontError(text) {
+  let match=/^(.+) is sold out for today$/.exec(String(text));
+  if(match) return st('{name} is sold out for today',{name:match[1]});
+  match=/^Minimum order is Rs\.(\d+)$/.exec(String(text));
+  if(match) return st('Minimum order is Rs.{amount}',{amount:match[1]});
+  match=/^Only (\d+) left in stock for (.+)$/.exec(String(text));
+  if(match) return st('Only {count} left in stock for {name}',{count:match[1],name:match[2]});
+  match=/^Minimum order is Rs\.(\d+)\. Add more quantity or use the cart\.$/.exec(String(text));
+  if(match) return st('Minimum order is Rs.{amount}. Add more quantity or use the cart.',{amount:match[1]});
+  match=/^Add items worth Rs\.(\d+) or more to use this coupon$/.exec(String(text));
+  if(match) return st('Add items worth Rs.{amount} or more to use this coupon',{amount:match[1]});
+  return st(text);
+}

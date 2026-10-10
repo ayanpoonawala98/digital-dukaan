@@ -1,3 +1,4 @@
+import { storefrontError } from '../../shared/lib/storefront-i18n.js';
 import { useShowcaseScroll } from './showcase-scroll.js';
 import { useProductPages } from '../dashboard/use-product-pages.js';
 import { storeImage } from './store-image.js';
@@ -14,7 +15,7 @@ import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCircle, Download, Minus, Package, Plus, QrCode, Search, Share2, ShoppingBag, Star, Trash2, X } from 'lucide-react';
 import { api, imageSrc, inr } from '../../shared/lib/api.js';
 import { storeLink, storePath } from './store-domain.js';
-import { st, setStorefrontLanguage } from '../../shared/lib/storefront-i18n.js';
+import { st } from '../../shared/lib/storefront-i18n.js';
 import { useStorefrontLanguage, StorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
 import { useCouponPreview, totalAfterCoupon } from '../../shared/lib/coupon-preview.js';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
@@ -94,7 +95,7 @@ function PushPrompt({ slug, business, blocked = false }) {
     <button type="button" className="notify-close" onClick={dismiss} aria-label={st("Close notification popup")} disabled={state === 'busy'}><X size={18}/></button>
     <Bell size={20}/><div className="push-text"><strong>{state === 'on' ? st("Shop notifications on") : st("Stay updated with this shop")}</strong>
     <span>{state === 'unsupported' ? st("Open in Chrome on Android, or add this shop to your iPhone home screen and open the app, to enable notifications.") : state === 'denied' ? st("Notifications are blocked. Allow them for this site in your browser settings, then reload.") : state === 'on' ? st("Offers and new arrivals from {v0} will appear as browser notifications.", {v0:business.name}) : st("Get offers and new arrivals from {v0}.", {v0:business.name})}</span>
-    {error && <span role="alert">{st(error)}</span>}</div>
+    {error && <span role="alert">{storefrontError(error)}</span>}</div>
     <button type="button" className="btn btn-green btn-small" onClick={subscribe} disabled={['loading','busy','unsupported','denied','on'].includes(state)}>{state === 'on' ? st("Notifications on") : state === 'busy' ? st("Turning on...") : state === 'loading' ? st("Checking...") : state === 'denied' ? st("Blocked in browser") : state === 'unsupported' ? st("Browser not supported") : st("Notify me")}</button>
     <button type="button" className="notify-later" onClick={dismiss} disabled={state === 'busy'}>{st("Not now")}</button>
     <small className="notify-privacy">{st("Optional. You can use the bell anytime. We will not ask again on every visit.")}</small>
@@ -187,9 +188,9 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
         </div>
         <ContactFields contact={contact} onChange={setContact}/>
         <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder={'SAVE10'}/></label>
-        {couponCode && (cpv.error ? <p className="notice warn" role="status">{st(cpv.error)}</p> : cpv.checking ? <p className="drawer-hint">{st("Checking coupon...")}</p> : cpv.code ? <p className="drawer-hint">{st("Coupon")} {cpv.code} {st("applied. The shop confirms it again when you order.")}</p> : <p className="drawer-hint">{st("The shop verifies the code before opening WhatsApp.")}</p>)}
+        {couponCode && (cpv.error ? <p className="notice warn" role="status">{storefrontError(cpv.error)}</p> : cpv.checking ? <p className="drawer-hint">{st("Checking coupon...")}</p> : cpv.code ? <p className="drawer-hint">{st("Coupon")} {cpv.code} {st("applied. The shop confirms it again when you order.")}</p> : <p className="drawer-hint">{st("The shop verifies the code before opening WhatsApp.")}</p>)}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">{st("Minimum order is {total}. Add {remaining} more.",{total:inr(business.minOrder),remaining:inr(business.minOrder-cart.subtotal)})}</p>}
-        {error && <p className="notice error">{st(error)}</p>}
+        {error && <p className="notice error">{storefrontError(error)}</p>}
         <div className="drawer-foot">
         <div className="drawer-totals">
           <div><span>{t('subtotal')}</span><b>{inr(cart.subtotal)}</b></div>
@@ -318,7 +319,7 @@ function TableBar({ slug, business }) {
   const ask = async kind => { setErr(''); try { await api(`/public/stores/${slug}/table-requests`, { method: 'POST', body: { tableNumber: n, kind } }); setSent(kind); setTimeout(() => setSent(''), 6000); } catch (e) { setErr(e.message); } };
   return <div className="table-bar container" role="region" aria-label={st("Your table")}><strong>{st("Table")} {n}</strong><span>
     <button className="btn btn-outline btn-small" onClick={() => ask('waiter')} disabled={business.blocksOrders}><Bell size={14}/> {sent === 'waiter' ? st("Waiter called") : st("Call waiter")}</button>
-    <button className="btn btn-outline btn-small" onClick={() => ask('bill')} disabled={business.blocksOrders}><Clock size={14}/> {sent === 'bill' ? st("Bill requested") : st("Ask for bill")}</button></span>{err && <small className="error-text" role="alert">{st(err)}</small>}</div>;
+    <button className="btn btn-outline btn-small" onClick={() => ask('bill')} disabled={business.blocksOrders}><Clock size={14}/> {sent === 'bill' ? st("Bill requested") : st("Ask for bill")}</button></span>{err && <small className="error-text" role="alert">{storefrontError(err)}</small>}</div>;
 }
 
 function StoreClosed() { return <ShoppingBag size={42} aria-hidden="true"/>; }
@@ -333,7 +334,6 @@ export default function ShopPage({ hostedSlug }) {
   const {products,loading,loadingMore,total,hasMore,pageError,loadMore,sentinel} = useProductPages(slug,search,category,shop?.paused);
   const lang = useStorefrontLanguage();
   const t = st;
-  const setLanguage = setStorefrontLanguage;
   const [offerOpen, setOfferOpen] = useState(false);
   const [cartOpen, setCartOpen] = useState(false), [wishOpen, setWishOpen] = useState(false), [qrOpen, setQrOpen] = useState(false);
   const cart = useCart(slug), wishlist = useWishlist(slug), orders = useOrders(slug);
@@ -342,7 +342,7 @@ export default function ShopPage({ hostedSlug }) {
   const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}`, 'yes'); } catch {} setOfferOpen(false); };
 
   useSeo({ title: shop?.business?.name || undefined, description: shop?.business?.description ? String(shop.business.description).replace(/\s+/g, ' ').slice(0, 300) : shop?.business?.name ? `Explore ${shop.business.name} and order on WhatsApp.` : undefined, path: hostedSlug || !shop?.business?.name ? undefined : `/store/${slug}`, noindex: Boolean(shop?.paused) });
-  if (error) return <><Header/><div className="container empty-state page-fade"><h2>{st("Shop not found")}</h2><p>{st(error)}</p><Link to="/">{st("Back home")}</Link></div></>;
+  if (error) return <><Header/><div className="container empty-state page-fade"><h2>{st("Shop not found")}</h2><p>{storefrontError(error)}</p><Link to="/">{st("Back home")}</Link></div></>;
   if (!shop) return <><Header/><BrandLoader label={st("Loading shop")}/></>;
   if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} {st("is temporarily closed")}</h1><p>{st("This shop is paused right now. Please check back later.")}</p><Link className="btn btn-green" to="/">{st("Back home")}</Link></main><Footer/></>;
   const { business, categories } = shop;

@@ -1,5 +1,6 @@
+import { storefrontError } from '../../shared/lib/storefront-i18n.js';
 import { useStorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
-import { st } from '../../shared/lib/storefront-i18n.js';
+import { st, storeLocale } from '../../shared/lib/storefront-i18n.js';
 import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import { notify } from '../notifications/notifications.js';
 import { useFeedbackState } from '../../shared/components/Toasts.jsx';
@@ -129,7 +130,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
   const flow = flowFor(kind, data?.store?.storeType, data?.order?.orderType);
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">{st("YOUR ORDER")}</span><h1>{st("Order #")}{data?.order?.orderNumber ?? id}</h1>
-    {error && <p className="notice error" role="alert">{st(error)}</p>}{!data && !error && <BrandLoader compact label={st("Loading your order")}/>}
+    {error && <p className="notice error" role="alert">{storefrontError(error)}</p>}{!data && !error && <BrandLoader compact label={st("Loading your order")}/>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
       <div role="status" aria-live="polite"><h3>{st(statusLabel(flow, data.order.status))}</h3><p>{st(flow.note[data.order.status] || '')}</p></div>
       <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={st(data.order.orderType)}/>
@@ -137,7 +138,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
       <OrderBody order={data.order}/>
       {token && flow.done.includes(data.order.status) && <OrderReviews slug={slug} kind={kind} id={id} token={token}/>}
       <PushControl slug={slug} orders={token ? [...saved, ...loadSavedOrders(slug).filter(o => !(o.kind === kind && o.id === Number(id)))] : []}/>
-      <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString('en-IN') : '-'} {st("· updates automatically while open")}</small></p>
+      <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString(storeLocale()) : '-'} {st("· updates automatically while open")}</small></p>
       <div className="tracking-actions"><button className="btn btn-outline btn-small" onClick={load}>{st("Refresh")}</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? st("Copied") : st("Copy tracking link")}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>{st("My orders")}</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Back to store")}</Link></div>
     </section>}
   </main></>;
@@ -162,18 +163,18 @@ export function MyOrdersPage() {
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">{data?.store?.name || st("MY ORDERS")}</span><h1>{st("My orders")}</h1>
     <p>{st("Orders placed from this browser. No login needed. Status updates appear here automatically.")}</p>
-    {error && <p className="notice error" role="alert">{st(error)}</p>}
+    {error && <p className="notice error" role="alert">{storefrontError(error)}</p>}
     {!data && !error && <BrandLoader compact label={st("Loading your orders")}/>}
     {data && !orders.length && <div className="empty-state"><h3>{st("No orders yet")}</h3><p>{st("Orders you place on this store from this browser will show up here.")}</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Browse the store")}</Link></div>}
     {orders.map(o => { const flow = flowFor(o.kind, data.store?.storeType, o.orderType); return <section className="dashboard-panel" key={`${o.kind}-${o.id}`} style={{ marginBottom: 16 }}>
-      <h3>{st("Order #")}{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>
+      <h3>{st("Order #")}{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString(storeLocale())}</small>
       <div role="status" aria-live="polite"><strong>{st(statusLabel(flow, o.status))}</strong></div>
       <StatusSteps kind={o.kind} storeType={data.store?.storeType} status={o.status} orderType={o.orderType}/>
       <OrderBody order={o}/>
       {o.path && <Link className="btn btn-outline btn-small" to={o.path}>{st("Open tracking page")}</Link>}
     </section>; })}
     <PushControl slug={slug} orders={saved} onChange={load}/>
-    <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString('en-IN') : '-'} {st("· Orders are tied to this browser's notification setting; they do not follow you to another phone.")}</small></p>
+    <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString(storeLocale()) : '-'} {st("· Orders are tied to this browser's notification setting; they do not follow you to another phone.")}</small></p>
     <Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Back to store")}</Link>
   </main></>;
 }

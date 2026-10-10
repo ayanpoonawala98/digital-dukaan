@@ -1,3 +1,4 @@
+import { storefrontError } from '../../shared/lib/storefront-i18n.js';
 import { st } from '../../shared/lib/storefront-i18n.js';
 import { useStorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
 import BrandLoader from '../../shared/components/BrandLoader.jsx';
@@ -35,7 +36,7 @@ function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
       if (tab) tab.location.href = url; else window.location.href = url;
     } catch (e) { if (tab) tab.close(); setError(e.message); } finally { setBusy(false); }
   };
-  return <><ContactFields contact={contact} onChange={setContact}/><button onClick={buy} disabled={busy || blocked} className="btn btn-green">{busy ? st("Opening...") : children || st("Buy on WhatsApp")} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{st(error)}</small>}</>;
+  return <><ContactFields contact={contact} onChange={setContact}/><button onClick={buy} disabled={busy || blocked} className="btn btn-green">{busy ? st("Opening...") : children || st("Buy on WhatsApp")} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{storefrontError(error)}</small>}</>;
 }
 
 export default function ProductPage({ hostedSlug }) {
@@ -47,7 +48,7 @@ export default function ProductPage({ hostedSlug }) {
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
   useSeo({ title: data?.product ? `${data.product.name} - ${data.business.name}` : undefined, description: data?.product ? String(data.product.description || `${data.product.name} from ${data.business.name}. Order on WhatsApp.`).replace(/\s+/g, ' ').slice(0, 300) : undefined, path: hostedSlug || !data?.product ? undefined : `/store/${slug}/product/${id}` });
-  if (error) return <><Header/><div className="container empty-state page-fade">{st(error)}</div></>;
+  if (error) return <><Header/><div className="container empty-state page-fade">{storefrontError(error)}</div></>;
   if (!data) return <BrandLoader label={st("Loading product")}/>;
   const { business, product } = data;
   const isService = product.kind === 'service';

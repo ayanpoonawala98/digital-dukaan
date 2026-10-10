@@ -1,4 +1,5 @@
-import { st } from '../../shared/lib/storefront-i18n.js';
+import { storefrontError } from '../../shared/lib/storefront-i18n.js';
+import { st, storeLocale } from '../../shared/lib/storefront-i18n.js';
 import React, { useCallback, useEffect, useState } from 'react';
 import { api } from '../../shared/lib/api.js';
 import { Stars } from './Stars.jsx';
@@ -19,8 +20,8 @@ export default function ProductReviews({ slug, productId }) {
   if (!loading && (error ? !reviews.length : (!summary || !summary.count))) return null; // no reviews or a failed first load: hide the section, never show a red error to shoppers
   return <section className="reviews" aria-label={st("Customer reviews")}>
     <div className="reviews-head"><h2>{st("Reviews")}</h2>{summary?.count > 0 && <Stars value={summary.avg} count={summary.count} size={18}/>}</div>
-    {reviews.map(r => <article className="review-item" key={r.id}><Stars value={r.rating}/>{r.text && <p>{r.text}</p>}<small className="muted">{r.name} {st("· Verified order ·")} {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</small></article>)}
-    {error && <p className="notice error" role="alert">{st(error)}</p>}
+    {reviews.map(r => <article className="review-item" key={r.id}><Stars value={r.rating}/>{r.text && <p>{r.text}</p>}<small className="muted">{r.name} {st("· Verified order ·")} {new Date(r.createdAt).toLocaleDateString(storeLocale(), { day: 'numeric', month: 'short', year: 'numeric' })}</small></article>)}
+    {error && <p className="notice error" role="alert">{storefrontError(error)}</p>}
     {loading && <p className="muted">{st("Loading reviews...")}</p>}
     {next && !loading && <button type="button" className="btn btn-outline" onClick={() => load(next)}>{st("Show more reviews")}</button>}
   </section>;

@@ -5871,5 +5871,21 @@ export const ownerMessages = {
   "Could not check this coupon": {
     "hi": "यह कूपन जाँचा नहीं जा सका",
     "mr": "हे कूपन तपासता आले नाही"
+  },
+  "Delete {name} for good? They can no longer sign in and this cannot be undone. Orders they entered stay.": {
+    "hi": "{name} को हमेशा के लिए मिटाएँ? वे फिर लॉग इन नहीं कर सकेंगे और इसे वापस नहीं किया जा सकता। उनके दर्ज किए गए ऑर्डर रहेंगे।",
+    "mr": "{name} ला कायमचे हटवायचे? त्यांना पुन्हा लॉग इन करता येणार नाही आणि हे मागे घेता येणार नाही. त्यांनी नोंदवलेल्या ऑर्डर राहतील."
+  },
+  "Staff deleted": {
+    "hi": "स्टाफ मिटाया गया",
+    "mr": "कर्मचारी हटवला"
+  },
+  "Keep": {
+    "hi": "रखें",
+    "mr": "ठेवा"
+  },
+  "table": {
+    "hi": "टेबल",
+    "mr": "टेबल"
   }
 };

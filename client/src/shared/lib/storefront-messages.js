@@ -1419,5 +1419,217 @@ export const storefrontMessages = {
   "{name} logo": {
     "hi": "{name} का लोगो",
     "mr": "{name} चा लोगो"
+  },
+  "Unable to connect. Check your internet connection and try again.": {
+    "hi": "कनेक्शन नहीं हुआ। इंटरनेट कनेक्शन जाँचकर फिर कोशिश करें।",
+    "mr": "जोडणी झाली नाही. इंटरनेट जोडणी तपासून पुन्हा प्रयत्न करा."
+  },
+  "Something went wrong. Please try again.": {
+    "hi": "कुछ गलत हुआ। फिर कोशिश करें।",
+    "mr": "काहीतरी चुकले. पुन्हा प्रयत्न करा."
+  },
+  "Kindly contact admin to enable access.": {
+    "hi": "पहुँच चालू करने के लिए एडमिन से संपर्क करें।",
+    "mr": "प्रवेश सुरू करण्यासाठी अॅडमिनशी संपर्क करा."
+  },
+  "Download failed. Please try again.": {
+    "hi": "डाउनलोड नहीं हुआ। फिर कोशिश करें।",
+    "mr": "डाउनलोड झाले नाही. पुन्हा प्रयत्न करा."
+  },
+  "Download started.": {
+    "hi": "डाउनलोड शुरू हुआ।",
+    "mr": "डाउनलोड सुरू झाले."
+  },
+  "Notifications turned off.": {
+    "hi": "सूचनाएँ बंद हुईं।",
+    "mr": "सूचना बंद झाल्या."
+  },
+  "Notifications enabled.": {
+    "hi": "सूचनाएँ चालू हुईं।",
+    "mr": "सूचना सुरू झाल्या."
+  },
+  "Order request created. The shop will confirm it.": {
+    "hi": "ऑर्डर का अनुरोध बनाया गया। दुकान इसकी पुष्टि करेगी।",
+    "mr": "ऑर्डरची विनंती तयार झाली. दुकान तिची पुष्टी करेल."
+  },
+  "Order placed.": {
+    "hi": "ऑर्डर दिया गया।",
+    "mr": "ऑर्डर दिली."
+  },
+  "Request completed successfully.": {
+    "hi": "अनुरोध पूरा हुआ।",
+    "mr": "विनंती पूर्ण झाली."
+  },
+  "Changes saved successfully.": {
+    "hi": "बदलाव सहेजे गए।",
+    "mr": "बदल जतन झाले."
+  },
+  "Removed successfully.": {
+    "hi": "हटा दिया गया।",
+    "mr": "काढले."
+  },
+  "Coupons are currently unavailable for this store": {
+    "hi": "इस दुकान में कूपन अभी उपलब्ध नहीं हैं",
+    "mr": "या दुकानात कूपन सध्या उपलब्ध नाहीत"
+  },
+  "Invalid coupon code": {
+    "hi": "कूपन कोड गलत है",
+    "mr": "कूपन कोड चुकीचा आहे"
+  },
+  "Coupon not found or no longer active": {
+    "hi": "कूपन नहीं मिला या अब सक्रिय नहीं है",
+    "mr": "कूपन सापडले नाही किंवा आता सक्रिय नाही"
+  },
+  "Table requests unavailable": {
+    "hi": "टेबल अनुरोध उपलब्ध नहीं हैं",
+    "mr": "टेबलच्या विनंत्या उपलब्ध नाहीत"
+  },
+  "The restaurant is closed right now.": {
+    "hi": "रेस्टोरेंट अभी बंद है।",
+    "mr": "रेस्टॉरंट सध्या बंद आहे."
+  },
+  "Choose call waiter or ask for bill": {
+    "hi": "वेटर बुलाना या बिल माँगना चुनें",
+    "mr": "वेटर बोलावणे किंवा बिल मागवणे निवडा"
+  },
+  "Select a valid table number": {
+    "hi": "सही टेबल नंबर चुनें",
+    "mr": "योग्य टेबल नंबर निवडा"
+  },
+  "The shop is closed right now and is not taking orders. Please try again when it opens.": {
+    "hi": "दुकान अभी बंद है और ऑर्डर नहीं ले रही है। खुलने पर फिर कोशिश करें।",
+    "mr": "दुकान सध्या बंद आहे आणि ऑर्डर घेत नाही. उघडल्यावर पुन्हा प्रयत्न करा."
+  },
+  "Restaurant orders unavailable": {
+    "hi": "रेस्टोरेंट के ऑर्डर उपलब्ध नहीं हैं",
+    "mr": "रेस्टॉरंटच्या ऑर्डर उपलब्ध नाहीत"
+  },
+  "Select order type": {
+    "hi": "ऑर्डर का प्रकार चुनें",
+    "mr": "ऑर्डरचा प्रकार निवडा"
+  },
+  "Please enter your name": {
+    "hi": "अपना नाम लिखें",
+    "mr": "तुमचे नाव लिहा"
+  },
+  "Please enter your phone number": {
+    "hi": "अपना फ़ोन नंबर लिखें",
+    "mr": "तुमचा फोन नंबर लिहा"
+  },
+  "Phone number looks wrong. Use digits only, 8 to 15 digits, with country code": {
+    "hi": "फ़ोन नंबर गलत लग रहा है। देश के कोड के साथ सिर्फ 8 से 15 अंक लिखें",
+    "mr": "फोन नंबर चुकीचा वाटतो. देशाच्या कोडसह फक्त 8 ते 15 अंक लिहा"
+  },
+  "Delivery address required": {
+    "hi": "डिलीवरी का पता ज़रूरी है",
+    "mr": "डिलिव्हरीचा पत्ता आवश्यक आहे"
+  },
+  "Select items": {
+    "hi": "सामान चुनें",
+    "mr": "वस्तू निवडा"
+  },
+  "Invalid items": {
+    "hi": "सामान गलत है",
+    "mr": "वस्तू चुकीच्या आहेत"
+  },
+  "An item is no longer available": {
+    "hi": "एक सामान अब उपलब्ध नहीं है",
+    "mr": "एक वस्तू आता उपलब्ध नाही"
+  },
+  "Invalid quantity or insufficient stock": {
+    "hi": "मात्रा गलत है या स्टॉक कम है",
+    "mr": "संख्या चुकीची आहे किंवा स्टॉक कमी आहे"
+  },
+  "Order tracking link is invalid or expired": {
+    "hi": "ऑर्डर का ट्रैकिंग लिंक गलत है या उसकी अवधि खत्म हो गई है",
+    "mr": "ऑर्डरची ट्रॅकिंग लिंक चुकीची आहे किंवा तिची मुदत संपली आहे"
+  },
+  "Order not found": {
+    "hi": "ऑर्डर नहीं मिला",
+    "mr": "ऑर्डर सापडली नाही"
+  },
+  "Store not found": {
+    "hi": "दुकान नहीं मिली",
+    "mr": "दुकान सापडले नाही"
+  },
+  "Invalid push subscription": {
+    "hi": "सूचना का सब्सक्रिप्शन गलत है",
+    "mr": "सूचनेची सदस्यता चुकीची आहे"
+  },
+  "Product not found": {
+    "hi": "उत्पाद नहीं मिला",
+    "mr": "उत्पादन सापडले नाही"
+  },
+  "Enter a valid phone number or leave it blank": {
+    "hi": "सही फ़ोन नंबर लिखें या खाली छोड़ें",
+    "mr": "योग्य फोन नंबर लिहा किंवा रिकामे ठेवा"
+  },
+  "Enter a valid email or leave it blank": {
+    "hi": "सही ईमेल लिखें या खाली छोड़ें",
+    "mr": "योग्य ईमेल लिहा किंवा रिकामे ठेवा"
+  },
+  "Add an email for order updates": {
+    "hi": "ऑर्डर के अपडेट के लिए ईमेल जोड़ें",
+    "mr": "ऑर्डरच्या अपडेटसाठी ईमेल जोडा"
+  },
+  "Order from the menu instead": {
+    "hi": "मेन्यू से ऑर्डर दें",
+    "mr": "मेनूमधून ऑर्डर द्या"
+  },
+  "Invalid quantity": {
+    "hi": "मात्रा गलत है",
+    "mr": "संख्या चुकीची आहे"
+  },
+  "{name} is sold out for today": {
+    "hi": "{name} आज के लिए खत्म है",
+    "mr": "{name} आजसाठी संपले आहे"
+  },
+  "Minimum order is Rs.{amount}": {
+    "hi": "न्यूनतम ऑर्डर Rs.{amount} है",
+    "mr": "किमान ऑर्डर Rs.{amount} आहे"
+  },
+  "This product is out of stock right now": {
+    "hi": "यह उत्पाद अभी स्टॉक में नहीं है",
+    "mr": "हे उत्पादन सध्या स्टॉकमध्ये नाही"
+  },
+  "Add items first": {
+    "hi": "पहले सामान जोड़ें",
+    "mr": "आधी वस्तू जोडा"
+  },
+  "Your cart is empty": {
+    "hi": "आपकी कार्ट खाली है",
+    "mr": "तुमची कार्ट रिकामी आहे"
+  },
+  "Invalid cart item": {
+    "hi": "कार्ट का सामान गलत है",
+    "mr": "कार्टमधील वस्तू चुकीची आहे"
+  },
+  "A product in your cart is no longer available": {
+    "hi": "आपकी कार्ट का एक उत्पाद अब उपलब्ध नहीं है",
+    "mr": "तुमच्या कार्टमधील एक उत्पादन आता उपलब्ध नाही"
+  },
+  "Only {count} left in stock for {name}": {
+    "hi": "{name} के स्टॉक में सिर्फ {count} बचे हैं",
+    "mr": "{name} च्या स्टॉकमध्ये फक्त {count} शिल्लक आहेत"
+  },
+  "Minimum order is Rs.{amount}. Add more quantity or use the cart.": {
+    "hi": "न्यूनतम ऑर्डर Rs.{amount} है। मात्रा बढ़ाएँ या कार्ट इस्तेमाल करें।",
+    "mr": "किमान ऑर्डर Rs.{amount} आहे. संख्या वाढवा किंवा कार्ट वापरा."
+  },
+  "Invalid restaurant table": {
+    "hi": "रेस्टोरेंट का टेबल गलत है",
+    "mr": "रेस्टॉरंटचे टेबल चुकीचे आहे"
+  },
+  "This coupon has expired": {
+    "hi": "इस कूपन की अवधि खत्म हो गई है",
+    "mr": "या कूपनची मुदत संपली आहे"
+  },
+  "This coupon has been fully used": {
+    "hi": "यह कूपन पूरी तरह इस्तेमाल हो चुका है",
+    "mr": "हे कूपन पूर्णपणे वापरले गेले आहे"
+  },
+  "Add items worth Rs.{amount} or more to use this coupon": {
+    "hi": "यह कूपन इस्तेमाल करने के लिए Rs.{amount} या उससे अधिक का सामान जोड़ें",
+    "mr": "हे कूपन वापरण्यासाठी Rs.{amount} किंवा त्यापेक्षा जास्त किमतीच्या वस्तू जोडा"
   }
 };
