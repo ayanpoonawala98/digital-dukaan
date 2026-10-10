@@ -24,10 +24,25 @@ export const TableBill = sequelize.define('TableBill', {
   paidAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
 }, { tableName: 'table_bills', indexes: [{ fields: ['businessId', 'channel', 'tableNumber', 'paidAt'] }, { unique: true, fields: ['businessId', 'billNo'] }] });
 
+export const TableHold = sequelize.define('TableHold', {
+  id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false },
+  tableNumber: { type: DataTypes.INTEGER, allowNull: false }
+}, { tableName: 'table_holds', indexes: [{ unique: true, fields: ['businessId', 'tableNumber'] }] });
+export async function setTableHold(store, n, held) {
+  await ensureTableBillSchema();
+  const t = Number(n);
+  if (!Number.isInteger(t) || t < 1 || t > 1000) throw bad(400, 'Invalid table');
+  if (held) await TableHold.findOrCreate({ where: { businessId: store.id, tableNumber: t } });
+  else await TableHold.destroy({ where: { businessId: store.id, tableNumber: t } });
+  return { ok: true, held: !!held };
+}
+
 let ready;
 export function ensureTableBillSchema() {
   if (!ready) ready = (async () => {
     await TableBill.sync(); // new table only
+    await TableHold.sync();
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "billId" integer');
     await sequelize.query('CREATE INDEX IF NOT EXISTS restaurant_orders_open_idx ON restaurant_orders ("businessId", "billId")');
   })().catch(e => { ready = null; throw e; });
@@ -55,7 +70,8 @@ export async function tablesState(store) {
   const view = t => ({ ...t, occupied: t.orders.length > 0, total: sum(t.orders), since: t.orders[0]?.createdAt || null });
   const reqs = await TableRequest.findAll({ where: { businessId: store.id, status: 'open' }, attributes: ['tableNumber', 'kind'], raw: true }).catch(() => []);
   const reqOf = n => { const k = reqs.filter(r => Number(r.tableNumber) === n).map(r => r.kind); return k.includes('bill') ? 'bill' : k.length ? 'waiter' : null; };
-  const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number) }));
+  const holds = new Set((await TableHold.findAll({ where: { businessId: store.id }, attributes: ['tableNumber'], raw: true })).map(h => h.tableNumber));
+  const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number), held: holds.has(t.number), occupied: t.occupied || holds.has(t.number) }));
   return { tableCount: count, menu, name: store.name, gstin: store.gstin || '', tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
@@ -142,5 +158,6 @@ export async function settleBill(store, body, setDone) {
     return row;
   });
   for (const o of orders) { try { await setDone(o); } catch (e) { /* bill is saved; stock/status issues must not undo history */ } }
+  if (channel === "table") await TableHold.destroy({ where: { businessId: store.id, tableNumber } }).catch(() => {});
   return { bill: bill.toJSON() };
 }

@@ -14,6 +14,7 @@ export function staffAllowed(perms, method, route) {
   if (method === 'PATCH' && /^restaurant-orders\/\d+$/.test(route)) return has('order_status');
   if (method === 'GET' && /^tables(?:\/history)?$/.test(route)) return has('orders_view');
   if (method === 'POST' && route === 'restaurant-orders') return has('order_status');
+  if (method === 'POST' && /^tables\/\d+\/hold$/.test(route)) return has('order_status');
   if (method === 'POST' && route === 'table-bills') return has('order_status');
   if (method === 'GET' && route === 'table-requests') return has('orders_view');
   if (method === 'PATCH' && /^table-requests\/\d+$/.test(route)) return has('order_status');

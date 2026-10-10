@@ -1,4 +1,4 @@
-import { tablesState, billHistory, billsSummary, settleBill } from '../features/restaurant/table-bills.js';
+import { tablesState, billHistory, billsSummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
 import { assertCanCreateStore } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
@@ -814,6 +814,7 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
 // Tables view: live status per table/channel, settle a bill (append-only history).
 const restaurantOnly = req => { if (req.store.storeType !== 'restaurant') throw bad(404, 'Tables unavailable'); };
 r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.json(await tablesState(req.store)); }));
+r.post('/:storeId/tables/:n/hold', wrap(async (req, res) => { restaurantOnly(req); res.json(await setTableHold(req.store, req.params.n, req.body?.held !== false)); }));
 r.get('/:storeId/tables/history', wrap(async (req, res) => { restaurantOnly(req); res.json(await billHistory(req.store, req.query)); }));
 r.post('/:storeId/table-bills', wrap(async (req, res) => {
   restaurantOnly(req);
