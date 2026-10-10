@@ -7,10 +7,12 @@ test('IST inclusive dates use an exclusive next-day bound and reject invalid dat
  assert.equal(new Date(w.from).toISOString(),'2026-09-30T18:30:00.000Z');assert.equal(new Date(w.until).toISOString(),'2026-10-01T18:30:00.000Z');
  for(const q of [{from:'2026-02-30'},{from:'bad'},{from:'2026-10-02',to:'2026-10-01'}])assert.throws(()=>dateWindow(q));
 });
-test('only served restaurant orders count as recorded totals, not requests',()=>{
+test('served restaurant orders and delivered retail orders count as recorded totals; other requests do not',()=>{
  const order=(status,total,createdAt)=>({status,total,createdAt,items:[{name:'Tea',qty:2,price:10}]});
- const r=summarize([order('served',25,'2026-09-30T19:00:00Z'),order('new',100,'2026-10-01T10:00:00Z'),order('cancelled',99,'2026-10-01T10:00:00Z')],[{price:999,status:'delivered'}],new Date('2026-10-01T12:00:00Z'));
- assert.equal(r.recordedTotal,25);assert.equal(r.whatsappEnquiries,1);assert.equal(r.today,25);assert.equal(r.topProducts[0].itemValue,20);assert.equal(r.daily[0].date,'2026-10-01');assert.equal(r.restaurantPending,1);
+ const lead=(status,price,createdAt)=>({status,price,createdAt,productName:'Shirt'});
+ const r=summarize([order('served',25,'2026-09-30T19:00:00Z'),order('new',100,'2026-10-01T10:00:00Z'),order('cancelled',99,'2026-10-01T10:00:00Z')],[lead('delivered',999,'2026-10-01T09:00:00Z'),lead('new',500,'2026-10-01T09:00:00Z'),lead('cancelled',700,'2026-10-01T09:00:00Z'),lead('shipped',300,'2026-10-01T09:00:00Z')],new Date('2026-10-01T12:00:00Z'));
+ assert.equal(r.recordedTotal,1024);assert.equal(r.completedOrders,2);assert.equal(r.whatsappEnquiries,4);assert.equal(r.today,1024);assert.equal(r.retailDelivered,1);assert.equal(r.enquiryValue,800);
+ assert.equal(r.topProducts.find(p=>p.name==='Shirt').quantity,1);assert.equal(r.topProducts.find(p=>p.name==='Tea').itemValue,20);assert.equal(r.restaurantPending,1);
 });
 test('CSV quotes and neutralizes spreadsheet formulas without exposing payment claims',()=>{
  assert.match(csvCell('=HYPERLINK("evil")'),/^"'/);assert.equal(csvCell('A,"B"'),'"A,""B"""');

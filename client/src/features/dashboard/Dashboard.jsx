@@ -15,7 +15,7 @@ import { notify as showToast } from '../notifications/notifications.js';
 import { useFeedbackState } from '../../shared/components/Toasts.jsx';
 import { productDraft } from './product-draft.js';
 import { CustomFieldsEditor } from './CustomFields.jsx';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
 import { useAuth } from '../../app/auth.jsx';
@@ -406,7 +406,10 @@ export default function Dashboard() {
   const orderLinkApplied = React.useRef(false);
   const pendingOrderTab = React.useRef(false);
   const linkedStore = new URLSearchParams(location.search).get('store');
-  const [tab, setTab] = useState('overview');
+  const initialTab = useRef(['imports','whatsapp-cloud','overview','products','categories','customers','leads','sales','referrals','staff','coupons','restaurant','campaigns','broadcast','notifications','settings'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || null);
+  const [tab, setTabState] = useState(initialTab.current || 'overview');
+  // Keep the open page in the URL so a browser refresh stays on the same page.
+  const setTab = useCallback(next => { setTabState(next); try { const t = typeof next === 'function' ? null : next; if (t) history.replaceState(null, '', `${location.pathname}${location.search}#${t}`); } catch { /* URL sync is optional */ } }, []);
   const [filters,setFilters] = useState({q:'',status:'all',from:'',to:'',page:1});
   const [customerRefresh,setCustomerRefresh]=useState(0);
   const [listTotal,setListTotal] = useState(0), [tableTotal,setTableTotal] = useState(0);
@@ -479,7 +482,7 @@ export default function Dashboard() {
     } catch (e) { if (!stale()) setError(e.message); } finally { if (!stale()) setLoading(false); }
   };
   useEffect(() => { setBroadcastImageUrl(''); setBroadcastText(''); setBroadcastRecipients(''); }, [storeId]);
-  useEffect(() => { setTab(pendingOrderTab.current || 'overview'); pendingOrderTab.current = false; setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setReferrals([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
+  useEffect(() => { const keep = initialTab.current; if (storeId) initialTab.current = null; setTab(pendingOrderTab.current || keep || 'overview'); pendingOrderTab.current = false; setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setReferrals([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
 
   useEffect(()=>{ setFilters(f=>({...f,q:'',status:'all',page:1})); },[tab,storeId]);
   useEffect(() => { const timer=setTimeout(()=>{ if(storeId) load(); },300); return ()=>clearTimeout(timer); }, [tab,filters.from,filters.to]);

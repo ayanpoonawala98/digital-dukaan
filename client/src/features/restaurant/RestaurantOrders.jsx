@@ -70,7 +70,8 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
 }
 
 export default function RestaurantOrders({ orders, busy, actionKey, onStatus, onRefresh, token, storeId, staffMode, renderPay }) {
-  const [view, setView] = useState('list');
+  const [view, setViewState] = useState(() => { try { return sessionStorage.getItem('dd-orders-view') === 'kitchen' ? 'kitchen' : 'list'; } catch { return 'list'; } });
+  const setView = v => { setViewState(v); try { sessionStorage.setItem('dd-orders-view', v); } catch { /* optional */ } };
   return <div className="rorders">
     <div className="leads-head"><h3>Orders received in the app</h3>
       <div className="rorder-views"><button type="button" className={`btn btn-small ${view === 'list' ? 'btn-green' : 'btn-outline'}`} onClick={() => setView('list')}><ListOrdered size={14}/> Orders</button><button type="button" className={`btn btn-small ${view === 'kitchen' ? 'btn-green' : 'btn-outline'}`} onClick={() => setView('kitchen')}><ChefHat size={14}/> Kitchen view</button>

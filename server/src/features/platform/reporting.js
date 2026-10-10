@@ -21,8 +21,14 @@ export function dateWhere(query, Op) {
 }
 const number = value => Number.isFinite(Number(value)) ? Number(value) : 0;
 const indiaDay = date => new Date(+new Date(date) + 330 * 60000).toISOString().slice(0, 10);
+// A sale is a restaurant order that was served/delivered/picked up, or a retail or service order (stored as a lead) marked Delivered or Completed.
+export const LEAD_SALE_STATUSES = ['delivered', 'completed'];
+export function saleRows(orders = [], leads = []) {
+  const retail = leads.filter(l => LEAD_SALE_STATUSES.includes(l.status)).map(l => ({ createdAt: l.createdAt, total: l.price, status: l.status, retail: true, items: Array.isArray(l.items) && l.items.length ? l.items : [{ name: l.productName, qty: 1, price: l.price }] }));
+  return [...orders.filter(o => RESTAURANT_DONE.includes(o.status)), ...retail];
+}
 export function summarize(orders, leads, now = new Date()) {
-  const completed = orders.filter(o => RESTAURANT_DONE.includes(o.status));
+  const completed = saleRows(orders, leads);
   const todayKey = indiaDay(now), monthKey = todayKey.slice(0, 7);
   const sum = values => values.reduce((n, o) => n + number(o.total), 0);
   const days = new Map(), top = new Map();
@@ -31,7 +37,7 @@ export function summarize(orders, leads, now = new Date()) {
     for (const item of order.items || []) { const key = String(item.name || 'Item'); const p = top.get(key) || { name: key, quantity: 0, itemValue: 0 }; p.quantity += number(item.qty); p.itemValue += number(item.qty) * number(item.price); top.set(key, p); }
   }
   const recordedTotal = sum(completed);
-  return { recordedTotal, averageOrder: completed.length ? recordedTotal / completed.length : 0, today: sum(completed.filter(o => indiaDay(o.createdAt) === todayKey)), month: sum(completed.filter(o => indiaDay(o.createdAt).startsWith(monthKey))), completedOrders: completed.length, restaurantPending: orders.filter(o => ['new','preparing'].includes(o.status)).length, cancelledOrders: orders.filter(o => o.status === 'cancelled').length, whatsappEnquiries: leads.length, enquiryValue: leads.filter(l => l.status !== 'cancelled').reduce((n,l) => n + number(l.price),0), daily: [...days.values()].sort((a,b) => a.date.localeCompare(b.date)), topProducts: [...top.values()].sort((a,b) => b.quantity-a.quantity).slice(0,10), timezone: 'Asia/Kolkata', caveat: 'Totals use order-created dates in IST. Served restaurant orders are recorded totals, not proof of payment. WhatsApp enquiries are requests, not sales.' };
+  return { recordedTotal, averageOrder: completed.length ? recordedTotal / completed.length : 0, today: sum(completed.filter(o => indiaDay(o.createdAt) === todayKey)), month: sum(completed.filter(o => indiaDay(o.createdAt).startsWith(monthKey))), completedOrders: completed.length, restaurantPending: orders.filter(o => ['new','preparing'].includes(o.status)).length, cancelledOrders: orders.filter(o => o.status === 'cancelled').length, whatsappEnquiries: leads.length, retailDelivered: leads.filter(l => LEAD_SALE_STATUSES.includes(l.status)).length, enquiryValue: leads.filter(l => l.status !== 'cancelled' && !LEAD_SALE_STATUSES.includes(l.status)).reduce((n,l) => n + number(l.price),0), daily: [...days.values()].sort((a,b) => a.date.localeCompare(b.date)), topProducts: [...top.values()].sort((a,b) => b.quantity-a.quantity).slice(0,10), timezone: 'Asia/Kolkata', caveat: 'Totals use order-created dates in IST. Served restaurant orders and retail orders marked Delivered are recorded totals, not proof of payment. Other WhatsApp enquiries are requests, not sales.' };
 }
 export const csvCell = value => `"${String(value ?? '').replace(/^[\s]*[=+\-@]/, "' $&").replace(/"/g, '""')}"`;
 export function ordersCsv(orders, kind) {

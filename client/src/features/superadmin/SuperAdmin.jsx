@@ -20,7 +20,8 @@ import { AdminShell } from '../dashboard/Dashboard.jsx';
 export default function SuperAdmin() {
   const { session } = useAuth(), token = session.token;
   const [resetOwner,setResetOwner]=useState(null);
-  const [tab, setTab] = useState('overview');
+  const [tab, setTabState] = useState(() => ['overview','sales','businesses','users','requests'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || 'overview');
+  const setTab = next => { setTabState(next); try { if (typeof next === 'string') history.replaceState(null, '', `${location.pathname}${location.search}#${next}`); } catch { /* optional */ } };
   const [filters,setFilters]=useState({q:''});
   const [loading, setLoading] = useState(true);
   const [owner, setOwner] = useState({ name: '', email: '', password: '', shopName: '', slug: '', whatsapp: '', storeType: 'retail', tableCount: 0 });

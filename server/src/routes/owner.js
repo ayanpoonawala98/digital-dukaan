@@ -33,7 +33,7 @@ import { featureForOwnerRoute, isLocked } from '../features/platform/feature-loc
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, Referral, TableRequest } from '../models/index.js';
 import { validateProductRows } from '../features/catalog/product-import.js';
 import { insights } from '../features/platform/sales-insights.js';
-import { dateWhere, dateWindow, summarize, ordersCsv, csvCell as reportCell } from '../features/platform/reporting.js';
+import { dateWhere, dateWindow, summarize, saleRows, ordersCsv, csvCell as reportCell } from '../features/platform/reporting.js';
 import { auth, roles } from '../shared/middleware/auth.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap, clientBase } from '../shared/utils/core.js';
 
@@ -739,7 +739,7 @@ const salesReport = async req => {
   const counts=await Promise.all([Lead.count({where}),RestaurantOrder.count({where})]);
   if(counts.some(n=>n>50000)) throw bad(400,'Choose a smaller date range (maximum 50,000 records per type).');
   const [leads, orders] = await Promise.all([Lead.findAll({where,order:[['createdAt','DESC']]}),RestaurantOrder.findAll({where,order:[['createdAt','DESC']]})]);
-  const movement = new Set(orders.filter(o=>RESTAURANT_DONE.includes(o.status)).flatMap(o=>(o.items || []).map(i=>i.name)));
+  const movement = new Set(saleRows(orders,leads).flatMap(o=>(o.items || []).map(i=>i.name)));
   const products = isLocked(req.store,'products') ? [] : await Product.findAll({where:{businessId:bid(req),active:true}});
   return { ...summarize(orders,leads), insights: insights(orders,leads), noMovement:products.filter(p=>Number(p.stock)>0 && !movement.has(p.name)).map(p=>({id:p.id,name:p.name,stock:p.stock,price:p.price})), from: req.query.from || null, to: req.query.to || null };
 };

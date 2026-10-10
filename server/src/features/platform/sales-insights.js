@@ -1,4 +1,4 @@
-import { RESTAURANT_DONE } from '../orders/order-flows.js';
+import { saleRows } from './reporting.js';
 // Read-only analytics for the Sales dashboard. Pure functions over already-loaded rows; all dates are IST.
 const num = v => Number.isFinite(Number(v)) ? Number(v) : 0;
 const IST = 330 * 60000;
@@ -9,7 +9,7 @@ const addDays = (key, n) => new Date(Date.parse(`${key}T00:00:00Z`) + n * 864000
 
 export function insights(orders = [], leads = [], now = new Date(), maxDays = 60) {
   const today = dayKey(now);
-  const liveLeads = leads.filter(l => l.status !== 'cancelled'), liveOrders = orders.filter(o => o.status !== 'cancelled'), served = orders.filter(o => RESTAURANT_DONE.includes(o.status));
+  const liveLeads = leads.filter(l => l.status !== 'cancelled'), liveOrders = orders.filter(o => o.status !== 'cancelled'), served = saleRows(orders, leads);
   // Daily series, zero-filled, ending today (or the latest record if it is later) and at most maxDays long.
   const all = [...leads, ...orders].map(r => dayKey(r.createdAt));
   const last = all.reduce((m, k) => (k > m ? k : m), today);
