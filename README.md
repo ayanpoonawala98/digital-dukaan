@@ -12,6 +12,24 @@ WhatsApp-first catalogs for small businesses. Superadmins create each owner acco
 
 React 18 + Vite in `client/`; Node.js + Express + Sequelize in `server/`; PostgreSQL (Neon in production, any Postgres locally). JavaScript ES modules, npm workspaces. Images upload to ImageKit when `IMAGEKIT_PRIVATE_KEY` is set, local `server/uploads/` otherwise.
 
+Code is organized by feature. Tests sit next to the code they cover.
+
+```
+client/src/
+  app/            App.jsx, main.jsx (entry), auth.jsx, theme.jsx, styles.css
+  features/       storefront, restaurant, dashboard, imports, whatsapp,
+                  notifications, superadmin, landing, auth
+  shared/         components/ (Busy, Toasts, Motion, chrome...) and lib/ (api, i18n, leaflet, feature-locks)
+server/src/
+  index.js, app.js, seed.js    entry points (unchanged paths: npm start / npm run seed)
+  config/         db.js, load-env.js (loads the repo-root .env first)
+  shared/         middleware/, utils/, permissions, password-security, smtp, retention...
+  features/       orders, catalog, restaurant, whatsapp, notifications, crm, stores, platform, billing
+  models/         Sequelize models
+  routes/         public.js, owner.js, admin.js, auth.js
+server/fonts, server/api (Vercel entry)   unchanged
+```
+
 ## Local setup
 
 Requires Node 20+, npm and a Postgres database.
