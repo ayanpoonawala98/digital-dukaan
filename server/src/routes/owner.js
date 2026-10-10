@@ -1,7 +1,8 @@
+import { isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { makeKot, makeLeadKot } from '../features/restaurant/kot.js';
 import { tablesState, billHistory, billsSummary, daySummary, settleBill, setTableHold } from '../features/restaurant/table-bills.js';
 import { assertCanCreateStore, ownerPlan } from '../features/platform/subscriptions.js';
-import {optimizeUpload} from '../features/catalog/optimize-upload.js';
+import {optimizeUpload,looksLikeImage} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
 import { statusPush } from '../features/orders/customer-order-push.js';
 import {streamBill} from '../features/billing/invoice.js';
@@ -369,6 +370,7 @@ r.delete('/:storeId/products/:id', wrap(async (req, res) => {
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 }, fileFilter: (_, file, done) => done(null, ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype)) });
 r.post('/:storeId/upload', upload.single('image'), wrap(async (req, res) => {
   if (!req.file) throw bad(400, 'Choose a JPEG, PNG or WebP image under 5 MB');
+  if (!(await looksLikeImage(req.file.buffer, req.file.mimetype))) throw bad(400, 'That file is not a valid JPEG, PNG or WebP image');
   const optimized=await optimizeUpload(req.file.buffer,req.file.mimetype);
   if (process.env.IMAGEKIT_PRIVATE_KEY) {
     const imageUrl = await uploadImageKit(optimized.buffer, `${randomUUID()}${optimized.ext}`, `${process.env.IMAGEKIT_UPLOAD_ROOT || "/digital-dukaan"}/${bid(req)}`);
@@ -649,12 +651,12 @@ r.get('/:storeId/export/vyapar.csv', wrap(async (req, res) => {
 
 r.get('/:storeId/order-push-subscription', wrap(async (req, res) => {
   const endpoint = String(req.query.endpoint || '');
-  if (!/^https:\/\//.test(endpoint) || endpoint.length > 1000) return res.json({ enrolled: false });
+  if (!isAllowedPushEndpoint(endpoint) || endpoint.length > 1000) return res.json({ enrolled: false });
   res.json({ enrolled: Boolean(await OwnerPushSubscription.findOne({ where: { businessId: bid(req), endpoint } })) });
 }));
 r.post('/:storeId/order-push-subscription', wrap(async (req, res) => {
   const push = req.body || {};
-  if (typeof push.endpoint !== 'string' || !/^https:\/\//.test(push.endpoint) || push.endpoint.length > 1000 || !push.keys || typeof push.keys.p256dh !== 'string' || typeof push.keys.auth !== 'string' || push.keys.p256dh.length > 300 || push.keys.auth.length > 300) throw bad(400, 'Invalid push subscription');
+  if (typeof push.endpoint !== 'string' || !isAllowedPushEndpoint(push.endpoint) || push.endpoint.length > 1000 || !push.keys || typeof push.keys.p256dh !== 'string' || typeof push.keys.auth !== 'string' || push.keys.p256dh.length > 300 || push.keys.auth.length > 300) throw bad(400, 'Invalid push subscription');
   const [row, created] = await OwnerPushSubscription.findOrCreate({ where: { endpoint: push.endpoint }, defaults: { businessId: bid(req), userId: req.user.id, keys: push.keys } });
   if (!created) await row.update({ businessId: bid(req), userId: req.user.id, keys: push.keys });
   res.status(201).json({ ok: true });

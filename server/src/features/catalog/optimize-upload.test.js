@@ -4,3 +4,13 @@ test('keeps dimensions and alpha; never reduces stored bytes by more than 30%',a
  const small=await sharp({create:{width:100,height:50,channels:3,background:'red'}}).jpeg().toBuffer();const s=await optimizeUpload(small,'image/jpeg');const sm=await sharp(s.buffer).metadata();assert.equal(sm.width,100);assert.equal(sm.height,50);assert.ok(s.buffer.length>=Math.ceil(small.length*.70));
 });
 test('cannot enlarge stored bytes; bad input is retained rather than breaking old upload behavior',async()=>{const b=Buffer.from('not-an-image');const out=await optimizeUpload(b,'image/png');assert.equal(out.buffer,b);assert.equal(out.ext,'.png');});
+import {looksLikeImage} from './optimize-upload.js';
+test('looksLikeImage checks the real bytes against the claimed type',async()=>{
+ const png=await sharp({create:{width:10,height:10,channels:3,background:'red'}}).png().toBuffer();
+ assert.equal(await looksLikeImage(png,'image/png'),true);
+ assert.equal(await looksLikeImage(png,'image/jpeg'),false);
+ assert.equal(await looksLikeImage(Buffer.from('<html><script>alert(1)</script>'),'image/png'),false);
+ assert.equal(await looksLikeImage(Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>'),'image/webp'),false);
+ assert.equal(await looksLikeImage(Buffer.alloc(0),'image/png'),false);
+ assert.equal(await looksLikeImage(png,'image/gif'),false);
+});

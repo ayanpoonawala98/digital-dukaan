@@ -20,3 +20,10 @@ export async function optimizeUpload(buffer,mime){
   return{buffer:compressed,ext:'.webp',optimized:true};
  }catch{return unchanged();}
 }
+
+// Uploads must really be the image type they claim. The mime header comes from the client, so check the bytes.
+export async function looksLikeImage(buffer,mime){
+ const format=({'image/jpeg':'jpeg','image/png':'png','image/webp':'webp'})[mime];
+ if(!format||!buffer?.length)return false;
+ try{const meta=await sharp(buffer,{limitInputPixels:40000000}).metadata();return meta.format===format;}catch{return false;}
+}
