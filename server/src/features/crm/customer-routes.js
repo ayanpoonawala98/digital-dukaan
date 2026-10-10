@@ -75,10 +75,11 @@ customerRoutes.post('/broadcast/push', ownerOnly, wrap(async (req, res) => {
   const hour = new Date(Date.now() - 3600e3);
   if (await CustomerMessage.count({ where: { businessId: req.store.id, channel: 'push', audience: 'all', createdAt: { [Op.gte]: hour } } }) >= 5) throw bad(429, 'You can send up to 5 broadcasts an hour. Try again later.');
   const devices = await CustomerDevice.findAll({ where: { businessId: req.store.id, channel: 'push' }, include: [{ model: Customer, required: true, where: { archivedAt: null, optInStatus: { [Op.ne]: 'opted_out' } }, attributes: [] }], limit: 5000 });
+  if (!devices.length) return res.json({ customers: 0, devices: 0, sent: 0, failed: 0 });
   const result = await sendToDevices(devices, msg.payload, sendWebPush);
   if (result.gone.length) await CustomerDevice.destroy({ where: { businessId: req.store.id, id: result.gone.map(d => d.id) } });
   const customers = new Set(devices.map(d => d.customerId)).size;
-  await log(req, { channel: 'push', audience: 'all', title: msg.title, body: msg.body, recipients: customers, sent: result.sent, failed: result.failed });
+  await log(req, { channel: 'push', audience: 'all', title: msg.title, body: msg.body, recipients: customers, sent: result.sent, failed: result.failed }).catch(e => console.error('broadcast log failed', e.message));
   res.json({ customers, devices: devices.length, sent: result.sent, failed: result.failed });
 }));
 
