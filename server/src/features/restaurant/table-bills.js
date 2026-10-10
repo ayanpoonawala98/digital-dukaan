@@ -22,6 +22,7 @@ export const TableBill = sequelize.define('TableBill', {
   gstMode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'exclusive' },
   cgst: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   sgst: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
+  roundOff: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 }, // total minus (taxable + cgst + sgst), under 0.50
   total: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
   paymentMode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'cash' }, // cash | upi | card | split
   payments: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
@@ -40,7 +41,7 @@ export const TableHold = sequelize.define('TableHold', {
 export async function setTableHold(store, n, held) {
   await ensureTableBillSchema();
   const t = Number(n);
-  if (!Number.isInteger(t) || t < 1 || t > 1000) throw bad(400, 'Invalid table');
+  if (!Number.isInteger(t) || t < 1 || t > (Number(store.tableCount) || 0)) throw bad(400, 'Invalid table');
   if (held) await TableHold.findOrCreate({ where: { businessId: store.id, tableNumber: t } });
   else await TableHold.destroy({ where: { businessId: store.id, tableNumber: t } });
   return { ok: true, held: !!held };
@@ -56,6 +57,7 @@ export function ensureTableBillSchema() {
     await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "settledByUserId" integer');
     await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "settledByRole" varchar(10)');
     await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "adjustNote" varchar(200)');
+    await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "roundOff" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "billId" integer');
     await sequelize.query('CREATE INDEX IF NOT EXISTS restaurant_orders_open_idx ON restaurant_orders ("businessId", "billId")');
   })().catch(e => { ready = null; throw e; });
@@ -63,13 +65,15 @@ export function ensureTableBillSchema() {
 }
 const round2 = n => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 const channelOf = o => (o.orderType === 'dine-in' ? 'table' : o.orderType === 'delivery' ? 'delivery' : o.orderType === 'counter' ? 'counter' : 'takeaway');
-const CHANNEL_WINDOW_MS = 3 * 24 * 3600 * 1000;
+const ORDER_CAP = 2000;
 
 export async function tablesState(store) {
   await ensureTableBillSchema();
   const orders = await sequelize.query(
-    `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' AND ("orderType"='dine-in' OR "createdAt">:since) ORDER BY "createdAt" ASC LIMIT 1000`,
-    { replacements: { b: store.id, since: new Date(Date.now() - CHANNEL_WINDOW_MS) }, type: sequelize.QueryTypes.SELECT });
+    `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' ORDER BY "createdAt" ASC LIMIT ${ORDER_CAP}`,
+    { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
+  // Old unbilled orders stay visible so they can still be billed or cancelled. If more than the cap exist, say so instead of hiding them.
+  const [{ n: openCount }] = await sequelize.query(`SELECT COUNT(*)::int AS n FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled'`, { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
   const menu = await sequelize.query(`SELECT id,name,price,variants FROM products WHERE "businessId"=:b AND active=true AND ("soldOutDate" IS NULL OR "soldOutDate"<>:today) ORDER BY name ASC LIMIT 600`, { replacements: { b: store.id, today: new Date(Date.now() + 19800000).toISOString().slice(0, 10) }, type: sequelize.QueryTypes.SELECT });
   const count = Math.max(0, Number(store.tableCount) || 0);
   const tables = Array.from({ length: count }, (_, i) => ({ number: i + 1, orders: [] }));
@@ -85,7 +89,7 @@ export async function tablesState(store) {
   const reqOf = n => { const k = reqs.filter(r => Number(r.tableNumber) === n).map(r => r.kind); return k.includes('bill') ? 'bill' : k.length ? 'waiter' : null; };
   const holds = new Set((await TableHold.findAll({ where: { businessId: store.id }, attributes: ['tableNumber'], raw: true })).map(h => h.tableNumber));
   const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number), held: holds.has(t.number), occupied: t.occupied || holds.has(t.number) }));
-  return { tableCount: count, menu, name: store.name, gstin: store.gstin || '', gstMode: store.gstMode || null, gstRate: store.gstRate ?? null, tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
+  return { hiddenOrders: Math.max(0, openCount - orders.length), tableCount: count, menu, name: store.name, gstin: store.gstin || '', gstMode: store.gstMode || null, gstRate: store.gstRate ?? null, tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
 export async function billHistory(store, { channel, table, limit = 50, date }) {
@@ -170,8 +174,15 @@ export async function settleBill(store, body, setDone, actor = {}) {
   if (actor.role === 'staff' && subtotal > 0 && discount > subtotal * STAFF_DISCOUNT_CAP_PCT / 100 + 0.005) throw bad(403, `Staff can give up to ${STAFF_DISCOUNT_CAP_PCT}% discount. Ask the owner for more.`);
   const g = gstSetting(store, body.gstPct);
   const gstPct = g.rate;
+  // Shops that never picked a GST mode let the screen send the rate. Staff must not be able to change it: they can only repeat the
+  // rate of the shop's last bill. With no earlier bill, the owner has to set GST in Settings (or bill it themselves).
+  if (g.legacy && actor.role === 'staff') {
+    const last = await TableBill.findOne({ where: { businessId: store.id }, order: [['id', 'DESC']], attributes: ['gstPct'], raw: true });
+    if (!last) throw bad(403, 'GST is not set up for this shop. Ask the owner to choose a GST setting in Settings before billing.');
+    if (Number(last.gstPct) !== gstPct) throw bad(403, `GST rate must be ${last.gstPct}% for staff. Ask the owner to change the GST setting in Settings.`);
+  }
   if (!GST_RATES.includes(gstPct)) throw bad(400, 'Choose a valid GST rate');
-  const { half, total } = billTotals({ subtotal, chargesTotal, discount, mode: g.mode, rate: gstPct });
+  const { half, total, roundOff } = billTotals({ subtotal, chargesTotal, discount, mode: g.mode, rate: gstPct });
   const { payments, paymentMode } = normalizePayments(body.payments, total, body.paymentMode);
   const bill = await sequelize.transaction(async t => {
     await sequelize.query('SELECT pg_advisory_xact_lock(:k)', { replacements: { k: 770000 + store.id }, transaction: t });
@@ -186,16 +197,18 @@ export async function settleBill(store, body, setDone, actor = {}) {
         if (JSON.stringify(f.items || []) !== snap.get(f.id)) throw bad(409, 'Items were just added to an order. Reopen the bill and check it again.');
       }
     }
-    const row = await TableBill.create({ settledByUserId: actor.id || null, settledByRole: actor.role || null, adjustNote: adjustNote || null, businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, total, paymentMode, payments, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
+    const row = await TableBill.create({ settledByUserId: actor.id || null, settledByRole: actor.role || null, adjustNote: adjustNote || null, businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, roundOff, total, paymentMode, payments, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
     if (orderIds.length) {
       const [, count] = await sequelize.query('UPDATE restaurant_orders SET "billId"=:id WHERE id IN (:ids) AND "businessId"=:b AND "billId" IS NULL', { replacements: { id: row.id, ids: orderIds, b: store.id }, transaction: t });
       if ((count?.rowCount ?? orderIds.length) !== orderIds.length) throw bad(409, 'An order on this bill was just billed elsewhere');
     }
     return row;
   });
-  for (const o of orders) { try { await setDone(o); } catch (e) { /* bill is saved; stock/status issues must not undo history */ } }
+  // The bill is saved and stays saved. If marking an order done fails (stock, deleted product), tell the caller instead of hiding it.
+  const warnings = [];
+  for (const o of orders) { try { await setDone(o); } catch (e) { console.error('Bill saved but order not completed', { businessId: store.id, billId: bill.id, orderId: o.id, message: e?.message }); warnings.push({ orderId: o.id, orderNumber: o.orderNumber || o.id, message: `Bill saved, but order #${o.orderNumber || o.id} could not be marked done and its stock was not updated. Check it in Orders.` }); } }
   if (channel === "table") await TableHold.destroy({ where: { businessId: store.id, tableNumber } }).catch(() => {});
-  return { bill: bill.toJSON() };
+  return { bill: bill.toJSON(), ...(warnings.length ? { warnings } : {}) };
 }
 
 // Collections for one IST day, all channels.

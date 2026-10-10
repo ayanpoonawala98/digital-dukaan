@@ -19,6 +19,7 @@ const billText = (bill, lines, charges, store) => {
   for (const c of charges) rows.push(`${c.label}: ${inr(c.amount)}`);
   if (bill.discount > 0) rows.push(`Discount: -${inr(bill.discount)}`);
   if (bill.gstPct > 0) rows.push(`CGST ${bill.gstPct / 2}%: ${inr(bill.cgst)}${bill.gstMode === 'inclusive' ? ' (incl.)' : ''}`, `SGST ${bill.gstPct / 2}%: ${inr(bill.sgst)}${bill.gstMode === 'inclusive' ? ' (incl.)' : ''}`);
+  if (Number(bill.roundOff)) rows.push(`Round off: ${Number(bill.roundOff) > 0 ? '+' : '-'}${inr(Math.abs(bill.roundOff))}`);
   rows.push(`Total: ${inr(bill.total)}`, paidText(bill));
   if (store.gstin) rows.push(`GSTIN ${store.gstin}`);
   rows.push('', 'Thank you, visit again!');
@@ -31,7 +32,7 @@ function printReceipt(bill, lines, charges, store, saved) {
   const body = `<h1>${esc(store.name)}</h1><p class="c">${esc(bill.title)}${saved ? ' - Bill #' + esc(bill.billNo) : ''}<br>${esc(new Date(bill.paidAt || Date.now()).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }))}</p><hr>`
     + lines.map(l => row(`${l.qty} x ${l.name}`, inr(l.qty * l.price)) + (opt(l) ? `<div class="o">${esc(opt(l))}</div>` : '')).join('') + '<hr>' + row('Subtotal', inr(bill.subtotal))
     + charges.map(c => row(c.label, inr(c.amount))).join('') + (bill.discount > 0 ? row('Discount', '-' + inr(bill.discount)) : '')
-    + (gst > 0 ? row(`CGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.cgst)) + row(`SGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.sgst)) : '') + '<hr>' + row('TOTAL', inr(bill.total), 'big')
+    + (gst > 0 ? row(`CGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.cgst)) + row(`SGST ${gst / 2}%${incl ? ' (incl.)' : ''}`, inr(bill.sgst)) : '') + (Number(bill.roundOff) ? row('Round off', (bill.roundOff > 0 ? '+' : '-') + inr(Math.abs(bill.roundOff))) : '') + '<hr>' + row('TOTAL', inr(bill.total), 'big')
     + (saved ? `<p class="c">${paidText(bill)}</p>` : '') + `<p class="c">${store.gstin ? 'GSTIN ' + esc(store.gstin) + '<br>' : ''}Thank you, visit again!</p>`;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Bill</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:13px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:16px;text-align:center;margin:0 0 4px}.c{text-align:center;margin:4px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.r{display:flex;justify-content:space-between;gap:8px}.r span:first-child{flex:1;min-width:0;word-break:break-word}.big{font-size:16px;font-weight:700}.o{padding-left:10px;font-size:11px}</style></head><body>${body}</body></html>`;
   const f = document.createElement('iframe');
@@ -89,7 +90,8 @@ function Receipt_({ bill, lines, charges, store, onClose, saved }) {
     <div className="r"><span>Subtotal</span><span>{inr(bill.subtotal)}</span></div>
     {charges.map((c, i) => <div className="r" key={i}><span>{c.label}</span><span>{inr(c.amount)}</span></div>)}
     {bill.discount > 0 && <div className="r"><span>Discount</span><span>-{inr(bill.discount)}</span></div>}
-    {gst > 0 && <><div className="r"><span>CGST {gst / 2}%{incl ? ' (incl.)' : ''}</span><span>{inr(bill.cgst)}</span></div><div className="r"><span>SGST {gst / 2}%{incl ? ' (incl.)' : ''}</span><span>{inr(bill.sgst)}</span></div></>}<hr/>
+    {gst > 0 && <><div className="r"><span>CGST {gst / 2}%{incl ? ' (incl.)' : ''}</span><span>{inr(bill.cgst)}</span></div><div className="r"><span>SGST {gst / 2}%{incl ? ' (incl.)' : ''}</span><span>{inr(bill.sgst)}</span></div></>}
+    {Number(bill.roundOff) !== 0 && bill.roundOff !== undefined && <div className="r"><span>Round off</span><span>{bill.roundOff > 0 ? '+' : '-'}{inr(Math.abs(bill.roundOff))}</span></div>}<hr/>
     <div className="r big"><span>TOTAL</span><span>{inr(bill.total)}</span></div>
     {saved && <p className="c">{paidText(bill)}</p>}
     <p className="c">{store.gstin ? `GSTIN ${store.gstin} · ` : ''}Thank you, visit again!</p>
@@ -141,14 +143,14 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
     setEdit(e => e.added.some(a => a.key === key) ? { ...e, added: e.added.map(a => a.key === key ? { ...a, qty: a.qty + 1 } : a) } : { ...e, added: [...e.added, { key, productId: p.id, variant: v ? v.name : undefined, name: p.name, price, qty: 1 }] }); setPick('');
   };
   const payload = () => ({ channel: sel.kind, tableNumber: sel.kind === 'table' ? sel.n : undefined, orderIds: orders.map(o => o.id), lines: lines.map(l => l.orderId ? { orderId: l.orderId, itemIdx: l.itemIdx, name: l.name, qty: l.qty, productId: l.productId } : { productId: l.productId, variant: l.variant, qty: l.qty }), charges: edit.charges.map(c => ({ label: c.label, amount: Number(c.amount) })), discount: { type: edit.disc.type, value: Number(edit.disc.value || 0) }, gstPct: gv.rate, ...(split ? { payments: partList } : { paymentMode: pay }) });
-  const draftBill = () => ({ title: label(sel), subtotal: m.sub, discount: m.d, gstPct: gv.rate, gstMode: gv.mode, cgst: m.half, sgst: m.half, total: m.total, paymentMode: split ? 'split' : pay, payments: split ? partList : [] });
+  const draftBill = () => ({ title: label(sel), subtotal: m.sub, discount: m.d, gstPct: gv.rate, gstMode: gv.mode, cgst: m.half, sgst: m.half, roundOff: m.roundOff, total: m.total, paymentMode: split ? 'split' : pay, payments: split ? partList : [] });
   const settle = async () => {
     if (busy || !lines.length) return;
     if (split && Math.abs(partSum - m.total) > 0.005) { setErr(`Payments add up to ${inr(partSum)} but the total is ${inr(m.total)}`); return; }
     let reason = '';
     if (baseLines.some(b => (edit.qty[b.key] ?? b.qty) < b.qty)) { reason = (window.prompt('Some ordered items were removed or reduced. Reason (for example: customer returned dish)') || '').trim(); if (reason.length < 3) { setErr('Add a short reason to bill fewer items than ordered'); return; } }
     setBusy(true); setErr('');
-    try { const { bill } = await api(`${base}/table-bills`, { token, method: 'POST', body: { ...payload(), ...(reason ? { adjustReason: reason } : {}) }, feedback: false }); setPreview({ saved: true, bill: { ...bill, title: label(sel) }, lines: bill.lines, charges: bill.charges }); await load(); setSel(null); }
+    try { const { bill, warnings } = await api(`${base}/table-bills`, { token, method: 'POST', body: { ...payload(), ...(reason ? { adjustReason: reason } : {}) }, feedback: false }); setPreview({ saved: true, bill: { ...bill, title: label(sel) }, lines: bill.lines, charges: bill.charges }); await load(); setSel(null); if (warnings?.length) setErr(warnings.map(w => w.message).join(' ')); }
     catch (e) { setErr(e.message || 'Could not save the bill'); } finally { setBusy(false); }
   };
   const clearTable = async () => { if (!orders.length || !window.confirm(`Cancel ${orders.length} open order${orders.length > 1 ? 's' : ''} and free this table? Use "Paid" instead if the customer paid.`)) return; setBusy(true); try { for (const o of orders) await api(`${base}/restaurant-orders/${o.id}`, { token, method: 'PATCH', body: { status: 'cancelled' }, feedback: false } ); await load(); } catch (e) { setErr(e.message || 'Could not clear'); } finally { setBusy(false); } };
@@ -187,6 +189,7 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   return <div className={`tv ${sel ? 'has-sel' : ''}`}>
     <div className="tv-main">
       {err && !sel && <p className="notice error">{err}</p>}
+      {data.hiddenOrders > 0 && <p className="notice error">{data.hiddenOrders} older open order(s) are not shown here. Cancel or bill the oldest ones to see them.</p>}
       <div className="tv-stats"><div><b>{occupied}</b><span>Occupied</span></div><div><b>{data.tables.length - occupied}</b><span>Vacant</span></div><div><b>{inr(running)}</b><span>Running bills</span></div>{day && day.count > 0 && <div className="tv-day"><b>{inr(day.total)}</b><span>Today · {day.count} bills · Cash {inr(day.byMode?.cash)} · UPI {inr(day.byMode?.upi)} · Card {inr(day.byMode?.card)}</span></div>}<div className="tv-legend"><i className="g"/> Vacant <i className="r"/> Occupied</div></div>
       <h4 className="tv-h">Order channels</h4>
       <div className="tv-channels">{Object.entries(CH).map(([k, [n, Icon]]) => { const c = data.channels[k]; return <button key={k} className={`tv-ch ${sel?.kind === k ? 'sel' : ''}`} onClick={() => { setSel({ kind: k }); setTab('orders'); }}><Icon size={20}/><span><strong>{n}</strong><small>{c.open ? `${c.open} open · ${inr(c.total)}` : k === 'counter' ? 'Tap to bill a walk-in' : 'No open orders'}</small></span></button>; })}</div>

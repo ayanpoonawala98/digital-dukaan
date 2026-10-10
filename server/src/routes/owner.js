@@ -41,6 +41,8 @@ import { validateProductRows } from '../features/catalog/product-import.js';
 import { insights } from '../features/platform/sales-insights.js';
 import { dateWhere, dateWindow, summarize, saleRows, ordersCsv, csvCell as reportCell } from '../features/platform/reporting.js';
 import { auth, roles } from '../shared/middleware/auth.js';
+import { notifyNewOrder } from '../features/notifications/notify.js';
+import { notifyOwnerDevices } from '../features/orders/order-push-wired.js';
 import { pushIcon } from '../features/crm/customer-pure.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap, clientBase } from '../shared/utils/core.js';
 
@@ -765,7 +767,7 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
   const { orderType, tableNumber, customerName, customerPhone, deliveryAddress } = req.body || {};
   if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
   const table = Number(tableNumber);
-  if (orderType === 'dine-in' && (!Number.isInteger(table) || table < 1 || table > 1000)) throw bad(400, 'Select a valid table number');
+  if (orderType === 'dine-in' && (!Number.isInteger(table) || table < 1 || table > (Number(req.store.tableCount) || 0))) throw bad(400, 'Select a valid table number');
   const name = String(customerName ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 100);
   const phone = String(customerPhone ?? '').trim().slice(0, 20);
   if (orderType !== 'dine-in' && !name) throw bad(400, 'Enter the customer name');
@@ -783,11 +785,16 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
   for (const e of raw) { const k = `${Number(e.id)}|${String(e.variant ?? '')}`; const m = merged.get(k) || { id: Number(e.id), variant: String(e.variant ?? ''), qty: 0 }; m.qty += Number(e.qty); merged.set(k, m); }
   const perProd = new Map();
   for (const m of merged.values()) perProd.set(m.id, (perProd.get(m.id) || 0) + m.qty);
-  const items = [...merged.values()].map(m => { const p = byId.get(m.id); if (p.stock === 0 || (p.stock !== null && perProd.get(m.id) > p.stock)) throw bad(400, `${p.name}: not enough stock`); return buildLine(p, { id: m.id, qty: m.qty, ...(m.variant ? { variant: m.variant } : {}) }, m.qty); });
+  const items = [...merged.values()].map(m => { const p = byId.get(m.id); if (p.soldOutToday) throw bad(400, `${p.name} is sold out for today`); if (p.stock === 0 || (p.stock !== null && perProd.get(m.id) > p.stock)) throw bad(400, `${p.name}: not enough stock`); return buildLine(p, { id: m.id, qty: m.qty, ...(m.variant ? { variant: m.variant } : {}) }, m.qty); });
   const subtotal = Number(items.reduce((a, i) => a + Number(i.price) * i.qty, 0).toFixed(2));
+  if (req.store.minOrder > 0 && subtotal < req.store.minOrder) throw bad(400, `Minimum order is Rs.${Number(req.store.minOrder).toFixed(0)}`);
+  const freeAbove = req.store.freeDeliveryAbove;
+  const deliveryFee = orderType === 'delivery' && !(freeAbove !== null && freeAbove !== undefined && subtotal >= freeAbove) ? Number(req.store.deliveryCharge || 0) : 0;
   const note = cleanNote(req.body?.note, 200);
-  const order = await RestaurantOrder.create({ businessId: req.store.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: name || null, customerPhone: phone || null, deliveryAddress: orderType === 'delivery' ? String(deliveryAddress).trim().slice(0, 500) : null, items, subtotal, discount: 0, deliveryFee: 0, total: subtotal, note: note ? `[Staff] ${note}`.slice(0, 300) : '[Staff] entered by staff', status: 'new' });
+  const order = await RestaurantOrder.create({ createdByUserId: req.user.id, businessId: req.store.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, customerName: name || null, customerPhone: phone || null, deliveryAddress: orderType === 'delivery' ? String(deliveryAddress).trim().slice(0, 500) : null, items, subtotal, discount: 0, deliveryFee, total: Number((subtotal + deliveryFee).toFixed(2)), note: note ? `[Staff] ${note}`.slice(0, 300) : '[Staff] entered by staff', status: 'new' });
   void recordCustomerOrder(req.store.id, order);
+  // Same alerts as a customer order, so the Kitchen and the owner's phone hear about it. Skipped when the owner entered it themselves.
+  if (req.user.role === 'staff') { void notifyNewOrder(req.store, 'restaurant', order); void notifyOwnerDevices(req.store, 'restaurant', order); }
   res.status(201).json({ order });
 }));
 // Staff adds more items to an open (unbilled) order; the Kitchen sees the new lines on the same order.
@@ -810,15 +817,23 @@ r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
     const current = Array.isArray(order.items) ? order.items.map(i => ({ ...i })) : [];
     for (const e of raw) {
       const p = byId.get(Number(e.id)); const qty = Number(e.qty);
+      if (p.soldOutToday) throw bad(400, `${p.name} is sold out for today`);
+      const already = current.filter(i => i.productId === p.id).reduce((a, i) => a + Number(i.qty), 0);
+      if (p.stock === 0 || (p.stock !== null && already + qty > p.stock)) throw bad(400, `${p.name}: not enough stock`);
       const line = buildLine(p, { id: p.id, qty, ...(e.variant ? { variant: String(e.variant) } : {}) }, qty);
       const same = current.find(i => i.productId === line.productId && (i.variant || '') === (line.variant || '') && !(i.addons || []).length && !(line.addons || []).length && !i.note && !line.note);
       if (same) same.qty = Number(same.qty) + qty; else current.push(line);
     }
     const subtotal = Number(current.reduce((a, i) => a + Number(i.price) * Number(i.qty), 0).toFixed(2));
-    const total = Number((subtotal - Number(order.discount || 0) + Number(order.deliveryFee || 0)).toFixed(2));
-    await order.update({ items: current, subtotal, total }, { transaction: t });
+    // Delivery charge follows the shop's current rule for the new subtotal (free-delivery threshold may now be met).
+    const freeAbove = req.store.freeDeliveryAbove;
+    const deliveryFee = order.orderType === 'delivery' ? (freeAbove !== null && freeAbove !== undefined && subtotal >= freeAbove ? 0 : Number(order.deliveryFee || 0) || Number(req.store.deliveryCharge || 0)) : Number(order.deliveryFee || 0);
+    const total = Number((subtotal - Number(order.discount || 0) + deliveryFee).toFixed(2));
+    // A ready order that grows goes back to preparing so the Kitchen cooks the new items.
+    await order.update({ items: current, subtotal, deliveryFee, total, ...(order.status === 'ready' ? { status: 'preparing' } : {}) }, { transaction: t });
     return order;
   });
+  void notifyOwnerDevices(req.store, 'restaurant', order); // Kitchen hears about the added items
   res.json({ order });
 }));
 // Tables view: live status per table/channel, settle a bill (append-only history).

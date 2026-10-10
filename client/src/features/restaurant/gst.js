@@ -11,8 +11,9 @@ export function billMoney(lines, charges, disc, { mode, rate }) {
   let d = disc.type === 'pct' ? sub * Number(disc.value || 0) / 100 : Number(disc.value || 0);
   d = Math.max(0, Math.min(d || 0, sub + ch));
   const taxable = round2(sub + ch - d);
-  if (!rate) return { sub, ch, d, half: 0, total: Math.round(taxable) };
-  if (mode === 'inclusive') return { sub, ch, d, half: round2((taxable - taxable / (1 + rate / 100)) / 2), total: Math.round(taxable) };
+  const finish = (half, exact) => { const total = Math.round(exact); return { sub, ch, d, half, total, roundOff: round2(total - exact) }; };
+  if (!rate) return finish(0, taxable);
+  if (mode === 'inclusive') return finish(round2((taxable - taxable / (1 + rate / 100)) / 2), taxable);
   const half = round2(taxable * rate / 200);
-  return { sub, ch, d, half, total: Math.round(taxable + half * 2) };
+  return finish(half, round2(taxable + half * 2));
 }
