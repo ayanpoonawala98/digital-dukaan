@@ -1644,3 +1644,10 @@ td[data-label="Status"] .btn{vertical-align:middle}
 @media (max-width: 520px) { .rorder-list { grid-template-columns: 1fr; } .rorder-card .ro-head { margin: 0 -16px 12px; padding-left: 20px; } }
 .menu-card.sold-out .menu-img img, .mc-row.sold-out img { filter: grayscale(1) opacity(.6); }
 .menu-card.sold-out .menu-img, .menu-card.sold-out h3 a { pointer-events: auto; }
+
+/* Sales: table-bills strip as labelled stat tiles (never a run-on sentence) */
+.bills-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:0 0 14px;padding:12px;border:1px solid var(--line,#e3dfd2);border-radius:14px;background:var(--surface,#fffdf6)}
+.bills-strip>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bills-strip small{font-size:.74rem;color:#6b6b5e;text-transform:uppercase;letter-spacing:.04em}
+.bills-strip b{font-size:1.05rem;overflow-wrap:anywhere}
+.bills-strip>p{grid-column:1/-1;margin:0;font-size:.82rem}
