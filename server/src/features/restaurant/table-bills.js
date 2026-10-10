@@ -26,6 +26,9 @@ export const TableBill = sequelize.define('TableBill', {
   paymentMode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'cash' }, // cash | upi | card | split
   payments: { type: DataTypes.JSONB, allowNull: false, defaultValue: [] },
   customerName: { type: DataTypes.STRING(100), allowNull: true },
+  settledByUserId: { type: DataTypes.INTEGER, allowNull: true },
+  settledByRole: { type: DataTypes.STRING(10), allowNull: true },
+  adjustNote: { type: DataTypes.STRING(200), allowNull: true },
   paidAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
 }, { tableName: 'table_bills', indexes: [{ fields: ['businessId', 'channel', 'tableNumber', 'paidAt'] }, { unique: true, fields: ['businessId', 'billNo'] }] });
 
@@ -50,6 +53,9 @@ export function ensureTableBillSchema() {
     await TableHold.sync();
     await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "payments" jsonb NOT NULL DEFAULT '[]'::jsonb`);
     await sequelize.query(`ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "gstMode" varchar(10) NOT NULL DEFAULT 'exclusive'`);
+    await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "settledByUserId" integer');
+    await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "settledByRole" varchar(10)');
+    await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "adjustNote" varchar(200)');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "billId" integer');
     await sequelize.query('CREATE INDEX IF NOT EXISTS restaurant_orders_open_idx ON restaurant_orders ("businessId", "billId")');
   })().catch(e => { ready = null; throw e; });
@@ -103,7 +109,8 @@ export async function billsSummary(store, from, to) {
 
 const cleanText = (v, n) => String(v ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, n);
 
-export async function settleBill(store, body, setDone) {
+const STAFF_DISCOUNT_CAP_PCT = 10;
+export async function settleBill(store, body, setDone, actor = {}) {
   await ensureTableBillSchema();
   const channel = ['table', 'delivery', 'takeaway', 'counter'].includes(body?.channel) ? body.channel : null;
   if (!channel) throw bad(400, 'Choose a table or order channel');
@@ -117,6 +124,7 @@ export async function settleBill(store, body, setDone) {
   for (const o of orders) {
     if (o.billId) throw bad(409, 'An order on this bill is already billed');
     if (o.status === 'cancelled') throw bad(400, 'A cancelled order cannot be billed');
+    if (String(o.paymentStatus || '').toLowerCase() === 'paid') throw bad(409, `Order #${o.orderNumber || o.id} was already paid online, so it cannot be billed again. Ask the owner.`);
     if (channelOf(o) !== channel || (channel === 'table' && o.tableNumber !== tableNumber)) throw bad(400, 'Orders do not belong to this table');
   }
   const raw = Array.isArray(body.lines) ? body.lines : [];
@@ -140,6 +148,17 @@ export async function settleBill(store, body, setDone) {
     }
   }
   if (!lines.length) throw bad(400, 'Add at least one item to the bill');
+  // Each order item may be billed at most its ordered quantity in total; a short bill needs a written reason.
+  const used = new Map();
+  for (const l of lines) if (l.orderId) { const k = `${l.orderId}|${l.itemIdx}`; used.set(k, (used.get(k) || 0) + l.qty); }
+  let short = false;
+  for (const o of orders) (Array.isArray(o.items) ? o.items : []).forEach((it, idx) => {
+    const got = used.get(`${o.id}|${idx}`) || 0;
+    if (got > Number(it.qty)) throw bad(400, `${it.name}: billed more than ordered`);
+    if (got < Number(it.qty)) short = true;
+  });
+  const adjustNote = cleanText(body.adjustReason, 200);
+  if (short && adjustNote.length < 3) throw bad(400, 'Some ordered items are missing or reduced on this bill. Add a short reason (for example "customer returned dish").');
   const charges = (Array.isArray(body.charges) ? body.charges : []).slice(0, 10).map(c => ({ label: cleanText(c?.label, 40) || 'Charge', amount: Number(c?.amount) }));
   if (charges.some(c => !Number.isFinite(c.amount) || c.amount < 0 || c.amount > 1e6)) throw bad(400, 'Invalid charge');
   const subtotal = round2(lines.reduce((s, l) => s + l.price * l.qty, 0));
@@ -148,6 +167,7 @@ export async function settleBill(store, body, setDone) {
   let discount = d.type === 'pct' ? subtotal * Number(d.value || 0) / 100 : Number(d.value || 0);
   if (!Number.isFinite(discount) || discount < 0 || (d.type === 'pct' && Number(d.value) > 100)) throw bad(400, 'Invalid discount');
   discount = round2(Math.min(discount, subtotal + chargesTotal));
+  if (actor.role === 'staff' && subtotal > 0 && discount > subtotal * STAFF_DISCOUNT_CAP_PCT / 100 + 0.005) throw bad(403, `Staff can give up to ${STAFF_DISCOUNT_CAP_PCT}% discount. Ask the owner for more.`);
   const g = gstSetting(store, body.gstPct);
   const gstPct = g.rate;
   if (!GST_RATES.includes(gstPct)) throw bad(400, 'Choose a valid GST rate');
@@ -156,7 +176,17 @@ export async function settleBill(store, body, setDone) {
   const bill = await sequelize.transaction(async t => {
     await sequelize.query('SELECT pg_advisory_xact_lock(:k)', { replacements: { k: 770000 + store.id }, transaction: t });
     const [{ n }] = await sequelize.query('SELECT COALESCE(MAX("billNo"),0)+1 AS n FROM table_bills WHERE "businessId"=:b', { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT, transaction: t });
-    const row = await TableBill.create({ businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, total, paymentMode, payments, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
+    if (orderIds.length) {
+      const fresh = await RestaurantOrder.findAll({ where: { id: { [Op.in]: orderIds }, businessId: store.id }, transaction: t, lock: t.LOCK.UPDATE });
+      if (fresh.length !== orders.length) throw bad(409, 'An order changed, reopen the bill');
+      const snap = new Map(orders.map(o => [o.id, JSON.stringify(o.items || [])]));
+      for (const f of fresh) {
+        if (f.billId) throw bad(409, 'An order on this bill was just billed elsewhere');
+        if (f.status === 'cancelled') throw bad(409, 'An order on this bill was cancelled');
+        if (JSON.stringify(f.items || []) !== snap.get(f.id)) throw bad(409, 'Items were just added to an order. Reopen the bill and check it again.');
+      }
+    }
+    const row = await TableBill.create({ settledByUserId: actor.id || null, settledByRole: actor.role || null, adjustNote: adjustNote || null, businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, total, paymentMode, payments, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
     if (orderIds.length) {
       const [, count] = await sequelize.query('UPDATE restaurant_orders SET "billId"=:id WHERE id IN (:ids) AND "businessId"=:b AND "billId" IS NULL', { replacements: { id: row.id, ids: orderIds, b: store.id }, transaction: t });
       if ((count?.rowCount ?? orderIds.length) !== orderIds.length) throw bad(409, 'An order on this bill was just billed elsewhere');

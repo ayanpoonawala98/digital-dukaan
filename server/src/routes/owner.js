@@ -823,10 +823,6 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
 // Staff adds more items to an open (unbilled) order; the Kitchen sees the new lines on the same order.
 r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
   if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
-  const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: req.store.id } });
-  if (!order) throw bad(404, 'Order not found');
-  if (order.billId) throw bad(409, 'This order is already billed');
-  if (['cancelled', 'delivered', 'picked-up', 'served'].includes(order.status)) throw bad(409, `A ${order.status} order cannot take more items`);
   const raw = Array.isArray(req.body?.items) ? req.body.items : [];
   if (raw.length < 1 || raw.length > 50) throw bad(400, 'Add at least one item');
   if (raw.some(e => !Number.isInteger(Number(e?.id)) || Number(e.id) < 1 || !Number.isInteger(Number(e?.qty)) || Number(e.qty) < 1 || Number(e.qty) > 99)) throw bad(400, 'Invalid items');
@@ -835,16 +831,24 @@ r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
   const products = await Product.findAll({ where: { id: { [SOp.in]: ids }, businessId: req.store.id, active: true } });
   if (products.length !== ids.length) throw bad(400, 'An item is not on the menu');
   const byId = new Map(products.map(p => [p.id, p]));
-  const current = Array.isArray(order.items) ? order.items.map(i => ({ ...i })) : [];
-  for (const e of raw) {
-    const p = byId.get(Number(e.id)); const qty = Number(e.qty);
-    const line = buildLine(p, { id: p.id, qty, ...(e.variant ? { variant: String(e.variant) } : {}) }, qty);
-    const same = current.find(i => i.productId === line.productId && (i.variant || '') === (line.variant || '') && !(i.addons || []).length && !(line.addons || []).length && !i.note && !line.note);
-    if (same) same.qty = Number(same.qty) + qty; else current.push(line);
-  }
-  const subtotal = Number(current.reduce((a, i) => a + Number(i.price) * Number(i.qty), 0).toFixed(2));
-  const total = Number((subtotal - Number(order.discount || 0) + Number(order.deliveryFee || 0)).toFixed(2));
-  await order.update({ items: current, subtotal, total });
+  const order = await sequelize.transaction(async t => {
+    const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: req.store.id }, transaction: t, lock: t.LOCK.UPDATE });
+    if (!order) throw bad(404, 'Order not found');
+    if (order.billId) throw bad(409, 'This order is already billed');
+    if (['cancelled', 'delivered', 'picked-up', 'served'].includes(order.status)) throw bad(409, `A ${order.status} order cannot take more items`);
+    if (String(order.paymentStatus || '').toLowerCase() === 'paid') throw bad(409, 'This order is already paid online; place a new order for extra items');
+    const current = Array.isArray(order.items) ? order.items.map(i => ({ ...i })) : [];
+    for (const e of raw) {
+      const p = byId.get(Number(e.id)); const qty = Number(e.qty);
+      const line = buildLine(p, { id: p.id, qty, ...(e.variant ? { variant: String(e.variant) } : {}) }, qty);
+      const same = current.find(i => i.productId === line.productId && (i.variant || '') === (line.variant || '') && !(i.addons || []).length && !(line.addons || []).length && !i.note && !line.note);
+      if (same) same.qty = Number(same.qty) + qty; else current.push(line);
+    }
+    const subtotal = Number(current.reduce((a, i) => a + Number(i.price) * Number(i.qty), 0).toFixed(2));
+    const total = Number((subtotal - Number(order.discount || 0) + Number(order.deliveryFee || 0)).toFixed(2));
+    await order.update({ items: current, subtotal, total }, { transaction: t });
+    return order;
+  });
   res.json({ order });
 }));
 // Tables view: live status per table/channel, settle a bill (append-only history).
@@ -875,7 +879,7 @@ r.post('/:storeId/table-bills', wrap(async (req, res) => {
   const out = await settleBill(req.store, req.body, async o => {
     if (RESTAURANT_DONE.includes(o.status)) return;
     await updateOrderStock({ sequelize, Order: RestaurantOrder, Product, Ledger: OrderStockLedger, businessId: bid(req), orderId: o.id, kind: 'restaurant', status: doneFor(o), deductStatuses: RESTAURANT_DEDUCT, grandfather: order => historicalOrder('restaurant', order) });
-  });
+  }, { id: req.user.id, role: req.user.role });
   res.status(201).json(out);
 }));
 // Waiter / bill requests raised from a table QR. Staff with order access can see and clear them.

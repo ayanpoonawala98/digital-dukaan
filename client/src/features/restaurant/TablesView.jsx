@@ -145,8 +145,10 @@ export default function TablesView({ token, storeId, staffMode = false, canBill 
   const settle = async () => {
     if (busy || !lines.length) return;
     if (split && Math.abs(partSum - m.total) > 0.005) { setErr(`Payments add up to ${inr(partSum)} but the total is ${inr(m.total)}`); return; }
+    let reason = '';
+    if (baseLines.some(b => (edit.qty[b.key] ?? b.qty) < b.qty)) { reason = (window.prompt('Some ordered items were removed or reduced. Reason (for example: customer returned dish)') || '').trim(); if (reason.length < 3) { setErr('Add a short reason to bill fewer items than ordered'); return; } }
     setBusy(true); setErr('');
-    try { const { bill } = await api(`${base}/table-bills`, { token, method: 'POST', body: payload(), feedback: false }); setPreview({ saved: true, bill: { ...bill, title: label(sel) }, lines: bill.lines, charges: bill.charges }); await load(); setSel(null); }
+    try { const { bill } = await api(`${base}/table-bills`, { token, method: 'POST', body: { ...payload(), ...(reason ? { adjustReason: reason } : {}) }, feedback: false }); setPreview({ saved: true, bill: { ...bill, title: label(sel) }, lines: bill.lines, charges: bill.charges }); await load(); setSel(null); }
     catch (e) { setErr(e.message || 'Could not save the bill'); } finally { setBusy(false); }
   };
   const clearTable = async () => { if (!orders.length || !window.confirm(`Cancel ${orders.length} open order${orders.length > 1 ? 's' : ''} and free this table? Use "Paid" instead if the customer paid.`)) return; setBusy(true); try { for (const o of orders) await api(`${base}/restaurant-orders/${o.id}`, { token, method: 'PATCH', body: { status: 'cancelled' }, feedback: false } ); await load(); } catch (e) { setErr(e.message || 'Could not clear'); } finally { setBusy(false); } };

@@ -171,11 +171,13 @@ const FESTIVAL_PRESETS = [
   { name:'Eid moonlight', color:'#225caa', banner:'Eid Mubarak! Discover our festive picks 🌙', headline:'Wishing you a joyful Eid', message:'Take a look at our handpicked festive collection.' }
 ];
 
-const STAFF_PERMS = [['orders_view', 'See table orders', true], ['order_status', 'Change table order status', true], ['whatsapp', 'WhatsApp inbox and replies'], ['import', 'Bulk import'], ['products', 'Add and edit products, categories and sold-out (no delete)'], ['leads', 'See enquiries/orders and update status'], ['coupons', 'Create and edit discount coupons']];
+const STAFF_PERMS = [['orders_view', 'Kitchen: see all orders and tables', true], ['order_status', 'Kitchen: change status, print KOT, sold-out, new order, add items', true], ['billing', 'Billing: bill tables and take payment (discount up to 10%)', true], ['whatsapp', 'WhatsApp inbox and replies'], ['import', 'Bulk import'], ['products', 'Add and edit products, categories and sold-out (no delete)'], ['leads', 'See enquiries/orders and update status'], ['coupons', 'Create and edit discount coupons']];
 const DEFAULT_STAFF_PERMS = ['orders_view', 'order_status', 'whatsapp', 'import'];
+const KITCHEN_PERMS = ['orders_view', 'order_status'];
+const FULL_PERMS = ['orders_view', 'order_status', 'billing', 'whatsapp', 'import', 'products', 'leads', 'coupons'];
 function PermissionChecks({ value, onChange, disabled, restaurant }) {
   const toggle = key => onChange(value.includes(key) ? value.filter(k => k !== key) : [...value, key]);
-  return <fieldset className="perm-checks" disabled={disabled}><legend>Can do</legend>{STAFF_PERMS.filter(([, , rest]) => !rest || restaurant).map(([key, label]) => <label key={key} className="perm-check"><input type="checkbox" checked={value.includes(key)} onChange={() => toggle(key)}/> {label}</label>)}</fieldset>;
+  return <fieldset className="perm-checks" disabled={disabled}><legend>Can do</legend><div className="perm-presets">{restaurant && <button type="button" className="btn btn-outline" onClick={() => onChange([...KITCHEN_PERMS])}>Kitchen staff</button>}<button type="button" className="btn btn-outline" onClick={() => onChange(FULL_PERMS.filter(k => restaurant || k !== 'billing'))}>Full access</button></div>{STAFF_PERMS.filter(([, , rest]) => !rest || restaurant).map(([key, label]) => <label key={key} className="perm-check"><input type="checkbox" checked={value.includes(key)} onChange={() => toggle(key)}/> {label}</label>)}</fieldset>;
 }
 
 function PayActions({ kind, order, token, storeId, staffMode }) {
@@ -593,7 +595,7 @@ export default function Dashboard() {
       {tab === 'sales' && <div className="sales-page"><SalesAnalytics report={sales} storeType={data?.business?.storeType}/></div>}
       {tab === 'imports' && staffMode && <>{data?.business?.featureLocks?.products ? <p className="notice">Product import: kindly contact admin.</p> : <MappedImport kind="products" token={token} storeId={storeId}/>} {import.meta.env.VITE_CRM_ENABLED !== 'true' ? <p className="notice">Customer imports are not enabled for this deployment.</p> : data?.business?.featureLocks?.customers ? <p className="notice">Customer import: kindly contact admin.</p> : <MappedImport kind="customers" token={token} storeId={storeId}/>}</>}
       {tab === 'overview' && data && staffMode && <div className="dashboard-panel"><h3>{data.business.name}</h3><p>{data.business.storeType === 'restaurant' ? 'Restaurant order status is available under Table orders.' : 'This staff account has overview access only.'}</p></div>}
-      {tab === 'tables' && data?.business?.storeType === 'restaurant' && <TablesView token={token} storeId={storeId} staffMode={staffMode} canBill={!staffMode || !Array.isArray(session.user.permissions) || session.user.permissions.includes('order_status')}/>}
+      {tab === 'tables' && data?.business?.storeType === 'restaurant' && <TablesView token={token} storeId={storeId} staffMode={staffMode} canBill={!staffMode || !Array.isArray(session.user.permissions) || session.user.permissions.includes('billing')}/>}
       {tab === 'restaurant' && data?.business?.storeType === 'restaurant' && <div className="dashboard-panel"><RestaurantOrders orders={restaurantOrders} busy={busy} actionKey={actionKey} onStatus={updateRestaurantOrder} onRefresh={()=>{setListRefresh(n=>n+1);load(true);}} token={token} storeId={storeId} staffMode={staffMode} renderPay={o=><PayActions kind="restaurant-orders" order={o} token={token} storeId={storeId} staffMode={staffMode}/>}/></div>}
       {tab === 'whatsapp-cloud' && import.meta.env.VITE_WHATSAPP_INTEGRATION_UI_ENABLED === 'true' && <WhatsAppIntegration token={token} storeId={storeId} staff={staffMode} />}
       {tab === 'campaigns' && !staffMode && <OfferCampaigns token={token} storeId={storeId}/>}
