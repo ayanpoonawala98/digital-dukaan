@@ -69,7 +69,7 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
       if (seen.current && [...ids].some(id => !seen.current.has(id)) && soundRef.current) beep();
       seen.current = ids; setOrders(open); setRequests(r.requests || []); setErr('');
       const reqIds = new Set((r.requests || []).map(x => x.id));
-      if (seenReq.current && soundRef.current) { const fresh = (r.requests || []).filter(x => !seenReq.current.has(x.id)); if (fresh.length) ring(fresh.some(x => x.kind === 'waiter') ? 'waiter' : 'bill'); }
+      if (seenReq.current && soundRef.current) { const fresh = (r.requests || []).filter(x => !seenReq.current.has(x.id)); if (fresh.length) ring(fresh.every(x => x.kind === 'bill') ? 'bill' : 'waiter'); }
       seenReq.current = reqIds;
     } catch (e) { setErr(e.message); }
   }, [storeId, token, beep, ring]);
