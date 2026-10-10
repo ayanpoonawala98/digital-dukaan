@@ -78,3 +78,17 @@ test('render translations use cached locale; storage events and user changes ref
     runtime.deactivateOwnerLanguage(); assert.equal(runtime.ot('Close'),'Close');
   } finally { globalThis.window=previousWindow;globalThis.localStorage=previousStorage; }
 });
+
+test('rebased shared copy has both locales; main sales label and single reviews hash are preserved', async () => {
+  const { SALES_BASIS } = await import('./owner-ui.js');
+  const { SETUP_COPY } = await import('../../features/whatsapp/setup-choice.js');
+  const check = value => {if(typeof value==='string'){assert.ok(ownerMessages[value]?.hi,value);assert.ok(ownerMessages[value]?.mr,value);}else Object.values(value).forEach(check);};
+  check(SALES_BASIS);check(SETUP_COPY);
+  const fs = await import('node:fs');
+  const dashboard=fs.readFileSync(new URL('../../features/dashboard/Dashboard.jsx',import.meta.url),'utf8');
+  const initial=dashboard.match(/const initialTab = useRef\(([^;]+)/)[1];
+  assert.equal((initial.match(/'reviews'/g)||[]).length,1);
+  const restaurant=fs.readFileSync(new URL('../../features/restaurant/RestaurantOrders.jsx',import.meta.url),'utf8');
+  assert.ok(restaurant.includes("Today's sales (served)"));
+  check("Today's sales (served)");
+});
