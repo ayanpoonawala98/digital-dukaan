@@ -20,7 +20,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import TablesView from '../restaurant/TablesView.jsx';
 import { TabBoundary } from '../../shared/components/TabBoundary.jsx';
 import ReviewsAdmin from '../reviews/ReviewsAdmin.jsx';
-import { ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
+import { Moon, Sun, ArrowRight, ArrowUpRight, Bell, ChartNoAxesCombined, Copy, Download, FileSpreadsheet, LayoutDashboard, LogOut, MessageCircle, Package, Plus, QrCode, Send, Settings as SettingsIcon, Star, Tags, Trash2, Upload, X, ShoppingBag, Lock } from 'lucide-react';
 import { useAuth } from '../../app/auth.jsx';
 import LocationPicker from './LocationPicker.jsx';
 import { api, download, imageSrc, inr } from '../../shared/lib/api.js';
@@ -49,8 +49,9 @@ function PlanCard({ token }) {
 }
 
 // Phone navigation: a thumb-height bottom bar with one button per task group; a group opens a sheet of its screens.
-function MobileNav({ items, tab, setTab, superMode, current }) {
+function MobileNav({ items, tab, setTab, superMode, current, onLogout }) {
   const [open, setOpen] = useState(null);
+  const { theme, toggle: toggleTheme } = useTheme();
   const { home, groups } = groupNavItems(items);
   const group = groups.find(g => g.id === open);
   const activeGroup = groups.find(g => g.keys.includes(tab))?.id;
@@ -60,6 +61,7 @@ function MobileNav({ items, tab, setTab, superMode, current }) {
     {group && <div className="mnav-layer" onClick={() => setOpen(null)}><div className="mnav-sheet" role="dialog" aria-label={group.label} onClick={e => e.stopPropagation()}>
       <div className="mnav-sheet-head"><strong>{group.label}</strong><button type="button" className="mnav-close" aria-label="Close menu" onClick={() => setOpen(null)}>Close</button></div>
       <div className="mnav-grid">{group.items.map(([key, label, Icon]) => { const locked = !superMode && current && isTabLocked(current, key); return <button key={key} type="button" className={`${tab === key ? 'selected' : ''}${locked ? ' nav-locked' : ''}`} onClick={() => go(key)}><Icon size={22}/><span>{label}</span>{locked && <Lock size={12} aria-label="Locked by platform admin"/>}</button>; })}</div>
+      {group.id === 'setup' || (!groups.some(g => g.id === 'setup') && group.id === groups.at(-1).id) ? <div className="mnav-account"><button type="button" className="mnav-theme" onClick={toggleTheme}>{theme === 'dark' ? <Sun size={18}/> : <Moon size={18}/>} {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button>{!superMode && current && <a href={storeLink(current.slug)} target="_blank" rel="noreferrer"><ArrowUpRight size={18}/> View storefront</a>}<button type="button" onClick={onLogout}><LogOut size={18}/> Log out</button></div> : null}
     </div></div>}
     <nav className="mnav" aria-label="Main navigation">
       {home && <button type="button" className={tab === home[0] ? 'selected' : ''} aria-current={tab === home[0] ? 'page' : undefined} onClick={() => go(home[0])}>{React.createElement(home[2], { size: 22 })}<span>Home</span></button>}
@@ -89,7 +91,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
         <button onClick={() => { save(null); nav('/'); }}><LogOut size={17}/> Log out</button>
       </div>
     </aside>
-    <MobileNav items={items} tab={tab} setTab={setTab} superMode={superMode} current={current}/>
+    <MobileNav items={items} tab={tab} setTab={setTab} superMode={superMode} current={current} onLogout={() => { save(null); nav('/'); }}/>
     <div className="admin-main">
       <div className="admin-top">
         <span>{superMode ? 'SUPERADMIN / DIGITAL SHOP' : <select className="store-switcher" value={storeId || ''} onChange={e => setStoreId(e.target.value)}><option value="" disabled>Select store</option>{stores.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}</span>
