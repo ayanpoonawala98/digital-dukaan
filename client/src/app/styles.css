@@ -1551,3 +1551,8 @@ footer { background:#101d15; }
 .mc-add{margin-left:6px;padding:3px 10px;min-height:28px}
 .mc-out{margin-left:6px;white-space:nowrap}
 .mc-body .tag-row{margin-top:-2px}
+/* long dish names wrap instead of pushing price/Add out of the sheet */
+.mc-name a{white-space:normal!important;overflow-wrap:anywhere}
+.mc-name{flex:0 1 auto;min-width:0}
+.mc-price,.mc-add,.mc-out{flex:none}
+.mc-line{min-width:0}
