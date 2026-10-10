@@ -3,7 +3,7 @@ import { tablesState, billHistory, billsSummary, daySummary, settleBill, setTabl
 import { assertCanCreateStore } from '../features/platform/subscriptions.js';
 import {optimizeUpload} from '../features/catalog/optimize-upload.js';
 import {ownerList} from '../features/stores/owner-list-page.js';
-import { customerOrderPushTitle } from '../features/orders/customer-order-push.js';
+import { statusPush } from '../features/orders/customer-order-push.js';
 import {streamBill} from '../features/billing/invoice.js';
 import {updateOrderStock,RETAIL_DEDUCT,RESTAURANT_DEDUCT} from '../features/orders/order-stock.js';
 import {OrderStockLedger,historicalOrder,ensureOrderStockSchema} from '../features/orders/order-stock-schema.js';
@@ -33,7 +33,7 @@ import { customerRoutes } from '../features/crm/customer-routes.js';
 import { crmRoutes } from '../features/crm/crm.js';
 import webpush from 'web-push';
 import { notifyNewProduct } from '../features/notifications/new-product-push.js';
-import { flowFor, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaurantStatusAllowed } from '../features/orders/order-flows.js';
+import { flowFor, flowKey, ORDER_FLOWS, RESTAURANT_DONE, RESTAURANT_STATUS_TEXT, restaurantStatusAllowed } from '../features/orders/order-flows.js';
 import { cleanVariants, cleanAddonGroups, cleanVeg, cleanTags, istDay } from '../features/restaurant/menu-options.js';
 import { featureForOwnerRoute, isLocked } from '../features/platform/feature-locks.js';
 import { sequelize, Business, User, Category, Product, Lead, PushSubscription, OwnerPushSubscription, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
@@ -494,7 +494,7 @@ async function notifyOrderSubscribers(store, kind, order) {
     const subs = await OrderPushSubscription.findAll({ where: { orderType: kind, orderId: order.id, businessId: store.id } });
     await Promise.allSettled(subs.map(async sub => {
       try {
-        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify({ title: customerOrderPushTitle(store, order), body: `${label} Tap to view.`, url: sub.returnPath, ...(pushImage(store) ? { image: pushImage(store) } : {}) }));
+        await webpush.sendNotification({ endpoint: sub.endpoint, keys: sub.keys }, JSON.stringify(statusPush({ store, order, flow: kind === 'restaurant' ? 'restaurant' : flowKey(store.storeType), label, returnPath: sub.returnPath, icon: pushIcon(store), image: pushImage(store) })));
       } catch (err) {
         if (err.statusCode === 404 || err.statusCode === 410) await sub.destroy();
         console.error('Customer status push failed', { category: err.statusCode ? 'push-service' : 'transport-or-config', statusCode: Number(err.statusCode) || null, businessId: store.id, orderType: kind, orderId: order.id });
