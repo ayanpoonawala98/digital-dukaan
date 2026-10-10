@@ -34,5 +34,5 @@ export async function setupLinkStatus(user, now = Date.now()) {
   await ensureSetupLinkSchema();
   const events = await (await getModel()).findAll({ where: { userId: user.id }, order: [['id', 'DESC']], limit: 5, raw: true });
   const active = Boolean(user.passwordSetupHash) && user.passwordSetupExpiresAt && new Date(user.passwordSetupExpiresAt).getTime() > now;
-  return { active, expiresAt: active ? user.passwordSetupExpiresAt : null, events: events.map(e => ({ action: e.action, at: e.createdAt, by: e.actorId ? 'superadmin' : 'owner' })) };
+  return { active, expiresAt: active ? user.passwordSetupExpiresAt : null, events: events.map(e => ({ action: e.action, at: e.createdAt, by: e.action === 'used' ? 'owner' : e.actorId ? 'superadmin' : 'system' })) };
 }

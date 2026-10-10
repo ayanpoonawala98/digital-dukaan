@@ -2,8 +2,8 @@ import { createHash, randomBytes } from 'node:crypto';
 import { sendEmail, resolveProviders } from '../notifications/notify.js';
 import { PlatformAlert, cleanAlertSettings } from '../platform/platform-alerts.js';
 import { decryptJson } from '../notifications/notify-secrets.js';
-import { logSetupEvent } from './setup-links.js';
-export const inviteHash = token => createHash('sha256').update(token).digest('hex');
+import { logSetupEvent, hashToken } from './setup-links.js';
+export const inviteHash = hashToken; // single definition lives in setup-links.js so minting and validating cannot drift
 export const validInvite = (user, token, now = Date.now()) => typeof token === 'string' && /^[a-f0-9]{64}$/.test(token) && user?.active && user.role === 'owner' && user.passwordSetupHash === inviteHash(token) && new Date(user.passwordSetupExpiresAt).getTime() > now;
 export function ownerWelcomeText({user,store,setupUrl,loginUrl,shopUrl,password}) {
  const access=password ? `Username: ${user.email}\nTemporary password: ${password}\n\nSign in and change this password immediately in Shop Settings. Email is not a secure place to keep a password.` : `Choose your own password using this one-time link (expires in 24 hours):\n${setupUrl}\n\nDo not share this setup link. No password is included in this email.`;
