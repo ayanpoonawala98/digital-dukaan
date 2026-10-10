@@ -107,3 +107,44 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
   .storefront-notify-popup { left: 16px; right: 16px; bottom: 16px; max-width: none; }
   .notify-fab { bottom: 16px; }
 }
+
+/* =====================  Contrast (WCAG AA)  =====================
+   The default green theme (#0e9f6e) ships inline accent values tuned for light mode only, and white on
+   #0e9f6e is 3.4:1. Light: deepen the fill to #0b7d57 (white 5.6:1). Dark: keep the bright green fill with dark ink. */
+:root:not([data-theme="dark"]) [style*="--accent-ink: #0b7d57"] { --accent: #0b7d57 !important; }
+[data-theme="dark"] { --accent-foreground: #0b1f17; }
+[data-theme="dark"] [style*="--accent-ink: #0b7d57"] {
+  --accent-ink: #4fd6a7 !important;
+  --accent-soft: #16352a !important;
+  --accent-foreground: #0b1f17 !important;
+}
+:root:not([data-theme="dark"]) { --muted: #5f6a60; }
+.kicker, .eyebrow, .settings-eyebrow { font-size: 12px; }
+.btn-outline.danger { color: #b42318; border-color: color-mix(in srgb, #b42318 45%, var(--line)); }
+[data-theme="dark"] .btn-outline.danger { color: #fda29b; }
+
+/* Plan / trial line sits in the standard subtle container (copy untouched) */
+.notice.plan-card:not(.error):not(.warn):not(.success) { background: var(--card); border: 1px solid var(--line); }
+
+/* Status pills: keep 4.5:1 on tinted fills in dark mode */
+[data-theme="dark"] .status.live { color: color-mix(in srgb, var(--accent-ink) 80%, #fff); }
+
+/* Sales analytics: KPI labels and notes readable in both themes (accent hue kept, mixed toward ink) */
+.sd-kpi-title { color: color-mix(in srgb, var(--c) 55%, var(--ink)); font-size: 12px; }
+.sd-kpi small { opacity: .85; }
+.sd-delta span { opacity: .8; }
+.sd-delta.up { color: color-mix(in srgb, #0e9f6e 70%, var(--ink)); }
+.sd-delta.down { color: color-mix(in srgb, #ef5b7b 70%, var(--ink)); }
+.sd-axis, .sd-donut-l { opacity: .8; }
+.sd-legend { opacity: .9; }
+
+/* Phone links on order cards / table bills: readable on dark cards */
+[data-theme="dark"] .rorder-card a[href^="tel:"], [data-theme="dark"] .kitchen-card a[href^="tel:"], [data-theme="dark"] .tv a[href^="tel:"] { color: color-mix(in srgb, var(--accent-ink) 75%, #fff); }
+
+/* Inactive step tabs: readable, not disabled-looking */
+.settings-tabs button:not(.active) { color: var(--ink-soft); }
+.settings-tabs button > span:first-child { font-size: 11px; }
+.settings-tabs button > span:first-child { opacity: 1; }
+[data-theme="dark"] .settings-eyebrow { color: color-mix(in srgb, var(--accent-ink) 80%, #fff); }
+:root:not([data-theme="dark"]) .tv .tv-table.vac .st { color: color-mix(in srgb, var(--vac) 62%, var(--ink)); }
+:root:not([data-theme="dark"]) .tv .tv-table.occ .st { color: color-mix(in srgb, var(--occ) 62%, var(--ink)); }
