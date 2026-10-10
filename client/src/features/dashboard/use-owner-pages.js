@@ -15,5 +15,6 @@ export function useOwnerPages(storeId,tab,filters,token,refresh,enabled,prefix){
  useEffect(()=>{version.current++;busy.current=false;cursor.current=null;setState({rows:[],total:0,hasMore:false,loading:enabled,error:''});const timer=enabled?setTimeout(()=>fetch(true),filters.q?250:0):null;return()=>{clearTimeout(timer);version.current++;};},[storeId,tab,filters.q,filters.status,filters.from,filters.to,token,refresh,enabled,prefix,fetch]);
  const more=useCallback(()=>fetch(!cursor.current),[fetch]);
  useEffect(()=>{if(!node||!state.hasMore||state.loading||state.error||!window.IntersectionObserver)return;const observer=new IntersectionObserver(es=>{if(es.some(e=>e.isIntersecting))more();},{rootMargin:'250px'});observer.observe(node);return()=>observer.disconnect();},[node,state.hasMore,state.loading,state.error,more]);
- return {...state,sentinel:setNode,more};
+ const patchRow=useCallback((id,fresh)=>setState(s=>({...s,rows:s.rows.map(r=>r.id===id?{...r,...fresh}:r)})),[]);
+ return {...state,sentinel:setNode,more,patchRow};
 }

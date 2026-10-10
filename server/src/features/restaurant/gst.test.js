@@ -15,3 +15,12 @@ test('settings override the client rate; unset store keeps legacy', () => {
   assert.deepEqual(gstSetting({ gstMode: 'off' }, 18), { mode: 'exclusive', rate: 0, legacy: false });
   assert.deepEqual(gstSetting({}, 18), { mode: 'exclusive', rate: 18, legacy: true });
 });
+
+test('round-off is stored so taxable + cgst + sgst + roundOff equals the total', () => {
+  for (const [subtotal, rate, mode] of [[333.33, 5, 'exclusive'], [101, 18, 'exclusive'], [250.5, 12, 'inclusive'], [99.99, 0, 'exclusive']]) {
+    const t = billTotals({ subtotal, chargesTotal: 0, discount: 0, mode, rate });
+    const gstOnTop = mode === 'exclusive' ? t.half * 2 : 0;
+    assert.ok(Math.abs(t.taxable + gstOnTop + t.roundOff - t.total) < 0.0051, JSON.stringify(t));
+    assert.ok(Math.abs(t.roundOff) <= 0.5 + 1e-9);
+  }
+});

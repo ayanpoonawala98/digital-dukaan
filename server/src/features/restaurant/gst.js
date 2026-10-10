@@ -10,10 +10,13 @@ export function gstSetting(store, clientRate) {
   if (mode === 'off') return { mode: 'exclusive', rate: 0, legacy: false };
   return { mode, rate: Number(store.gstRate ?? 5), legacy: false };
 }
+// Rule: taxable = items + charges - discount. CGST and SGST are each taxable x rate / 2, to the paisa. The final total is rounded to
+// the whole rupee and the difference is kept as roundOff, so taxable + cgst + sgst + roundOff equals the total exactly.
 export function billTotals({ subtotal, chargesTotal, discount, mode, rate }) {
   const taxable = round2(subtotal + chargesTotal - discount);
-  if (!rate) return { taxable, half: 0, total: Math.round(taxable) };
-  if (mode === 'inclusive') return { taxable, half: round2((taxable - taxable / (1 + rate / 100)) / 2), total: Math.round(taxable) };
+  const finish = (half, exact) => { const total = Math.round(exact); return { taxable, half, total, roundOff: round2(total - exact) }; };
+  if (!rate) return finish(0, taxable);
+  if (mode === 'inclusive') return finish(round2((taxable - taxable / (1 + rate / 100)) / 2), taxable);
   const half = round2(taxable * rate / 200);
-  return { taxable, half, total: Math.round(taxable + half * 2) };
+  return finish(half, round2(taxable + half * 2));
 }

@@ -87,6 +87,8 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
   const buzz = useCallback(p => { try { navigator.vibrate?.(p); } catch { /* optional */ } }, []);
   const seen = useRef(null), seenReq = useRef(null), beep = useBeep(), ring = useRing(), soundRef = useRef(false);
   soundRef.current = sound;
+  // Only the changed card updates; no full re-fetch.
+  const apply = fresh => { if (fresh) setOrders(prev => prev.map(x => (x.id === fresh.id ? { ...x, ...fresh } : x)).filter(x => !DONE.includes(x.status))); };
   const load = useCallback(async () => {
     try {
       const [o, r] = await Promise.all([api(`/owner/${storeId}/restaurant-orders?pageSize=100&page=1`, { token }), api(`/owner/${storeId}/table-requests`, { token })]);
@@ -112,7 +114,7 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
       {list.length === 0 ? <p className="muted">Nothing here.</p> : list.map(o => { const nx = nextStatus(o); return <article key={o.id} className={`kitchen-card type-${o.orderType}`}>
         <header><b>#{o.orderNumber ?? o.id}</b><span className="rorder-type">{o.orderType === 'dine-in' ? `Table ${o.tableNumber}` : o.orderType}</span><small>{ago(o.createdAt)}</small></header>
         <OrderDetails o={o} kitchen/>
-        <div className="kitchen-actions"><KotButton token={token} storeId={storeId} order={o}/>{nx && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={async () => { await onStatus(o, nx); load(); }}>{NEXT_LABEL[nx]}</button>}<button type="button" className="btn btn-outline btn-small" disabled={busy} onClick={async () => { if (window.confirm(`Cancel order #${o.orderNumber ?? o.id}?`)) { await onStatus(o, 'cancelled'); load(); } }}>Cancel</button></div>
+        <div className="kitchen-actions"><KotButton token={token} storeId={storeId} order={o}/>{nx && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={async () => { apply(await onStatus(o, nx)); }}>{NEXT_LABEL[nx]}</button>}<button type="button" className="btn btn-outline btn-small" disabled={busy} onClick={async () => { if (window.confirm(`Cancel order #${o.orderNumber ?? o.id}?`)) { apply(await onStatus(o, 'cancelled')); } }}>Cancel</button></div>
       </article>; })}</section>; })}</div>
   </div>;
 }
