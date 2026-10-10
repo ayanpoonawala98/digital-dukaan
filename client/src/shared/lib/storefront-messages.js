@@ -85,8 +85,8 @@ export const storefrontMessages = {
     "mr": "पर्याय स्वल्पविरामाने वेगळे करा"
   },
   "Free": {
-    "hi": "खाली",
-    "mr": "रिकामे"
+    "hi": "मुफ़्त",
+    "mr": "मोफत"
   },
   "How was your order?": {
     "hi": "आपका ऑर्डर कैसा था?",
@@ -1631,5 +1631,9 @@ export const storefrontMessages = {
   "Add items worth Rs.{amount} or more to use this coupon": {
     "hi": "यह कूपन इस्तेमाल करने के लिए Rs.{amount} या उससे अधिक का सामान जोड़ें",
     "mr": "हे कूपन वापरण्यासाठी Rs.{amount} किंवा त्यापेक्षा जास्त किमतीच्या वस्तू जोडा"
+  },
+  "{rating} out of 5, 1 review": {
+    "hi": "5 में से {rating}, 1 समीक्षा",
+    "mr": "5 पैकी {rating}, 1 अभिप्राय"
   }
 };

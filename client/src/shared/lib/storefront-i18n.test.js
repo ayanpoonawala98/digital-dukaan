@@ -36,3 +36,11 @@ test('known dynamic server errors preserve amounts and customer names, unknown e
  const {storefrontError}=await import('./storefront-i18n.js');const prior=globalThis.localStorage;globalThis.localStorage={getItem:()=> 'mr'};
  try{refreshStorefrontLanguage(true,{id:7});assert.match(storefrontError('Only 4 left in stock for Customer Rice'),/Customer Rice/);assert.match(storefrontError('Minimum order is Rs.350'),/350/);assert.match(storefrontError('Add items worth Rs.500 or more to use this coupon'),/500/);assert.equal(storefrontError('Unknown error 123'),'Unknown error 123');}finally{globalThis.localStorage=prior;refreshStorefrontLanguage(false,null)}
 });
+
+test('zero-price copy means no charge and single-review English is singular',()=>{
+ assert.equal(translateStorefront('hi','Free'),'मुफ़्त');
+ assert.equal(translateStorefront('mr','Free'),'मोफत');
+ assert.equal(translateStorefront('en','{rating} out of 5, 1 review',{rating:'4.0'}),'4.0 out of 5, 1 review');
+ const stars=fs.readFileSync(new URL('../../features/reviews/Stars.jsx',import.meta.url),'utf8');
+ assert.match(stars,/count===1 \? "\{rating\} out of 5, 1 review"/);
+});
