@@ -797,7 +797,8 @@ r.post('/:storeId/restaurant-orders', wrap(async (req, res) => {
   if (raw.length < 1 || raw.length > 50) throw bad(400, 'Add at least one item');
   const ids = [...new Set(raw.map(e => Number(e?.id)))];
   if (raw.some(e => !Number.isInteger(Number(e?.id)) || Number(e.id) < 1 || !Number.isInteger(Number(e?.qty)) || Number(e.qty) < 1 || Number(e.qty) > 99)) throw bad(400, 'Invalid items');
-  const products = await Product.findAll({ where: { id: { [Op.in]: ids }, businessId: req.store.id, active: true } });
+  const { Op: SOp } = sequelize.Sequelize;
+  const products = await Product.findAll({ where: { id: { [SOp.in]: ids }, businessId: req.store.id, active: true } });
   if (products.length !== ids.length) throw bad(400, 'An item is not on the menu');
   const byId = new Map(products.map(p => [p.id, p]));
   const merged = new Map();
