@@ -9,7 +9,7 @@ import { haversineKm } from '../shared/utils/geo.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
 import { storeUrl } from '../shared/utils/store-domain.js';
-import {shopQrSvg} from '../features/stores/shop-qr.js';
+import {shopQrSvg, tableQrSvg} from '../features/stores/shop-qr.js';
 import { recordCustomerOrder, attachCustomerDevice, removeCustomerDevice } from '../features/crm/customer-sync.js';
 import { Business, Category, Product, Lead, PushSubscription, ShopRequest, RestaurantOrder, OrderPushSubscription, Coupon, TableRequest } from '../models/index.js';
 import { buildLine, cleanNote } from '../features/restaurant/menu-options.js';
@@ -412,6 +412,8 @@ r.get('/stores/:slug/qr', wrap(async (req, res) => {
   const table = Number(req.query.table);
   if (req.query.table !== undefined && (business.storeType !== 'restaurant' || !Number.isInteger(table) || table < 1 || table > business.tableCount)) throw bad(400, 'Invalid restaurant table');
   const destination = req.query.table === undefined ? shopUrl(business.slug) : `${shopUrl(business.slug)}?table=${table}`;
+  res.set('Cache-Control', 'public, max-age=600');
+  if (req.query.table !== undefined && req.query.style !== 'card') return res.type('image/svg+xml').send(await tableQrSvg(business, destination, table));
   const mark = await shopQrSvg(business, destination, req.query.table === undefined ? null : table);
   res.type('image/svg+xml').send(mark);
 }));
