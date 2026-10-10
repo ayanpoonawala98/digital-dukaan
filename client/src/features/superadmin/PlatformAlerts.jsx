@@ -1,3 +1,4 @@
+import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import React, {useEffect,useState} from 'react';
 import {api} from '../../shared/lib/api.js';
 import Busy from '../../shared/components/Busy.jsx';
@@ -9,7 +10,7 @@ export default function PlatformAlerts({token}) {
   const apply=d=>{setState(d.providers);setSet(d.settings);setKeys(d.keys);setKf(initForm(d.keys));};
   useEffect(()=>{api('/admin/alerts',{token,feedback:false}).then(apply).catch(()=>setState(false));},[token]);
   if(state===false)return null;
-  if(!set)return <div className="dashboard-panel"><h3>Platform email & request alerts</h3><p className="muted">Loading...</p></div>;
+  if(!set)return <div className="dashboard-panel"><h3>Platform email & request alerts</h3><BrandLoader compact/></div>;
   const run=async(key,fn)=>{if(busy)return;setBusy(key);setMsg(null);try{await fn();}catch(e){setMsg({error:e.message});}finally{setBusy('');}};
   const setK=(g,f,v)=>setKf(x=>({...x,[g]:{...x[g],[f]:v}}));
   const secretIn=(g,f,label,saved,hint)=><label>{label}<input type="password" autoComplete="new-password" value={kf[`${g}_s`]?.[f]||''} onChange={e=>setKf(x=>({...x,[`${g}_s`]:{...x[`${g}_s`],[f]:e.target.value}}))} placeholder={saved?`${hint||'••••••••'} saved. Type to replace`:'Paste it here'}/></label>;

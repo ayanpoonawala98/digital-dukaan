@@ -1,3 +1,4 @@
+import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import { notify } from '../notifications/notifications.js';
 import { useFeedbackState } from '../../shared/components/Toasts.jsx';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -122,7 +123,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
   const flow = flowFor(kind, data?.store?.storeType, data?.order?.orderType);
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">YOUR ORDER</span><h1>Order #{data?.order?.orderNumber ?? id}</h1>
-    {error && <p className="notice error" role="alert">{error}</p>}{!data && !error && <p role="status">Loading your order...</p>}
+    {error && <p className="notice error" role="alert">{error}</p>}{!data && !error && <BrandLoader compact label="Loading your order"/>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
       <div role="status" aria-live="polite"><h3>{statusLabel(flow, data.order.status)}</h3><p>{flow.note[data.order.status] || ''}</p></div>
       <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={data.order.orderType}/>
@@ -153,7 +154,7 @@ export function MyOrdersPage() {
     <span className="kicker">{data?.store?.name || 'MY ORDERS'}</span><h1>My orders</h1>
     <p>Orders placed from this browser. No login needed. Status updates appear here automatically.</p>
     {error && <p className="notice error" role="alert">{error}</p>}
-    {!data && !error && <p role="status">Loading your orders...</p>}
+    {!data && !error && <BrandLoader compact label="Loading your orders"/>}
     {data && !orders.length && <div className="empty-state"><h3>No orders yet</h3><p>Orders you place on this store from this browser will show up here.</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>Browse the store</Link></div>}
     {orders.map(o => { const flow = flowFor(o.kind, data.store?.storeType, o.orderType); return <section className="dashboard-panel" key={`${o.kind}-${o.id}`} style={{ marginBottom: 16 }}>
       <h3>Order #{o.orderNumber ?? o.id} · {inr(o.total)}</h3><small>{new Date(o.createdAt).toLocaleString('en-IN')}</small>

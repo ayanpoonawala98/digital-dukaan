@@ -1,3 +1,4 @@
+import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import ClosedBanner from './ClosedBanner.jsx';
 import MenuItemSheet from '../restaurant/MenuItemSheet.jsx';
 import { notify } from '../notifications/notifications.js';
@@ -40,7 +41,7 @@ export default function ProductPage({ hostedSlug }) {
   const cart = useCart(slug), wishlist = useWishlist(slug);
   useEffect(() => { api(`/public/stores/${slug}/products/${id}`).then(setData).catch(e => setError(e.message)); }, [slug, id]);
   if (error) return <><Header/><div className="container empty-state page-fade">{error}</div></>;
-  if (!data) return <div className="container empty-state">Loading product...</div>;
+  if (!data) return <BrandLoader label="Loading product"/>;
   const { business, product } = data;
   const isService = product.kind === 'service';
   const out = !isService && (product.stock === 0 || Boolean(product.soldOutToday));
