@@ -59,7 +59,7 @@ export function BroadcastPanel({ token, storeId, total, devices, onClose }) {
   useEffect(() => { api(`/owner/${storeId}/customers/channels`, { token, feedback: false }).then(setChannels).catch(() => {}); }, [storeId]);
   const send = async (f, reset) => { if (busy) return; setBusy(true); setError(''); setNotice(''); try { const r = await api(`/owner/${storeId}/customers/broadcast/push`, { token, method: 'POST', body: { title: f.title, body: f.body, image: f.image } }); if (!r.devices) { setNotice('No customer devices subscribed yet. Customers get notifications after they allow them in their browser on your store page.'); return; } setNotice(`Delivered to ${r.sent} device(s) of ${r.customers} customer(s)${r.failed ? `; ${r.failed} did not accept` : ''}.`); reset(); } catch (e) { setError(e.message); } finally { setBusy(false); } };
   return <div className="customer-form"><h3>{ot("Notify all customers")}</h3>
-    <p className="muted">{ot("Goes to every customer who allowed notifications in their browser (")}{devices} {ot("device(s) on this page's customers). Customers who opted out are skipped. Up to 5 broadcasts an hour. Free.")}</p>
+    <p className="muted">{ot("Goes to every customer who allowed notifications in their browser (")}{channels?.pushDevices ?? devices} {ot("device(s) on this page's customers). Customers who opted out are skipped. Up to 5 broadcasts an hour. Free.")}</p>
     {channels && !channels.push.configured && <p className="notice error">{ot("Push is not configured on this server yet.")}</p>}
     {error && <p className="notice error" role="alert">{ot(error)}</p>}{notice && <p className="notice" role="status">{notice}</p>}
     <Composer title={ot("Message")} channel="push" busy={busy} onSend={send}/>

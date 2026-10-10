@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { Op } from 'sequelize';
-import { sequelize, Lead, RestaurantOrder } from '../../models/index.js';
+import { sequelize, Lead, RestaurantOrder, PushSubscription } from '../../models/index.js';
 import { bad, wrap } from '../../shared/utils/core.js';
 import { resolveDeps, providerStatus, sendEmail, sendSms } from '../notifications/notify.js';
 import { Customer, CustomerDevice, CustomerMessage, crmEnabled } from './crm.js';
@@ -37,7 +37,9 @@ const log = (req, fields) => CustomerMessage.create({ businessId: req.store.id, 
 
 customerRoutes.get('/channels', wrap(async (req, res) => {
   const p = await providers(req.store);
-  res.json({ push: { configured: pushConfigured() }, email: { configured: p.email.configured, label: p.email.label }, sms: { configured: p.sms.configured, label: p.sms.label } });
+  const known = new Set((await CustomerDevice.findAll({ where: { businessId: req.store.id, channel: 'push' }, attributes: ['endpoint'], limit: 5000 }).catch(() => [])).map(d => d.endpoint));
+  const subs = await PushSubscription.count({ where: { businessId: req.store.id, ...(known.size ? { endpoint: { [Op.notIn]: [...known] } } : {}) } }).catch(() => 0);
+  res.json({ pushDevices: known.size + subs, push: { configured: pushConfigured() }, email: { configured: p.email.configured, label: p.email.label }, sms: { configured: p.sms.configured, label: p.sms.label } });
 }));
 customerRoutes.get('/messages', wrap(async (req, res) => {
   res.json({ messages: await CustomerMessage.findAll({ where: { businessId: req.store.id }, order: [['id', 'DESC']], limit: 30 }) });
@@ -75,12 +77,17 @@ customerRoutes.post('/broadcast/push', ownerOnly, wrap(async (req, res) => {
   const hour = new Date(Date.now() - 3600e3);
   if (await CustomerMessage.count({ where: { businessId: req.store.id, channel: 'push', audience: 'all', createdAt: { [Op.gte]: hour } } }) >= 5) throw bad(429, 'You can send up to 5 broadcasts an hour. Try again later.');
   const devices = await CustomerDevice.findAll({ where: { businessId: req.store.id, channel: 'push' }, include: [{ model: Customer, required: true, where: { archivedAt: null, optInStatus: { [Op.ne]: 'opted_out' } }, attributes: [] }], limit: 5000 });
-  if (!devices.length) return res.json({ customers: 0, devices: 0, sent: 0, failed: 0 });
-  const result = await sendToDevices(devices, msg.payload, sendWebPush);
-  if (result.gone.length) await CustomerDevice.destroy({ where: { businessId: req.store.id, id: result.gone.map(d => d.id) } });
+  // Visitors who tapped "Notify me" on the storefront without ordering are store subscribers, not customer rows. They are reachable too.
+  const have = new Set(devices.map(d => d.endpoint));
+  const strangers = (await PushSubscription.findAll({ where: { businessId: req.store.id }, limit: 5000 })).filter(p => !have.has(p.endpoint));
+  const all = [...devices, ...strangers];
+  if (!all.length) return res.json({ customers: 0, devices: 0, sent: 0, failed: 0 });
+  const result = await sendToDevices(all, msg.payload, sendWebPush);
+  const goneEndpoints = result.gone.map(d => d.endpoint);
+  if (result.gone.length) { await CustomerDevice.destroy({ where: { businessId: req.store.id, endpoint: goneEndpoints } }); await PushSubscription.destroy({ where: { businessId: req.store.id, endpoint: goneEndpoints } }); }
   const customers = new Set(devices.map(d => d.customerId)).size;
-  await log(req, { channel: 'push', audience: 'all', title: msg.title, body: msg.body, recipients: customers, sent: result.sent, failed: result.failed }).catch(e => console.error('broadcast log failed', e.message));
-  res.json({ customers, devices: devices.length, sent: result.sent, failed: result.failed });
+  await log(req, { channel: 'push', audience: 'all', title: msg.title, body: msg.body, recipients: customers + strangers.length, sent: result.sent, failed: result.failed }).catch(e => console.error('broadcast log failed', e.message));
+  return res.json({ customers: customers + strangers.length, devices: all.length, sent: result.sent, failed: result.failed });
 }));
 
 // Bulk email or SMS to customers the owner ticked. Same rules as one-to-one: owner only, the shop's OWN provider, recorded opt-in,
