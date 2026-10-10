@@ -1,3 +1,4 @@
+import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import {storeImage} from '../storefront/store-image.js';
 import {useOwnerPages} from './use-owner-pages.js';
 import { productsCsv, downloadProductCsv } from '../imports/product-csv.js';
@@ -204,7 +205,7 @@ function PaymentSettings({ token, storeId }) {
   const [view, setView] = useState(null), [f, setF] = useState({ keyId: '', keySecret: '' }), [busy, setBusy] = useState(false), [msg, setMsg] = useState(null);
   useEffect(() => { api(`/owner/${storeId}/payments`, { token, feedback: false }).then(d => { setView(d.razorpay); setF({ keyId: '', keySecret: '' }); }).catch(() => setView(false)); }, [storeId, token]);
   if (view === false) return null;
-  if (!view) return <div className="dashboard-panel settings-panel"><h3>Online payments</h3><p className="muted">Loading...</p></div>;
+  if (!view) return <div className="dashboard-panel settings-panel"><h3>Online payments</h3><BrandLoader compact/></div>;
   const save = async (body, ok) => { setBusy(true); setMsg(null); try { const d = await api(`/owner/${storeId}/payments`, { token, method: 'PUT', body, feedback: false }); setView(d.razorpay); setF({ keyId: '', keySecret: '' }); setMsg({ ok }); } catch (e) { setMsg({ error: e.message }); } finally { setBusy(false); } };
   return <div className="dashboard-panel settings-panel notify-settings accordion-panel">
     <button type="button" className="accordion-head" aria-expanded={open} onClick={() => setOpen(o => !o)}><h3>Online payments (Razorpay)</h3><span className="accordion-chev" aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span></button>
@@ -230,7 +231,7 @@ function NotificationSettings({ token, storeId }) {
   const applyKeys = k => { setKeys(k); setKf({ emailMode: k.emailMode, smsMode: k.smsMode, resend: { from: k.resend.from }, smtp: { host: k.smtp.host, port: k.smtp.port || 587, secure: k.smtp.secure, user: k.smtp.user, from: k.smtp.from }, emailHttp: { url: k.emailHttp.url, method: k.emailHttp.method || 'POST', contentType: k.emailHttp.contentType || 'json', headers: k.emailHttp.headers, body: k.emailHttp.body }, fast2sms: { route: k.fast2sms.route || 'quick', senderId: k.fast2sms.senderId, templateId: k.fast2sms.templateId }, smsHttp: { url: k.smsHttp.url, method: k.smsHttp.method || 'POST', contentType: k.smsHttp.contentType || 'json', headers: k.smsHttp.headers, body: k.smsHttp.body } }); };
   useEffect(() => { api(`/owner/${storeId}/notifications`, { token, feedback: false }).then(d => { setState(d.providers); setForm(d.settings); applyKeys(d.keys); }).catch(() => setState(false)); }, [storeId, token]);
   if (state === false) return null;
-  if (!form) return <div className="dashboard-panel settings-panel"><h3>SMS & email - your business</h3><p className="muted">Loading...</p></div>;
+  if (!form) return <div className="dashboard-panel settings-panel"><h3>SMS & email - your business</h3><BrandLoader compact/></div>;
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const save = async e => {
     e.preventDefault(); setBusy(true); setMsg(null);
@@ -327,7 +328,7 @@ function Settings({ business, token, storeId, onSaved, onError, onRemoved }) {
     setSettingsSection('business');setSavedForm('');
   }, [business?.id]);
   useEffect(()=>{if(form&&!savedForm)setSavedForm(JSON.stringify(form));},[form,savedForm]);
-  if (!form) return <div className="dashboard-panel">Loading...</div>;
+  if (!form) return <div className="dashboard-panel"><BrandLoader compact/></div>;
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }));
   const uploadImage = key => async e => {
     const file = e.target.files?.[0];

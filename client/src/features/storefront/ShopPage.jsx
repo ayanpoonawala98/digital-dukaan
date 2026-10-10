@@ -18,11 +18,13 @@ import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.js
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
 import RestaurantCheckout from '../restaurant/RestaurantCheckout.jsx';
 import MenuItemSheet from '../restaurant/MenuItemSheet.jsx';
+import { MenuViewSwitch, useMenuView, groupByCategory } from '../restaurant/MenuViewSwitch.jsx';
 import { VegDot, TagChips } from '../restaurant/MenuBits.jsx';
 import { saveOrder, pushSupported, currentBrowserSubscription, subscribeBrowser } from './my-orders.js';
 import { useCart, useOrders, useWishlist } from './shop.js';
 import { Footer, Header } from '../../shared/components/chrome.jsx';
 import LoadSkeleton from '../../shared/components/LoadSkeleton.jsx';
+import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import OfferPopup from './OfferPopup.jsx';
 
 function useShop(slug) {
@@ -277,6 +279,32 @@ function RestaurantCard({ product, slug, cart, index, blocked }) {
   </article>;
 }
 
+function MenuRow({ product, slug, cart, blocked }) {
+  const [sheet, setSheet] = useState(false);
+  const out = product.stock === 0 || product.soldOutToday;
+  const hasOptions = (product.variants || []).length > 0 || (product.addonGroups || []).length > 0;
+  const from = (product.variants || []).length ? Math.min(...product.variants.map(v => Number(v.price))) : Number(product.price);
+  const inCart = cart.items.filter(i => i.id === product.id).reduce((n, i) => n + i.qty, 0);
+  const add = e => { if (hasOptions) setSheet(true); else { animateToCart(e.currentTarget); cart.add(product); } };
+  return <li className={`mc-row ${out ? 'sold-out' : ''}`}>
+    <Link to={storePath(slug, product.id)} className="mc-photo" aria-label={product.name}>{product.imageUrl ? <img src={storeImage(imageSrc(product.imageUrl), 360)} alt="" loading="lazy"/> : <span><Package size={26}/></span>}</Link>
+    <div className="mc-body">
+      <div className="mc-line"><span className="mc-name"><VegDot veg={product.veg}/><Link to={storePath(slug, product.id)}>{product.name}</Link></span><i className="mc-dots" aria-hidden="true"/><b className="mc-price">{(product.variants || []).length ? 'From ' : ''}{inr(from)}</b></div>
+      {product.description && <p className="mc-desc">{product.description}</p>}
+      <div className="mc-foot"><TagChips tags={[...(product.tags || []), ...(product.featured && !(product.tags || []).includes('bestseller') ? ['bestseller'] : [])]}/>
+        {out ? <span className="mc-out">Sold out today</span> : <button className="mc-add" disabled={blocked} onClick={add} aria-label={`Add ${product.name}`}><Plus size={14}/>{inCart > 0 ? `Added · ${inCart}` : hasOptions ? 'Customise' : 'Add'}</button>}</div>
+    </div>
+    {sheet && <MenuItemSheet product={product} onClose={() => setSheet(false)} onAdd={(qty, config) => { cart.add(product, qty, undefined, config); setSheet(false); }}/>}
+  </li>;
+}
+
+function MenuSections({ products, slug, cart, blocked }) {
+  return <div className="mc-sheet">{groupByCategory(products).map(g => <section className="mc-section" key={g.name}>
+    <h3 className="mc-title"><span>{g.name}</span></h3>
+    <ul className="mc-list">{g.items.map(p => <MenuRow key={p.id} product={p} slug={slug} cart={cart} blocked={blocked}/>)}</ul>
+  </section>)}</div>;
+}
+
 function TableBar({ slug, business }) {
   const n = Number(new URLSearchParams(window.location.search).get('table'));
   const [sent, setSent] = useState(''), [err, setErr] = useState('');
@@ -295,7 +323,7 @@ export default function ShopPage({ hostedSlug }) {
   const { theme } = useTheme();
   const { shop, error } = useShop(slug);
   useShowcaseScroll(slug, Boolean(shop?.business && !shop.paused));
-  const [search, setSearch] = useState(''), [category, setCategory] = useState('');
+  const [search, setSearch] = useState(''), [category, setCategory] = useState(''), [menuView, setMenuView] = useMenuView(slug);
   const {products,loading,loadingMore,total,hasMore,pageError,loadMore,sentinel} = useProductPages(slug,search,category,shop?.paused);
   const [lang, setLang] = useState(() => { try { return localStorage.getItem('dd-language') || 'en'; } catch { return 'en'; } });
   const t = key => translate(lang, key);
@@ -308,7 +336,7 @@ export default function ShopPage({ hostedSlug }) {
   const dismissOffer = () => { try { sessionStorage.setItem(`dd-offer-seen-${slug}`, 'yes'); } catch {} setOfferOpen(false); };
 
   if (error) return <><Header/><div className="container empty-state page-fade"><h2>Shop not found</h2><p>{error}</p><Link to="/">Back home</Link></div></>;
-  if (!shop) return <><Header/><main className="container storefront-loading"><LoadSkeleton label="Loading shop" cards={2} rows={3}/></main></>;
+  if (!shop) return <><Header/><BrandLoader label="Loading shop"/></>;
   if (shop.paused) return <><Header/><main className="container empty-state page-fade paused-store" role="status"><StoreClosed/><h1>{shop.business.name} is temporarily closed</h1><p>This shop is paused right now. Please check back later.</p><Link className="btn btn-green" to="/">Back home</Link></main><Footer/></>;
   const { business, categories } = shop;
   return <div className="shop-root page-fade" style={storeThemeStyle(business.accentColor, theme === 'dark')}>
@@ -337,7 +365,7 @@ export default function ShopPage({ hostedSlug }) {
       <PushPrompt key={slug} slug={slug} business={business} blocked={offerOpen || cartOpen || wishOpen || qrOpen}/>
       {business.storeType === 'restaurant' && <TableBar slug={slug} business={business}/>}
       <div className="container catalog"><label className="language-select">Language / भाषा / भाषा निवडा <select aria-label="Storefront language" value={lang} onChange={e => setLanguage(e.target.value)}><option value="en">English</option><option value="hi">हिन्दी</option><option value="mr">मराठी</option></select></label>
-        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div><span>{total} {t('productsCount')}</span></div>
+        <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? 'THE MENU' : 'CURATED FOR YOU'}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div>{business.storeType === 'restaurant' ? <MenuViewSwitch view={menuView} onChange={setMenuView}/> : <span>{total} {t('productsCount')}</span>}</div>
         <div className="catalog-tools">
           <div className="filter-tabs" role="group" aria-label="Product categories"><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
           <label className="search-box"><Search size={18}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('search')} aria-label={t('search')}/></label>
@@ -345,7 +373,9 @@ export default function ShopPage({ hostedSlug }) {
         {loading
           ? <div className="product-grid">{Array.from({ length: 6 }).map((_, i) => <div className="product-card skeleton" key={i}><div className="product-img shimmer"/><div className="product-meta"><span className="shimmer-line"/><h3 className="shimmer-line wide"/></div></div>)}</div>
           : products.length
-            ? <div className={business.storeType === 'restaurant' ? 'menu-list' : 'product-grid'}>{products.map((p, i) => business.storeType === 'restaurant' ? <RestaurantCard key={p.id} product={p} slug={slug} cart={cart} index={i} blocked={business.blocksOrders}/> : <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
+            ? business.storeType === 'restaurant' && menuView === 'menu'
+              ? <MenuSections products={products} slug={slug} cart={cart} blocked={business.blocksOrders}/>
+              : <div className={business.storeType === 'restaurant' ? 'menu-list' : 'product-grid'}>{products.map((p, i) => business.storeType === 'restaurant' ? <RestaurantCard key={p.id} product={p} slug={slug} cart={cart} index={i} blocked={business.blocksOrders}/> : <ProductCard key={p.id} product={p} slug={slug} wishlist={wishlist} cart={cart} index={i} t={t}/>)}</div>
             : <div className="empty-state"><Package size={38}/><h3>{t('empty')}</h3><p>{t('emptyHint')}</p></div>}
         {!loading && (hasMore || pageError) && <div ref={sentinel} className="pagination-sentinel" aria-live="polite">{pageError && <p role="alert">{pageError}</p>}<button type="button" className="btn btn-outline" disabled={loadingMore} onClick={loadMore}>{loadingMore ? 'Loading more...' : pageError ? 'Retry loading products' : 'Load 10 more'}</button><small>{products.length} of {total} products</small></div>}
       </div>

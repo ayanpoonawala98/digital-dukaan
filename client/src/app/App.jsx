@@ -1,3 +1,4 @@
+import BrandLoader from '../shared/components/BrandLoader.jsx';
 const SetPassword = lazy(() => import('../features/auth/SetPassword.jsx'));
 import {OfferOptOut} from '../features/dashboard/OfferCampaigns.jsx';
 import React, { lazy, Suspense } from 'react';
@@ -27,7 +28,7 @@ function Guard({ role, children }) {
 
 export default function App() {
   const hostedSlug = hostedStoreSlug();
-  return <ThemeProvider><AuthProvider><Toasts/><Motion/><HashScroll/><Suspense fallback={<main className="container" role="status" aria-live="polite"><p>Loading...</p></main>}><Routes>
+  return <ThemeProvider><AuthProvider><Toasts/><Motion/><HashScroll/><Suspense fallback={<BrandLoader full label="Loading"/>}><Routes>
       <Route path="/offers/opt-out/:token" element={<OfferOptOut/>}/>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>
     <Route path="/product/:id" element={hostedSlug ? <ProductPage hostedSlug={hostedSlug}/> : <Navigate to="/" replace/>}/>
