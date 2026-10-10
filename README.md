@@ -1,4 +1,4 @@
-# Digital Dukaan
+# Digital Shop
 
 WhatsApp-first catalogs for small businesses. Superadmins create each owner account and its initial store; each store has its own categories, products/services, WhatsApp number and shareable storefront. Customers browse, search, add to cart and tap **Order on WhatsApp** to open a chat with the store's number. Each order records a lead the owner can track and update on WhatsApp.
 

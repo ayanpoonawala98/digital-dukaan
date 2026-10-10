@@ -33,13 +33,13 @@ export async function sendSmtp(cfg, mail, { lookup, allowPrivate = false, timeou
   attach(sock);
   try {
     const hello = await read(); if (hello.code !== 220) throw new Error('SMTP greeting failed');
-    let ehlo = await cmd('EHLO dukaan.local', [250]);
+    let ehlo = await cmd('EHLO shop.local', [250]);
     if (!cfg.secure && ehlo.lines.some(l => /STARTTLS/i.test(l))) {
       await cmd('STARTTLS', [220]);
       sock.removeAllListeners('data'); sock.removeAllListeners('close'); sock.removeAllListeners('error');
       sock = await new Promise((resolve, reject) => { const t = tls.connect({ socket: sock, servername: net.isIP(host) ? undefined : host }, () => resolve(t)); t.once('error', reject); });
       buf = ''; attach(sock);
-      ehlo = await cmd('EHLO dukaan.local', [250]);
+      ehlo = await cmd('EHLO shop.local', [250]);
     } else if (!cfg.secure && cfg.user) throw new Error('Server does not offer STARTTLS; refusing to send the password unencrypted');
     if (cfg.user) {
       const mech = ehlo.lines.join(' ').toUpperCase();
