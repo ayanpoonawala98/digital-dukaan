@@ -1,18 +1,20 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
+import { clientIp } from '../../shared/abuse-limits.js';
 import jwt from 'jsonwebtoken';
 import { DataTypes, Op } from 'sequelize';
 import { sequelize, Business, Product, Lead, RestaurantOrder } from '../../models/index.js';
 import { bad, wrap } from '../../shared/utils/core.js';
 import { ownerList } from '../stores/owner-list-page.js';
 import { orderPhone } from '../crm/customer-pure.js';
-import { cleanReview, reviewerKey, publicName, reviewableProducts, summarize } from './reviews-pure.js';
+import { cleanReview, reviewerKey, publicName, reviewableProducts } from './reviews-pure.js';
 
 // One row per customer per product. status 'hidden' is the admin's moderation switch; the row is kept so a
 // hidden review cannot simply be re-posted. The reviewer is identified by phone (else the order), never shown.
 export const Review = sequelize.define('Review', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' } },
-  productId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'products', key: 'id' } },
+  businessId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'businesses', key: 'id' }, onDelete: 'CASCADE' },
+  productId: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'products', key: 'id' }, onDelete: 'CASCADE' },
   orderKind: { type: DataTypes.STRING(12), allowNull: false },
   orderId: { type: DataTypes.INTEGER, allowNull: false },
   reviewerKey: { type: DataTypes.STRING(40), allowNull: false },
@@ -26,16 +28,19 @@ Review.belongsTo(Product, { foreignKey: 'productId' });
 let ready;
 export const ensureReviewsSchema = () => ready ||= (async () => {
   await Review.sync();
+  // Tables created before cascade was added keep a plain FK, which would block deleting a product or purging a store.
+  for (const [col, ref] of [['productId', 'products'], ['businessId', 'businesses']]) {
+    await sequelize.query(`ALTER TABLE reviews DROP CONSTRAINT IF EXISTS "reviews_${col}_fkey"`);
+    await sequelize.query(`ALTER TABLE reviews ADD CONSTRAINT "reviews_${col}_fkey" FOREIGN KEY ("${col}") REFERENCES ${ref}(id) ON DELETE CASCADE`);
+  }
   await sequelize.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS "ratingAvg" double precision NOT NULL DEFAULT 0');
   await sequelize.query('ALTER TABLE products ADD COLUMN IF NOT EXISTS "ratingCount" integer NOT NULL DEFAULT 0');
 })().catch(e => { ready = null; throw e; });
 
 // Cards read ratingAvg/ratingCount straight off the product row, so keep them current after any change.
 export async function recalcProduct(productId, businessId) {
-  const rows = await Review.findAll({ where: { productId, businessId, status: 'visible' }, attributes: ['rating'], raw: true });
-  const { avg, count } = summarize(rows);
-  await Product.update({ ratingAvg: avg, ratingCount: count }, { where: { id: productId, businessId } });
-  return { avg, count };
+  // One statement, so two reviews arriving together cannot leave an old average behind.
+  await sequelize.query(`UPDATE products SET "ratingAvg" = COALESCE((SELECT ROUND(AVG(rating)::numeric, 1) FROM reviews WHERE "productId" = :p AND "businessId" = :b AND status = 'visible'), 0), "ratingCount" = (SELECT COUNT(*) FROM reviews WHERE "productId" = :p AND "businessId" = :b AND status = 'visible') WHERE id = :p AND "businessId" = :b`, { replacements: { p: productId, b: businessId } });
 }
 
 const MODELS = { 'restaurant-orders': { kind: 'restaurant', model: () => RestaurantOrder }, 'lead-orders': { kind: 'lead', model: () => Lead } };
@@ -54,7 +59,7 @@ async function trackedOrder(req) {
   if (!business || access.businessId !== business.id) throw bad(404, 'Order not found');
   const order = await cfg.model().findOne({ where: { id, businessId: business.id } });
   if (!order) throw bad(404, 'Order not found');
-  return { business, order, kind: cfg.kind };
+  return { business, order, kind: cfg.kind, flow: cfg.kind === 'restaurant' ? 'restaurant' : business.storeType === 'services' ? 'services' : 'retail' };
 }
 
 export const reviewPublicRoutes = Router();
@@ -65,29 +70,30 @@ reviewPublicRoutes.get('/stores/:slug/products/:id/reviews', wrap(async (req, re
   const cursor = req.query.cursor === undefined ? null : numId(req.query.cursor);
   if (req.query.cursor !== undefined && !cursor) throw bad(400, 'Invalid cursor');
   const where = { productId: id, businessId: business.id, status: 'visible' };
-  const [all, page] = await Promise.all([
-    Review.findAll({ where, attributes: ['rating'], raw: true }),
+  const [product, page] = await Promise.all([
+    Product.findOne({ where: { id, businessId: business.id }, attributes: ['ratingAvg', 'ratingCount'], raw: true }),
     Review.findAll({ where: cursor ? { ...where, id: { [Op.lt]: cursor } } : where, order: [['id', 'DESC']], limit: 11, attributes: ['id', 'rating', 'text', 'customerName', 'createdAt'] })
   ]);
   const rows = page.slice(0, 10);
   res.set('Cache-Control', 'public, s-maxage=30, stale-while-revalidate=30');
-  res.json({ summary: summarize(all), reviews: rows.map(r => ({ id: r.id, rating: r.rating, text: r.text, name: publicName(r.customerName), createdAt: r.createdAt, verified: true })), nextCursor: page.length > 10 ? String(rows.at(-1).id) : null });
+  res.json({ summary: { count: Number(product?.ratingCount) || 0, avg: Number(product?.ratingAvg) || 0 }, reviews: rows.map(r => ({ id: r.id, rating: r.rating, text: r.text, name: publicName(r.customerName), createdAt: r.createdAt, verified: true })), nextCursor: page.length > 10 ? String(rows.at(-1).id) : null });
 }));
 // What this order can review, with any review already given (so the customer can edit it).
 reviewPublicRoutes.get('/stores/:slug/:segment(restaurant-orders|lead-orders)/:id/reviews', wrap(async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  const { business, order, kind } = await trackedOrder(req);
+  const { business, order, kind, flow } = await trackedOrder(req);
   const key = reviewerKey(order, kind, orderPhone(order.customerPhone));
-  const items = reviewableProducts(order);
+  const items = reviewableProducts(order, flow);
   const mine = items.length ? await Review.findAll({ where: { businessId: business.id, productId: items.map(i => i.productId), reviewerKey: key }, attributes: ['productId', 'rating', 'text', 'status'], raw: true }) : [];
   const byProduct = new Map(mine.map(r => [r.productId, r]));
   res.json({ items: items.map(i => ({ ...i, review: byProduct.has(i.productId) ? { rating: byProduct.get(i.productId).rating, text: byProduct.get(i.productId).text } : null })) });
 }));
-reviewPublicRoutes.post('/stores/:slug/:segment(restaurant-orders|lead-orders)/:id/reviews', wrap(async (req, res) => {
+const postLimit = rateLimit({ windowMs: 3600e3, limit: 20, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `review:${clientIp(req)}`, message: { error: 'Too many reviews from this device. Try again later.' } });
+reviewPublicRoutes.post('/stores/:slug/:segment(restaurant-orders|lead-orders)/:id/reviews', postLimit, wrap(async (req, res) => {
   res.set('Cache-Control', 'no-store');
-  const { business, order, kind } = await trackedOrder(req);
+  const { business, order, kind, flow } = await trackedOrder(req);
   const productId = numId(req.body?.productId);
-  if (!productId || !reviewableProducts(order).some(i => i.productId === productId)) throw bad(400, 'You can only review items from this order');
+  if (!productId || !reviewableProducts(order, flow).some(i => i.productId === productId)) throw bad(400, 'You can review items once your order is finished');
   const clean = cleanReview(req.body);
   if (clean.error) throw bad(400, clean.error);
   const key = reviewerKey(order, kind, orderPhone(order.customerPhone));
@@ -103,7 +109,7 @@ reviewOwnerRoutes.use((req, res, next) => req.user.role === 'owner' ? next() : r
 reviewOwnerRoutes.get('/', wrap(async (req, res) => {
   const where = { businessId: req.store.id };
   const vis = req.query.visibility ?? req.query.status;
-  if (['visible', 'hidden'].includes(vis)) where.status = vis;
+  where.status = ['visible', 'hidden'].includes(vis) ? vis : { [Op.ne]: 'removed' };
   const page = await ownerList(Review, 'reviews', req, where, ['customerName', 'text'], { include: [{ model: Product, attributes: ['name'] }] },
     r => ({ id: r.id, productId: r.productId, productName: r.Product?.name || '', rating: r.rating, text: r.text, customerName: r.customerName, status: r.status, orderKind: r.orderKind, orderId: r.orderId, createdAt: r.createdAt }));
   res.json(page);
@@ -117,13 +123,14 @@ const load = async req => {
 reviewOwnerRoutes.patch('/:id', wrap(async (req, res) => {
   const r = await load(req);
   if (!['visible', 'hidden'].includes(req.body?.status)) throw bad(400, 'Choose visible or hidden');
+  if (r.status === 'removed') throw bad(409, 'This review was deleted');
   await r.update({ status: req.body.status });
   await recalcProduct(r.productId, req.store.id);
   res.json({ ok: true, status: r.status });
 }));
 reviewOwnerRoutes.delete('/:id', wrap(async (req, res) => {
   const r = await load(req);
-  await r.destroy();
+  await r.update({ status: 'removed' }); // kept, so the same customer cannot simply post it again
   await recalcProduct(r.productId, req.store.id);
   res.json({ deleted: true });
 }));

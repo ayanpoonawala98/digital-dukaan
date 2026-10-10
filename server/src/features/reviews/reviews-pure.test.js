@@ -15,13 +15,15 @@ test('reviewer identity prefers the phone, else the order', () => {
 test('public name never leaks contact details', () => {
   assert.equal(publicName('Ayan Poonawala'), 'Ayan'); assert.equal(publicName(''), 'Customer'); assert.equal(publicName('9876543210'), 'Customer'); assert.equal(publicName('a@b.com'), 'Customer');
 });
-test('only non-cancelled order lines can be reviewed, once per product', () => {
+test('only finished order lines can be reviewed, once per product', () => {
   const order = { status: 'delivered', items: [{ productId: 3, name: 'Tea' }, { productId: 3, name: 'Tea' }, { productId: 9, name: 'Cake' }, { name: 'ghost' }] };
-  assert.deepEqual(reviewableProducts(order), [{ productId: 3, name: 'Tea' }, { productId: 9, name: 'Cake' }]);
-  assert.deepEqual(reviewableProducts({ ...order, status: 'cancelled' }), []);
-  assert.deepEqual(reviewableProducts({ status: 'delivered', items: [], productId: 7, productName: 'Shirt' }), [{ productId: 7, name: 'Shirt' }]);
-  assert.deepEqual(reviewableProducts({ status: 'new', items: [{ productId: 1, name: 'A' }] }), []);
-  assert.deepEqual(reviewableProducts(null), []);
+  assert.deepEqual(reviewableProducts(order, 'retail'), [{ productId: 3, name: 'Tea' }, { productId: 9, name: 'Cake' }]);
+  assert.deepEqual(reviewableProducts({ ...order, status: 'cancelled' }, 'retail'), []);
+  assert.deepEqual(reviewableProducts({ ...order, status: 'preparing' }, 'restaurant'), []);
+  assert.deepEqual(reviewableProducts({ ...order, status: 'shipped' }, 'retail'), []);
+  assert.deepEqual(reviewableProducts({ ...order, status: 'served' }, 'restaurant').length, 2);
+  assert.deepEqual(reviewableProducts({ status: 'completed', items: [], productId: 7, productName: 'Cut' }, 'services'), [{ productId: 7, name: 'Cut' }]);
+  assert.deepEqual(reviewableProducts(null, 'retail'), []);
 });
 test('summary rounds to one decimal', () => {
   assert.deepEqual(summarize([{ rating: 5 }, { rating: 4 }, { rating: 4 }]), { count: 3, avg: 4.3, distribution: { 1: 0, 2: 0, 3: 0, 4: 2, 5: 1 } });

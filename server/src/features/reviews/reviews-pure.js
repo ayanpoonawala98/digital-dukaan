@@ -16,8 +16,11 @@ export function publicName(name) {
   return /\d{4,}|@/.test(first) || !first ? 'Customer' : first.slice(0, 20);
 }
 // Products a customer may review from this order: lines with a product id, order not cancelled.
-export function reviewableProducts(order) {
-  if (!order || ['cancelled', 'new'].includes(order.status)) return [];
+// The moment an order counts as finished, per flow. Reviews and the "rate your order" push both wait for it.
+const FINISHED = { restaurant: ['served', 'delivered', 'picked-up'], retail: ['delivered'], services: ['completed'] };
+export const isFinished = (flow, status) => (FINISHED[flow] || []).includes(status);
+export function reviewableProducts(order, flow) {
+  if (!order || !isFinished(flow, order.status)) return [];
   const ids = new Map();
   const items = Array.isArray(order.items) ? order.items : [];
   for (const i of items) { const id = Number(i?.productId ?? i?.id); if (Number.isInteger(id) && id > 0 && !ids.has(id)) ids.set(id, String(i.name || '')); }

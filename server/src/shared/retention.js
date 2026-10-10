@@ -26,6 +26,8 @@ export async function purgeExpiredStore(now = new Date()) {
       if (crmTables[0].cmessages) await sequelize.query('DELETE FROM customer_messages WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       if (crmTables[0].customers) await sequelize.query('DELETE FROM customers WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       if (crmTables[0].batches) await sequelize.query('DELETE FROM customer_import_batches WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
+      const [rv] = await sequelize.query("SELECT to_regclass('public.reviews') AS reviews", { transaction });
+      if (rv[0].reviews) await sequelize.query('DELETE FROM reviews WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       for (const Model of [PushSubscription, RestaurantOrder, Coupon, Lead, Product]) await Model.destroy(options);
       await Category.destroy(options);
       await User.destroy({ where: { role: 'staff', staffBusinessId: store.id }, transaction });
