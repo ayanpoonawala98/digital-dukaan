@@ -1657,3 +1657,11 @@ label.perm-check{display:flex!important;flex-direction:row!important;align-items
 label.perm-check input[type=checkbox]{width:18px;height:18px;min-width:18px;margin:0;flex:none}
 .perm-checks{gap:2px}
 .perm-presets,.staff-presets{display:flex;flex-wrap:wrap;gap:8px}
+
+/* Mobile storefront: menu starts above the fold; bell small, bottom-right, clear of cards */
+@media(max-width:600px){
+  .store-banner{padding:28px 0 24px}
+  .store-banner h1{font-size:clamp(28px,8vw,36px)}
+  .store-banner p{font-size:15px;margin-bottom:10px}
+  .notify-fab{left:auto;right:14px;bottom:16px;width:44px;height:44px;opacity:.95}
+}
