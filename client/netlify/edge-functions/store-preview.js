@@ -41,9 +41,9 @@ export function productSchema(business, product, slug) {
   return [node, crumbs];
 }
 // Replace only metadata/schema, never app scripts, styles, fonts or the app root.
-export function pageHtml(html, { title, description, canonical, image, imageAlt, type = 'website', robots = '', schema = [], noscript = '' }) {
+export function pageHtml(html, { title, siteName = '', description, canonical, image, imageAlt, type = 'website', robots = '', schema = [], noscript = '' }) {
   const e = escapeHtml;
-  const tags = `<title>${e(title)}</title><meta name="description" content="${e(description)}"/><meta property="og:type" content="${e(type)}"/><meta property="og:site_name" content="${e(title.split(' - ').pop())}"/><meta property="og:title" content="${e(title)}"/><meta property="og:description" content="${e(description)}"/><meta property="og:url" content="${e(canonical)}"/>${image ? `<meta property="og:image" content="${e(image)}"/><meta property="og:image:alt" content="${e(imageAlt || title)}"/>` : ''}<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}"/><meta name="twitter:title" content="${e(title)}"/><meta name="twitter:description" content="${e(description)}"/>${image ? `<meta name="twitter:image" content="${e(image)}"/>` : ''}<link rel="canonical" href="${e(canonical)}"/>${robots ? `<meta name="robots" content="${e(robots)}"/>` : ''}${schema.map(n => `<script type="application/ld+json">${jsonLdText(n)}</script>`).join('')}`;
+  const tags = `<title>${e(title)}</title><meta name="description" content="${e(description)}"/><meta property="og:type" content="${e(type)}"/><meta property="og:site_name" content="${e(siteName || title)}"/><meta property="og:title" content="${e(title)}"/><meta property="og:description" content="${e(description)}"/><meta property="og:url" content="${e(canonical)}"/>${image ? `<meta property="og:image" content="${e(image)}"/><meta property="og:image:alt" content="${e(imageAlt || title)}"/>` : ''}<meta name="twitter:card" content="${image ? 'summary_large_image' : 'summary'}"/><meta name="twitter:title" content="${e(title)}"/><meta name="twitter:description" content="${e(description)}"/>${image ? `<meta name="twitter:image" content="${e(image)}"/>` : ''}<link rel="canonical" href="${e(canonical)}"/>${robots ? `<meta name="robots" content="${e(robots)}"/>` : ''}${schema.map(n => `<script type="application/ld+json">${jsonLdText(n)}</script>`).join('')}`;
   let out = html.replace(/<title\b[^>]*>[\s\S]*?<\/title>/gi, '')
     .replace(/<meta\b[^>]*(?:property\s*=\s*["']og:[^"']+["']|name\s*=\s*["'](?:twitter:[^"']+|description)["'])[^>]*>/gi, '')
     .replace(/<link\b[^>]*rel\s*=\s*["']canonical["'][^>]*>/gi, '')
@@ -58,13 +58,13 @@ export function storeHtml(html, business, slug, paused = false) {
   const description = paused ? `${name} is temporarily unavailable.` : clean(business.description || `Explore ${name}'s products and shop on WhatsApp.`, 300);
   const image = paused ? '' : shareImage(business.logoUrl, business.coverUrl);
   const e = escapeHtml;
-  return pageHtml(html, { title: name, description, canonical: `${ROOT}/store/${slug}`, image, imageAlt: `${name} logo`, robots: paused ? 'noindex' : '', schema: paused ? [] : [storeSchema(business, slug)], noscript: paused ? '' : `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to browse the menu and order on WhatsApp.</p></main>` });
+  return pageHtml(html, { title: name, siteName: name, description, canonical: `${ROOT}/store/${slug}`, image, imageAlt: `${name} logo`, robots: paused ? 'noindex' : '', schema: paused ? [] : [storeSchema(business, slug)], noscript: paused ? '' : `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to browse the menu and order on WhatsApp.</p></main>` });
 }
 export function productHtml(html, business, product, slug) {
   const shop = clean(business.name, 200), name = clean(product.name, 200), e = escapeHtml;
   const description = clean(product.description || `${name} from ${shop}. Order on WhatsApp.`, 300);
   const image = shareImage(product.imageUrl, ...(Array.isArray(product.imageUrls) ? product.imageUrls : []), business.logoUrl, business.coverUrl);
-  return pageHtml(html, { title: `${name} - ${shop}`, description, canonical: `${ROOT}/store/${slug}/product/${product.id}`, image, imageAlt: name, type: 'product', schema: productSchema(business, product, slug), noscript: `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to order on WhatsApp.</p></main>` });
+  return pageHtml(html, { title: `${name} - ${shop}`, siteName: shop, description, canonical: `${ROOT}/store/${slug}/product/${product.id}`, image, imageAlt: name, type: 'product', schema: productSchema(business, product, slug), noscript: `<main><h1>${e(name)}</h1><p>${e(description)}</p><p>Enable JavaScript to order on WhatsApp.</p></main>` });
 }
 export default async function handler(request, context) {
   const url = new URL(request.url);

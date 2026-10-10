@@ -33,7 +33,7 @@ export function CustomerDetail({ token, storeId, id, staffMode, onClose, onChang
   const wa = `https://wa.me/${c.phone}`;
   const Btn = ({ ch, label }) => <button type="button" className="btn btn-outline" disabled={!channels[ch].enabled || (ch !== 'push' && staffMode)} title={channels[ch].reason} onClick={() => setOpen(open === ch ? '' : ch)}>{label}</button>;
   return <div className="dashboard-panel customer-detail">
-    <button className="btn btn-outline" onClick={onClose}>Back to customers</button>
+    <button className="btn btn-outline" style={{ marginBottom: 14 }} onClick={onClose}>Back to customers</button>
     <h3>{c.name || 'Unnamed customer'}</h3>
     <p>{c.phone}{c.email ? ` - ${c.email}` : ''}</p>
     <p className="muted">{c.orderCount} order(s), {money(c.totalSpent)} total, last order {when(c.lastOrderAt)}. Added from: {c.source}.</p>
