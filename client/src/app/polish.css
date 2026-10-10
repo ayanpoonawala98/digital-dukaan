@@ -22,7 +22,8 @@
 .icon-btn > svg { flex-shrink: 0; }
 .admin-content .inline-form { gap: var(--space-3); align-items: flex-end; }
 .admin-content .inline-form > .btn { min-height: 46px; }
-.admin-content .form-row { align-items: end; }
+.admin-content .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3); align-items: end; }
+.admin-content .form-row:has(> .btn) { grid-template-columns: minmax(0, 1fr) auto; }
 .admin-content .form-row > label { min-width: 0; }
 .admin-content .form-row > .btn { min-height: 46px; align-self: end; }
 .admin-content .page-title-actions { flex-wrap: wrap; align-items: center; }
@@ -108,6 +109,8 @@
 .tv .tv-cfg { margin-left: 0; }
 
 @media (max-width: 640px) {
+  .admin-content .form-row,
+  .admin-content .form-row:has(> .btn) { grid-template-columns: minmax(0, 1fr); }
   .admin-content .inline-form > label { flex-basis: 100%; min-width: 0; }
   .admin-content .inline-form > .btn { width: 100%; }
   .admin-content .page-title-actions { width: 100%; gap: var(--space-2); }
@@ -160,4 +163,8 @@
   .admin-layout .modal .form-row:has(> .btn) { grid-template-columns: minmax(0, 1fr); }
   .admin-layout .modal .form-row > .btn { width: 100%; }
   .customers-panel .table-wrap { padding-bottom: var(--space-2); }
+}
+
+@media (min-width: 1000px) {
+  .tv .tv-cta .btn { flex-basis: 100%; }
 }
