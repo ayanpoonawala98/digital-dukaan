@@ -17,7 +17,16 @@ function StatusSteps({ kind, storeType, status, orderType }) {
 }
 
 function OrderBody({ order }) {
-  return <>{order.items.map((item, i) => <div className="cart-row" key={i}><strong>{item.qty} × {item.name}{(item.variant || item.addons?.length) ? <small className="muted"> {[item.variant && `(${item.variant})`, ...(item.addons || []).map(a => `+ ${a.name}`)].filter(Boolean).join(' ')}</small> : null}{item.note ? <small className="muted"> · Note: {item.note}</small> : null}</strong><span>{inr(Number(item.price) * item.qty)}</span></div>)}<div className="drawer-totals">{Number(order.discount) > 0 && <div><span>Discount</span><b>-{inr(order.discount)}</b></div>}<div className="grand"><span>Total</span><b>{inr(order.total)}</b></div></div></>;
+  return <>
+    <div className="track-items">{order.items.map((item, i) => {
+      const opts = [item.variant && `(${item.variant})`, ...(Array.isArray(item.addons) ? item.addons : []).map(a => `+ ${a.name}`)].filter(Boolean).join(' ');
+      return <div className="track-item" key={i}>
+        <div className="track-item-main"><strong>{item.qty} × {item.name}</strong><span className="track-item-price">{inr(Number(item.price) * item.qty)}</span></div>
+        {opts && <small className="track-item-opts">{opts}</small>}
+        {item.note && <small className="track-item-note">Note: {item.note}</small>}
+      </div>;
+    })}</div>
+    <div className="drawer-totals">{Number(order.discount) > 0 && <div><span>Discount</span><b>-{inr(order.discount)}</b></div>}<div className="grand"><span>Total</span><b>{inr(order.total)}</b></div></div></>;
 }
 
 // Registers every saved order of this browser under its push subscription (the customer's identity).

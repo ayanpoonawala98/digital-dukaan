@@ -1399,3 +1399,12 @@ footer { background:#101d15; }
 .item-sheet .opt-note{display:grid}
 .item-sheet fieldset{min-width:0}
 .item-sheet-foot .qty-stepper{display:flex;align-items:center;gap:10px}
+
+/* Order tracking items: clear rows, name left, price right, options below */
+.track-items{display:flex;flex-direction:column;gap:12px;margin:16px 0}
+.track-item{display:flex;flex-direction:column;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:var(--r-md);padding:14px 16px}
+.track-item-main{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.track-item-main strong{flex:1;min-width:0;line-height:1.35;overflow-wrap:anywhere}
+.track-item-price{flex:none;font-weight:600;white-space:nowrap}
+.track-item-opts,.track-item-note{display:block;color:var(--muted);line-height:1.4;overflow-wrap:anywhere}
+.track-item-note{background:#fff6d6;color:#6b4e00;border-radius:8px;padding:6px 10px;width:fit-content;max-width:100%}
