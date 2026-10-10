@@ -10,4 +10,4 @@ export function TagChips({ tags }) {
   const list = (tags || []).filter(t => TAGS[t]);
   return list.length ? <span className="tag-row">{list.map(t => <em key={t} className={`menu-tag ${TAGS[t][1]}`}>{TAGS[t][0]}</em>)}</span> : null;
 }
-export const lineText = item => [item.variant && `(${item.variant})`, ...(item.addons || item.addonList || []).filter(a => a && a.name).map(a => `+ ${a.name}`)].filter(Boolean).join(' ');
+export const lineText = item => [item.variant && `(${item.variant})`, ...[].concat(Array.isArray(item.addons) ? item.addons : (item.addonList || [])).filter(a => a && a.name).map(a => `+ ${a.name}`)].filter(Boolean).join(' ');
