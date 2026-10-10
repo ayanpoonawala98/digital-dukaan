@@ -5,12 +5,14 @@ import rateLimit from 'express-rate-limit';
 const skip = () => process.env.DISABLE_ABUSE_LIMITS === '1'; // tests place many orders from one address
 const base = { skip, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false } };
 const make = (windowMs, limit, key, error) => rateLimit({ ...base, windowMs, limit, keyGenerator: key, message: { error } });
-const ip = req => `ip:${req.ip}`;
+// The API sits behind Cloudflare, so req.ip is a rotating edge address; the visitor address is in cf-connecting-ip.
+const clientIp = req => String(req.headers['cf-connecting-ip'] || req.ip || '').trim();
+const ip = req => `ip:${clientIp(req)}`;
 const slug = req => `store:${req.params.slug}`;
 const phone = req => {
   const raw = req.body?.customerPhone ?? req.body?.phone;
   const digits = typeof raw === 'string' ? raw.replace(/\D/g, '').slice(-10) : '';
-  return digits ? `ph:${req.params.slug}:${digits}` : `ip:${req.ip}`;
+  return digits ? `ph:${req.params.slug}:${digits}` : `ip:${clientIp(req)}`;
 };
 const busy = 'This shop is receiving a lot of orders right now. Please try again in a few minutes.';
 const slow = 'Too many requests. Please wait a bit and try again.';
