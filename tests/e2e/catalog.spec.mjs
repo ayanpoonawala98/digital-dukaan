@@ -1,0 +1,26 @@
+import {test,expect} from '@playwright/test';
+for(const width of [390,1280])test(`retail ${width}px: search, stock guard, favorites lifecycle (browser-local only)`,async({page},info)=>{
+ await page.setViewportSize({width,height:844});
+ await page.goto('/store/qa-test-store-20261001');
+ await page.getByRole('combobox',{name:'Storefront language',exact:true}).selectOption('en');
+ const search=page.getByRole('textbox',{name:'Search products...',exact:true});
+ await search.fill('QA Import Item C');
+ const cards=page.locator('main article');
+ await expect(cards).toHaveCount(1);await expect(cards).toContainText('Out of stock');
+ await expect(cards.getByRole('button',{name:/Add .* to cart/})).toHaveCount(0);
+ await cards.getByRole('button',{name:'Save to favorites',exact:true}).click();
+ await page.getByRole('button',{name:/Favorites/}).click();
+ const favorites=page.getByRole('complementary').filter({has:page.getByRole('heading',{name:'Saved favorites',exact:true})});
+ await expect(favorites).toContainText('QA Import Item C - do not buy');
+ await favorites.getByRole('button',{name:'Remove from favorites',exact:true}).click();
+ await expect(favorites).toHaveCount(0);
+ await page.getByRole('button',{name:/Favorites/}).click();
+ await expect(favorites).toContainText('No favorites yet');
+ await favorites.getByRole('button',{name:'Close wishlist',exact:true}).click();
+ await cards.getByRole('link',{name:'QA Import Item C - do not buy',exact:true}).click();
+ await expect(page).toHaveURL(/\/product\/54$/);
+ await expect(page.locator('main')).toContainText('Out of stock');
+ await expect(page.locator('main').getByRole('button',{name:/Add .* to cart/})).toHaveCount(0);
+ const path=info.outputPath(`stock-${width}.png`);await page.screenshot({path,fullPage:true,animations:'disabled'});await info.attach('stock guard',{path,contentType:'image/png'});
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+});
