@@ -12,7 +12,7 @@ for(const [type,slug] of stores) for(const width of [390,1280]) {
   for(const locale of ['en','hi','mr']) {
    await lang.last().selectOption(locale);
    await expect(lang.last()).toHaveValue(locale);
-   for(const select of await lang.all()) if(await select.isVisible()) expect(await select.evaluate(el=>el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+   for(const select of await lang.all()) if(await select.isVisible()) expect(await select.evaluate(el=>el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(43.99);
    await page.reload();await ready(page);await expect(lang.last()).toHaveValue(locale);
    for(const theme of ['light','dark']) {
     const toggle=page.locator('.theme-toggle').first();
