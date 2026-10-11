@@ -25,7 +25,13 @@ export const billShareUrl = (webBase, kind, id) => {
 };
 export function billModel(order, kind = 'lead') {
   const source = Array.isArray(order.items) && order.items.length ? order.items : [{ name: order.productName, qty: 1, price: order.price }];
-  const items = source.map(it => ({ name: String(it.name || 'Item') + (Array.isArray(it.answers) && it.answers.length ? '\n' + it.answers.filter(a=>a?.label && a?.value).map(a=>`${a.label}: ${a.value}`).join(' · ') : ''), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }));
+  // Display only: the line's variant (Half/Full), add-ons and note are printed under the name. Prices are untouched.
+  const detail = it => [
+    ...(Array.isArray(it.answers) && it.answers.length ? [it.answers.filter(a=>a?.label && a?.value).map(a=>`${a.label}: ${a.value}`).join(' · ')] : []),
+    ...(Array.isArray(it.addons) && it.addons.length ? [it.addons.filter(a=>a?.name).map(a=>a.group ? `${a.group}: ${a.name}` : a.name).join(' · ')] : []),
+    ...(it.note ? [`Note: ${String(it.note).replace(/\s+/g, ' ').trim().slice(0, 120)}`] : [])
+  ].filter(Boolean);
+  const items = source.map(it => ({ name: String(it.name || 'Item') + (it.variant ? ` (${String(it.variant).slice(0, 40)})` : '') + (detail(it).length ? '\n' + detail(it).join('\n') : ''), qty: Number(it.qty) || 1, price: Number(it.price) || 0 }));
   const subtotal = items.reduce((sum, it) => sum + it.qty * it.price, 0);
   const total = Number(kind === 'restaurant' ? order.total : order.price) || 0;
   const discount = Math.max(0, Number(order.discount) || 0);

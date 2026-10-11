@@ -10,3 +10,10 @@ test('negative adjustment stays visible instead of hiding mismatch',()=>{assert.
 test('bill, estimate, restaurant and paid PDFs render',async()=>{for(const [o,k,p] of [[order,'lead',{}],[order,'lead',{estimate:true}],[{...order,total:300},'restaurant',{}],[{...order,paymentStatus:'paid'},'lead',{}]])assert.equal((await bytes(o,k,p)).subarray(0,4).toString(),'%PDF');});
 test('40 long item names and multi-page footers render safely',async()=>{const pdf=await bytes({...order,items:Array.from({length:40},(_,i)=>({name:`Item ${i+1}: `+'A longer full product description '.repeat(5),qty:2,price:150})),price:12000});assert.ok(pdf.length>10000);});
 test('signed bill rejects wrong order and altered signature',()=>{process.env.INVOICE_LINK_SECRET='qa-only-bill-signing-secret';const sig=invoiceSig('lead',88);assert.ok(invoiceSigValid('lead',88,sig));assert.ok(!invoiceSigValid('lead',89,sig));assert.ok(!invoiceSigValid('lead',88,'bad'));});
+
+test('bill lines print variant, add-ons and note without changing money', async () => {
+  const { billModel } = await import('./invoice.js');
+  const m = billModel({ items: [{ name: 'Biryani', variant: 'Half', qty: 2, price: 100, addons: [{ group: 'Extra', name: 'Raita' }], note: 'no onion' }], total: 200 }, 'restaurant');
+  assert.equal(m.items[0].name, 'Biryani (Half)\nExtra: Raita\nNote: no onion');
+  assert.equal(m.subtotal, 200); assert.equal(m.total, 200);
+});
