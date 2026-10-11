@@ -136,7 +136,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
       <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={st(data.order.orderType)}/>
       {kind === 'restaurant' && <p>{st(data.order.orderType)}{data.order.tableNumber ? st(" · Table {v0}", {v0:data.order.tableNumber}) : ''}</p>}
       <OrderBody order={data.order}/>
-      {token && flow.done.includes(data.order.status) && <OrderReviews slug={slug} kind={kind} id={id} token={token}/>}
+      {token && data.scope !== 'history' && flow.done.includes(data.order.status) && <OrderReviews slug={slug} kind={kind} id={id} token={token}/>}
       <PushControl slug={slug} orders={token ? [...saved, ...loadSavedOrders(slug).filter(o => !(o.kind === kind && o.id === Number(id)))] : []}/>
       <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString(storeLocale()) : '-'} {st("· updates automatically while open")}</small></p>
       <div className="tracking-actions"><button className="btn btn-outline btn-small" onClick={load}>{st("Refresh")}</button><button className="btn btn-outline btn-small" onClick={copy}>{copied ? st("Copied") : st("Copy tracking link")}</button><Link className="btn btn-outline btn-small" to={`/store/${slug}/orders`}>{st("My orders")}</Link><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Back to store")}</Link></div>

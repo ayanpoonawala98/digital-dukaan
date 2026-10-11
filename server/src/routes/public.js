@@ -180,7 +180,7 @@ const verifyTracking = (token, id, kind) => {
 };
 const bearer = req => req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
 const trackingPath = (slug, kind, id, token) => `/store/${slug}/order/${kind === 'lead' ? 'lead/' : ''}${id}#token=${token}`;
-// No customer PII is returned from any tracking read.
+// Order-time tracking links return the full item lines the customer placed. History-scoped links (phone history) return a whitelisted view only.
 // Phone-history reads (verified session, any device) never include customer-written text: per-item notes and answers can hold names, phones or addresses.
 const safeItem = i => ({ name: i?.name, qty: i?.qty, price: i?.price, ...(i?.variant ? { variant: i.variant } : {}), ...(Array.isArray(i?.addons) && i.addons.length ? { addons: i.addons.map(a => ({ group: a?.group, name: a?.name, price: a?.price })) } : {}) });
 const serializePhoneHistory = (kind, o) => { const full = serializeOrder(kind, o); return { ...full, items: (Array.isArray(full.items) ? full.items : []).map(safeItem) }; };
@@ -216,7 +216,7 @@ for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
     const business = await trackedBusiness(req.params.slug, cfg, access);
     const order = await cfg.model().findOne({ where: { id, businessId: business.id } });
     if (!order) throw bad(404, 'Order not found');
-    res.json({ order: (access.scope === 'history' ? serializePhoneHistory : serializeOrder)(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
+    res.json({ scope: access.scope || null, order: (access.scope === 'history' ? serializePhoneHistory : serializeOrder)(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
   }));
   r.get(`/stores/:slug/${segment}/:id/push-subscription`, wrap(async (req, res) => {
     res.set('Cache-Control', 'no-store');

@@ -37,6 +37,12 @@ test('My orders for a verified session lists only orders with that exact verifie
     const tok = decodeURIComponent(rest.path.split('#token=')[1]); assert.equal(jwt.decode(tok).scope, 'history');
     const tr = await (await fetch(`${base}/diner/restaurant-orders/31`, { headers: { authorization: `Bearer ${tok}` } })).json();
     assert.ok(!/Ravi|9111111111|ring bell|Flat 9|secret/i.test(JSON.stringify(tr)), 'the tracking link granted by phone history is scoped the same way'); assert.equal(tr.order.items[0].name, 'Paneer');
+    // a history token can neither read nor write reviews, and the tracking read says so
+    assert.equal(tr.scope, 'history');
+    for (const [method, body] of [['GET'], ['POST', JSON.stringify({ rating: 5, comment: 'x' })]]) {
+      const rr = await fetch(`${base}/diner/restaurant-orders/31/reviews`, { method, headers: { authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' }, body });
+      assert.equal(rr.status, 403, `${method} reviews denied for a history token`);
+    }
     // a stale push capability for the same order is replaced by fresh history access
     OrderPushSubscription.findAll = async () => [{ orderType: 'lead', orderId: 1, returnPath: '/store/shop/order/lead/1#token=STALE' }];
     const stale = await (await fetch(`${base}/shop/my-orders`, { method: 'POST', headers: { 'Content-Type': 'application/json', cookie: COOKIE }, body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/e1' }) })).json();

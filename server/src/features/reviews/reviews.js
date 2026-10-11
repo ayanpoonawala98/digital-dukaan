@@ -51,6 +51,8 @@ function verify(token, id, kind) {
   let a;
   try { a = jwt.verify(token || '', process.env.JWT_SECRET, { audience: 'restaurant-tracking', issuer: 'digital-dukaan', algorithms: ['HS256'] }); } catch { throw bad(404, 'Order tracking link is invalid or expired'); }
   if (!id || a.orderId !== id || (a.kind || 'restaurant') !== kind) throw bad(404, 'Order tracking link is invalid or expired');
+  // A history-scoped link (phone history on any device) shows status and items only: no review text, no posting or editing as the reviewer.
+  if (a.scope === 'history') throw bad(403, 'Reviews are not available on this link. Open the tracking link from your order confirmation.');
   return a;
 }
 async function trackedOrder(req) {
