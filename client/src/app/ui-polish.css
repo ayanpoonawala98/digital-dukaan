@@ -229,3 +229,13 @@ button[aria-label^="How to connect"][style]::before { content: ""; position: abs
 
 /* Sales: chart axis, hour axis and small notes were faded by opacity to ~2:1; keep them readable */
 .sd .sd-hour-axis, .sd .sd-axis, .sd .sd-donut-l, .sd .sd-delta span, .sd .sd-kpi small, .sd .sd-people span, .sd .sd-legend { opacity: .85; }
+
+/* Round 5 */
+.admin-content td > .table-button { vertical-align: top; margin-block: 4px; }
+.sd .rank-pill { color: #4338ca; }
+[data-theme="dark"] .sd .rank-pill { color: #969dff; }
+.shop-root .menu-card-title h3 a { display: inline-flex; align-items: center; min-height: var(--ui-tap); box-sizing: border-box; padding: 14px 0; margin-block: -14px; }
+.admin-content .remove-store-panel label { display: block; }
+.admin-content .remove-store-panel label strong { display: inline; }
+.shop-root .catalog-tools { margin-top: 12px; }
+.admin-content .remove-store-panel label input { display: block; margin-top: 8px; width: 100%; max-width: 340px; }
