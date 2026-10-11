@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { api } from '../lib/api.js';
 import { normalizePhone } from '../lib/phone-verify.js';
 import { st } from '../lib/storefront-i18n.js';
-import PhoneVerify from './PhoneVerify.jsx';
+import PhoneVerify, { Spinner } from './PhoneVerify.jsx';
 
 // Phone verification at the moment of ordering. Browsing never prompts. gate.run() is called when the customer taps the order button:
 //  - verification off for this store (404)  -> onProceed() right away
@@ -11,15 +11,20 @@ import PhoneVerify from './PhoneVerify.jsx';
 //  - otherwise a modal opens (phone + "Verify with WhatsApp"), and onProceed() runs once verified.
 // onProceed is always read fresh, so it sees the phone the customer just verified. The server still enforces everything.
 export function useVerifyGate({ slug, phone, setPhone, onProceed, active = true, contextKey = '' }) {
-  const [open, setOpen] = useState(false), [checking, setChecking] = useState(false), [go, setGo] = useState(false), [err, setErr] = useState('');
+  const [open, setOpen] = useState(false), [checking, setChecking] = useState(false), [go, setGo] = useState(false), [busy, setBusy] = useState(false), [err, setErr] = useState('');
   const proceed = useRef(onProceed); proceed.current = onProceed;
   // One "intent" per tap. It is cancelled by a newer tap, by closing the modal, by the drawer closing, by a change of store or order
   // contents (contextKey), and by unmount. A cancelled intent can never open the modal or place an order.
   const gen = useRef(0), live = useRef(true);
-  const cancel = () => { gen.current++; setOpen(false); setGo(false); setChecking(false); };
+  const cancel = () => { gen.current++; setOpen(false); setGo(false); setBusy(false); setChecking(false); };
   useEffect(() => { live.current = true; return () => { live.current = false; gen.current++; }; }, []);
   useEffect(() => { cancel(); }, [slug, active, contextKey]);
-  useEffect(() => { if (go) { setGo(false); proceed.current?.(); } }, [go]);
+  useEffect(() => {
+    if (!go) return;
+    setGo(false); const g = gen.current;
+    // The modal stays up with a spinner while the order is being placed, so nothing looks stuck. It closes when the attempt ends.
+    Promise.resolve().then(() => proceed.current?.()).catch(() => {}).finally(() => { if (live.current && g === gen.current) { setBusy(false); setOpen(false); } });
+  }, [go]);
   const run = async () => {
     if (checking || !active) return;
     const g = ++gen.current, valid = () => live.current && g === gen.current;
@@ -35,16 +40,17 @@ export function useVerifyGate({ slug, phone, setPhone, onProceed, active = true,
       else setErr(e?.status === 403 && e.message ? e.message : st('Could not check phone verification.')); // 403 = this number is blocked here
     } finally { if (valid()) setChecking(false); }
   };
-  const onState = v => { if (v.verified && live.current) { setOpen(false); setGo(true); } };
+  const onState = v => { if (v.verified && live.current) { setBusy(true); setGo(true); } };
   const modal = <>
     {err && <small className="error-text" role="alert">{err}</small>}
-    {open && active && createPortal(<VerifyModal slug={slug} phone={phone} setPhone={setPhone} onState={onState} onClose={cancel}/>, document.body)}
+    {open && active && createPortal(<VerifyModal slug={slug} phone={phone} setPhone={setPhone} onState={onState} onClose={cancel} busy={busy}/>, document.body)}
   </>; // portal: the modal can sit inside a <form> without Enter submitting the order
   return { run, checking, modal };
 }
 
-function VerifyModal({ slug, phone, setPhone, onState, onClose }) {
-  useEffect(() => { const k = e => { if (e.key === 'Escape') onClose(); }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k); }, [onClose]);
+function VerifyModal({ slug, phone, setPhone, onState, onClose, busy }) {
+  useEffect(() => { const k = e => { if (e.key === 'Escape' && !busy) onClose(); }; document.addEventListener('keydown', k); return () => document.removeEventListener('keydown', k); }, [onClose, busy]);
+  if (busy) return <div className="modal-overlay" role="presentation"><div className="modal ds-busy" role="alertdialog" aria-modal="true" aria-busy="true" aria-label={st('Placing your order')}><p><Spinner/> ✓ {st('Phone verified. Placing your order...')}</p></div></div>;
   return <div className="modal-overlay" role="presentation" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <div className="modal" role="dialog" aria-modal="true" aria-label={st('Verify your phone to order')}>
       <h2>{st('Verify your phone to order')}</h2>

@@ -1,5 +1,21 @@
 // English source text is a presentation key. Never apply to customer values.
 export const storefrontMessages = {
+  "Starting...": {
+    "hi": "शुरू हो रहा है...",
+    "mr": "सुरू होत आहे..."
+  },
+  "Placing your order": {
+    "hi": "आपका ऑर्डर लगाया जा रहा है",
+    "mr": "तुमची ऑर्डर नोंदवली जात आहे"
+  },
+  "Phone verified. Placing your order...": {
+    "hi": "फ़ोन सत्यापित हुआ। आपका ऑर्डर लगाया जा रहा है...",
+    "mr": "फोन सत्यापित झाला. तुमची ऑर्डर नोंदवली जात आहे..."
+  },
+  "WhatsApp opened. Send the ready-made message, then come back here. Only send it if you started this yourself.": {
+    "hi": "WhatsApp खुल गया। तैयार मैसेज भेजें, फिर यहाँ वापस आएँ। इसे तभी भेजें जब आपने खुद शुरू किया हो।",
+    "mr": "WhatsApp उघडले. तयार मेसेज पाठवा, मग इथे परत या. तुम्ही स्वतः सुरू केले असेल तरच पाठवा."
+  },
   "Could not log out. Try again.": {
     "hi": "लॉग आउट नहीं हो सका। फिर कोशिश करें।",
     "mr": "लॉग आउट होऊ शकले नाही. पुन्हा प्रयत्न करा."

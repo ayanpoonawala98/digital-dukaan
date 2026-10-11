@@ -1867,3 +1867,10 @@ div.row-actions { display: flex; flex-wrap: wrap; gap: var(--gap-1); }
 /* WhatsApp verify QR: only worth showing where a phone can scan the screen (not on a phone itself). */
 .desktop-only { display: none; }
 @media (min-width: 700px) and (hover: hover) { .desktop-only { display: block; margin: 12px auto 0; } }
+
+/* Phone verification spinner */
+.ds-spin { display: inline-block; width: 1em; height: 1em; margin-right: .5em; vertical-align: -0.15em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: ds-spin .8s linear infinite; }
+.ds-wait, .ds-busy p { display: flex; align-items: center; flex-wrap: wrap; }
+.ds-busy { text-align: center; font-weight: 600; }
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ds-spin { animation-duration: 2.4s; } }
