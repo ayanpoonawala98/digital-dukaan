@@ -284,3 +284,35 @@ button[aria-label^="How to connect"][style]::before { content: ""; position: abs
 @media (max-width: 600px) { .install-admin .btn { width: 100%; justify-content: center; } .install-admin-guide { left: 0; right: 0; width: auto; } }
 /* "Download this tutorial" (owner demo library) and similar download text links: 44px target */
 a.text-link[download] { display: inline-flex; align-items: center; min-height: var(--ui-tap); }
+
+/* Round 10: Orders phone input and status select reach 44px */
+.orders-table .phone-input, .orders-table .status-select, .enquiry-table .phone-input, .enquiry-table .status-select { min-height: var(--ui-tap); box-sizing: border-box; }
+
+/* Customers on mobile: row becomes a card (same pattern as the Orders table) so Open / Edit / Remove need no sideways scroll */
+@media (max-width: 900px) {
+  .customers-panel > .table-wrap { overflow: visible; }
+  .customers-panel > .table-wrap table, .customers-panel > .table-wrap thead, .customers-panel > .table-wrap tbody,
+  .customers-panel > .table-wrap tr, .customers-panel > .table-wrap td { display: block; min-width: 0; width: 100%; }
+  .customers-panel > .table-wrap thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .customers-panel > .table-wrap tr { border: 1px solid var(--line); border-radius: 14px; padding: 6px 14px; margin: 0 0 12px; }
+  .customers-panel > .table-wrap td { display: flex; justify-content: space-between; align-items: center; gap: 14px; padding: 9px 0 !important; text-align: right; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
+  .customers-panel > .table-wrap td:last-child { border-bottom: 0; }
+  .customers-panel > .table-wrap td[data-label]::before { content: attr(data-label); flex: 0 0 auto; text-align: left; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; opacity: .65; }
+  .customers-panel > .table-wrap td .row-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
+@media (max-width: 900px) { .customers-panel > .table-wrap td:first-child:not(:last-child):not([data-label]) { justify-content: flex-start; } }
+
+/* Customers bulk-select checkboxes: the label is the 44px tap target, the box stays small */
+.customers-panel .cell-check { display: inline-flex; align-items: center; justify-content: center; min-width: var(--ui-tap); min-height: var(--ui-tap); margin: 0; cursor: pointer; }
+.customers-panel .cell-check input { margin: 0; }
+@media (max-width: 900px) { .customers-panel > .table-wrap td:first-child:not(:last-child):not([data-label]) .cell-check { justify-content: flex-start; margin-left: -12px; }
+  .customers-panel > .table-wrap td:first-child:not(:last-child):not([data-label]) { padding: 2px 0 !important; } }
+
+/* Retail Orders action row: one baseline, even 8px gaps, label spacing (round 10c) */
+.admin-content td.row-actions:has(> .pay-actions) { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: var(--ui-gap); white-space: normal; }
+.admin-content td.row-actions:has(> .pay-actions) > button, .admin-content td.row-actions:has(> .pay-actions) > .btn { margin: 0; }
+.admin-content td.row-actions:has(> .pay-actions) .pay-actions { display: contents; }
+.admin-content td.row-actions:has(> .pay-actions) .pay-actions > button { margin: 0; }
+.admin-content td.row-actions:has(> .pay-actions) > small { flex-basis: 100%; }
+.admin-content td.row-actions:has(> .pay-actions) { justify-content: flex-start; }
+.admin-content td.row-actions:has(> .pay-actions)[data-label]::before { flex: 0 0 100%; margin-bottom: 4px; }
