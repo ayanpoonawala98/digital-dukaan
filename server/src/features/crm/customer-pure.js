@@ -27,6 +27,16 @@ export function deviceLabel(userAgent) {
 }
 // Notification pictures: the shop logo is the small icon (square 192), the cover or a chosen ImageKit picture is the big image (1200x630).
 const ikResize = (value, tr) => { try { const u = new URL(value); if (u.protocol !== 'https:' || u.username || u.password) return ''; if (u.hostname === 'ik.imagekit.io' && !u.searchParams.has('tr')) u.search = `?tr=${tr}`; return u.href; } catch { return ''; } };
+// Push endpoints identify only the push service, not the person. Map the host to a plain browser family; the endpoint itself is never sent to the client.
+export function pushServiceLabel(endpoint) {
+  let host = '';
+  try { host = new URL(String(endpoint)).hostname.toLowerCase(); } catch { return 'Browser'; }
+  if (host === 'fcm.googleapis.com' || host.endsWith('.googleapis.com')) return 'Chrome / Android / Edge';
+  if (host.endsWith('push.apple.com')) return 'Safari / iPhone / Mac';
+  if (host.endsWith('push.services.mozilla.com')) return 'Firefox';
+  if (host.endsWith('notify.windows.com')) return 'Edge / Windows';
+  return 'Browser';
+}
 export const pushIcon = store => ikResize(store?.logoUrl, 'w-192,h-192,c-at_max,f-png') || '/icon-192.png';
 export function pushPicture(store, choice) {
   if (choice === 'none') return '';

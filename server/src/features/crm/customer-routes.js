@@ -1,10 +1,10 @@
 import { Router } from 'express';
 import { Op } from 'sequelize';
-import { sequelize, Lead, RestaurantOrder, PushSubscription } from '../../models/index.js';
+import { sequelize, Lead, RestaurantOrder, PushSubscription, OrderPushSubscription } from '../../models/index.js';
 import { bad, wrap } from '../../shared/utils/core.js';
 import { resolveDeps, providerStatus, sendEmail, sendSms } from '../notifications/notify.js';
 import { Customer, CustomerDevice, CustomerMessage, crmEnabled } from './crm.js';
-import { orderPhone, orderAmount, pushMessage, canPush, channelAvailability, sendToDevices } from './customer-pure.js';
+import { orderPhone, orderAmount, pushServiceLabel, pushMessage, canPush, channelAvailability, sendToDevices } from './customer-pure.js';
 import { sendWebPush, pushConfigured } from './customer-push-wired.js';
 
 // Reach-out and detail routes for the Customers section. Mounted under /owner/:storeId/customers, so every
@@ -41,6 +41,19 @@ customerRoutes.get('/channels', wrap(async (req, res) => {
   const reachable = await CustomerDevice.count({ where: { businessId: req.store.id, channel: 'push' }, include: [{ model: Customer, required: true, where: { archivedAt: null, optInStatus: { [Op.ne]: 'opted_out' } }, attributes: [] }] }).catch(() => 0);
   const subs = (await PushSubscription.findAll({ where: { businessId: req.store.id }, attributes: ['endpoint'], limit: 5000 }).catch(() => [])).filter(p => !allEndpoints.has(p.endpoint)).length;
   res.json({ pushDevices: reachable + subs, push: { configured: pushConfigured() }, email: { configured: p.email.configured, label: p.email.label }, sms: { configured: p.sms.configured, label: p.sms.label } });
+}));
+// Browsers that subscribed on the storefront without becoming a customer row: Notify-me (reached by Notify all) and per-order
+// update subscriptions (order updates only, never broadcasts). Customer-linked devices already show on their customer. No endpoint, key or contact detail is returned.
+customerRoutes.get('/subscribers', wrap(async (req, res) => {
+  const where = { businessId: req.store.id };
+  const linked = new Set((await CustomerDevice.findAll({ where, attributes: ['endpoint'], limit: 20000 })).map(d => d.endpoint));
+  const notify = await PushSubscription.findAll({ where, attributes: ['id', 'endpoint', 'createdAt'], order: [['createdAt', 'DESC']], limit: 500 });
+  const updates = await OrderPushSubscription.findAll({ where, attributes: ['id', 'endpoint', 'orderType', 'orderId', 'createdAt'], order: [['createdAt', 'DESC']], limit: 500 });
+  const seen = new Set(), subscribers = [];
+  for (const p of notify) { if (linked.has(p.endpoint) || seen.has(p.endpoint)) continue; seen.add(p.endpoint); subscribers.push({ key: `notify-${p.id}`, source: 'notify-me', browser: pushServiceLabel(p.endpoint), subscribedAt: p.createdAt }); }
+  for (const p of updates) { if (linked.has(p.endpoint) || seen.has(p.endpoint)) continue; seen.add(p.endpoint); subscribers.push({ key: `order-${p.id}`, source: 'order-updates', browser: pushServiceLabel(p.endpoint), subscribedAt: p.createdAt, orderType: p.orderType, orderId: p.orderId }); }
+  subscribers.sort((a, b) => new Date(b.subscribedAt) - new Date(a.subscribedAt));
+  res.json({ subscribers, notifyMe: subscribers.filter(s => s.source === 'notify-me').length, orderUpdates: subscribers.filter(s => s.source === 'order-updates').length });
 }));
 customerRoutes.get('/messages', wrap(async (req, res) => {
   res.json({ messages: await CustomerMessage.findAll({ where: { businessId: req.store.id }, order: [['id', 'DESC']], limit: 30 }) });

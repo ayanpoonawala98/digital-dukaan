@@ -5887,5 +5887,53 @@ export const ownerMessages = {
   "table": {
     "hi": "टेबल",
     "mr": "टेबल"
+  },
+  "Notify-only subscribers": {
+    "hi": "नोटिफ़ाई-ओनली सब्सक्राइबर",
+    "mr": "फक्त-सूचना सबस्क्राइबर"
+  },
+  "Browsers that subscribed on your storefront without ordering. No name, phone or email is stored for them. Notify all reaches Notify me browsers; order update browsers only get updates about their own order.": {
+    "hi": "ऑर्डर किए बिना आपके स्टोरफ्रंट पर सब्सक्राइब हुए ब्राउज़र। इनका नाम, फ़ोन या ईमेल सहेजा नहीं जाता। Notify all \"मुझे सूचित करें\" वाले ब्राउज़र तक पहुँचता है; ऑर्डर-अपडेट वाले ब्राउज़र को सिर्फ़ अपने ऑर्डर की जानकारी मिलती है।",
+    "mr": "ऑर्डर न करता आपल्या स्टोअरफ्रंटवर सबस्क्राइब झालेले ब्राउझर. यांचे नाव, फोन किंवा ईमेल साठवले जात नाही. Notify all \"मला कळवा\" वाल्या ब्राउझरपर्यंत पोहोचते; ऑर्डर-अपडेट ब्राउझरना फक्त स्वतःच्या ऑर्डरची माहिती मिळते."
+  },
+  "Could not load subscribers.": {
+    "hi": "सब्सक्राइबर लोड नहीं हो सके।",
+    "mr": "सबस्क्राइबर लोड करता आले नाहीत."
+  },
+  "No notify-only subscribers yet.": {
+    "hi": "अभी कोई नोटिफ़ाई-ओनली सब्सक्राइबर नहीं है।",
+    "mr": "अजून कोणतेही फक्त-सूचना सबस्क्राइबर नाहीत."
+  },
+  "Browser": {
+    "hi": "ब्राउज़र",
+    "mr": "ब्राउझर"
+  },
+  "Subscribed": {
+    "hi": "सब्सक्राइब किया",
+    "mr": "सबस्क्राइब केले"
+  },
+  "Notify me (storefront)": {
+    "hi": "मुझे सूचित करें (स्टोरफ्रंट)",
+    "mr": "मला कळवा (स्टोअरफ्रंट)"
+  },
+  "Order updates only": {
+    "hi": "सिर्फ़ ऑर्डर अपडेट",
+    "mr": "फक्त ऑर्डर अपडेट"
+  },
+  "Chrome / Android / Edge": {
+    "hi": "Chrome / Android / Edge",
+    "mr": "Chrome / Android / Edge"
+  },
+  "Safari / iPhone / Mac": {
+    "hi": "Safari / iPhone / Mac",
+    "mr": "Safari / iPhone / Mac"
+  },
+  "Firefox": {
+    "hi": "Firefox",
+    "mr": "Firefox"
+  },
+  "Edge / Windows": {
+    "hi": "Edge / Windows",
+    "mr": "Edge / Windows"
   }
 };

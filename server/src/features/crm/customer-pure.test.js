@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { orderPhone, cleanOrderEmail, orderAmount, deviceLabel, pushMessage, canPush, channelAvailability, sendToDevices } from './customer-pure.js';
+import { orderPhone, cleanOrderEmail, orderAmount, deviceLabel, pushServiceLabel, pushMessage, canPush, channelAvailability, sendToDevices } from './customer-pure.js';
 
 test('phones dedupe to one key whatever the format', () => {
   for (const v of ['98765 43210', '+91 98765-43210', '09876543210', '919876543210', '(91) 9876543210']) assert.equal(orderPhone(v), '919876543210');
@@ -49,4 +49,12 @@ test('sendToDevices counts results and reports dead browsers', async () => {
   const devices = [1, 2, 3, 4].map(i => ({ id: i, endpoint: `e${i}`, keys: {} }));
   const r = await sendToDevices(devices, 'p', async sub => { if (sub.endpoint === 'e2') throw { statusCode: 410 }; if (sub.endpoint === 'e3') throw { statusCode: 500 }; }, { chunk: 2 });
   assert.equal(r.sent, 2); assert.equal(r.failed, 2); assert.deepEqual(r.gone.map(d => d.id), [2]);
+});
+
+test('pushServiceLabel names the browser family from the endpoint host and tolerates junk', () => {
+  assert.equal(pushServiceLabel('https://fcm.googleapis.com/fcm/send/abc'), 'Chrome / Android / Edge');
+  assert.equal(pushServiceLabel('https://web.push.apple.com/xyz'), 'Safari / iPhone / Mac');
+  assert.equal(pushServiceLabel('https://updates.push.services.mozilla.com/wpush/v2/1'), 'Firefox');
+  assert.equal(pushServiceLabel('https://example.com/x'), 'Browser');
+  assert.equal(pushServiceLabel('not a url'), 'Browser');
 });

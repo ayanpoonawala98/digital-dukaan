@@ -54,6 +54,18 @@ export function CustomerDetail({ token, storeId, id, staffMode, onClose, onChang
   </div>;
 }
 
+export function NotifyOnlySubscribers({ token, storeId, refreshKey = 0 }) {
+  const [data, setData] = useState(null), [failed, setFailed] = useState(false);
+  useEffect(() => { setData(null); setFailed(false); api(`/owner/${storeId}/customers/subscribers`, { token, feedback: false }).then(setData).catch(() => setFailed(true)); }, [storeId, refreshKey]);
+  const rows = data?.subscribers || [];
+  return <section className="notify-only" aria-label={ot("Notify-only subscribers")}>
+    <h4>{ot("Notify-only subscribers")}{data ? ` (${rows.length})` : ''}</h4>
+    <p className="muted">{ot("Browsers that subscribed on your storefront without ordering. No name, phone or email is stored for them. Notify all reaches Notify me browsers; order update browsers only get updates about their own order.")}</p>
+    {failed && <p className="muted">{ot("Could not load subscribers.")}</p>}
+    {data && !rows.length && <p className="muted">{ot("No notify-only subscribers yet.")}</p>}
+    {rows.length > 0 && <div className="table-wrap"><table><thead><tr><th>{ot("Type")}</th><th>{ot("Browser")}</th><th>{ot("Subscribed")}</th><th>{ot("Order")}</th></tr></thead><tbody>{rows.map(r => <tr key={r.key}><td>{r.source === 'notify-me' ? ot("Notify me (storefront)") : ot("Order updates only")}</td><td>{ot(r.browser)}</td><td>{when(r.subscribedAt)}</td><td>{r.orderId ? `#${r.orderId}` : '-'}</td></tr>)}</tbody></table></div>}
+  </section>;
+}
 export function BroadcastPanel({ token, storeId, total, devices, onClose }) {
   const [channels, setChannels] = useState(null), [busy, setBusy] = useState(false), [error, setError] = useState(''), [notice, setNotice] = useState('');
   useEffect(() => { api(`/owner/${storeId}/customers/channels`, { token, feedback: false }).then(setChannels).catch(() => {}); }, [storeId]);
