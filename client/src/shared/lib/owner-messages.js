@@ -4608,9 +4608,9 @@ export const ownerMessages = {
     "hi": "सूचनाओं में अपना प्रदाता जोड़ें, फिर ईमेल और SMS ऑफ़र इस्तेमाल करें।",
     "mr": "सूचनांमध्ये स्वतःचा पुरवठादार जोडा, मग ईमेल आणि SMS ऑफर वापरा."
   },
-  "device(s) on this page's customers). Customers who opted out are skipped. Up to 5 broadcasts an hour. Free.": {
-    "hi": "इस पेज के ग्राहकों के डिवाइस)। सहमति वापस लेने वालों को छोड़ते हैं। घंटे में 5 तक प्रसारण। मुफ़्त।",
-    "mr": "या पृष्ठावरील ग्राहकांची उपकरणे). संमती मागे घेतलेल्यांना वगळतो. तासाला 5 पर्यंत प्रसारण. मोफत."
+  "device(s) subscribed to this store). Customers who opted out are skipped. Up to 5 broadcasts an hour. Free.": {
+    "hi": "इस स्टोर पर सब्सक्राइब किए डिवाइस)। सहमति वापस लेने वालों को छोड़ते हैं। घंटे में 5 तक प्रसारण। मुफ़्त।",
+    "mr": "या स्टोअरवर सबस्क्राइब केलेली उपकरणे). संमती मागे घेतलेल्यांना वगळतो. तासाला 5 पर्यंत प्रसारण. मोफत."
   },
   "digitalshop.website/near. Off by default and needs a saved location. Customers see your shop name, area, distance and whether you are open.": {
     "hi": " digitalshop.website/near पर। डिफ़ॉल्ट बंद है और सहेजा स्थान चाहिए। ग्राहक दुकान का नाम, इलाका, दूरी और खुलने की स्थिति देखेंगे।",
