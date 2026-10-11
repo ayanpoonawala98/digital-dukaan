@@ -7,7 +7,8 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "seed": "node src/seed.js",
-    "test": "node --test"
+    "test": "node --test",
+    "openapi": "node scripts/gen-openapi.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -26,6 +27,7 @@
     "sequelize": "^6.37.5",
     "sharp": "^0.35.5",
     "svg-to-pdfkit": "^0.1.8",
+    "swagger-ui-express": "^5.0.1",
     "web-push": "^3.6.7"
   }
 }

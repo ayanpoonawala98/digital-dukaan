@@ -19,11 +19,13 @@ import { purgeExpiredStore } from './shared/retention.js';
 import { whatsappWebhook } from './features/whatsapp/whatsapp-cloud.js';
 import { byoWebhook } from './features/whatsapp/whatsapp-byo.js';
 
+import { docsRouter } from './openapi/docs-router.js';
 import { originAllowed } from './features/domains/domain-service.js';
 import { tlsAskHandler } from './features/domains/domain-public.js';
 const app = express();
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
+app.use('/docs', docsRouter()); // read-only Swagger UI; mounted before the app-wide helmet because it needs its own relaxed CSP
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 const allowedOrigins = process.env.CLIENT_URL?.split(',').map(o => o.trim()) || ['http://localhost:5173'];
 // Global CORS: platform origins from CLIENT_URL only. A client's custom domain is allowed on /api/public only (below),
