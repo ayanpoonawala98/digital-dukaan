@@ -32,6 +32,7 @@ test.describe('QA owner regression (private storage state required)',()=>{
   await expect(page.locator('.admin-content .dashboard-panel, .admin-content form').first()).toBeVisible();
    await expect(page.locator('.load-skeleton, .admin-content .brand-loader')).toHaveCount(0);
   await expect(page.locator('.store-switcher')).toHaveValue('12');
+  await expect(page.locator('.store-switcher option:checked')).toHaveText(/qa/i);
   await page.getByRole('button',{name:'Add product',exact:true}).click();
   await page.getByRole('textbox',{name:'Product name',exact:true}).fill(name);
   await page.getByRole('spinbutton',{name:'Price (₹)',exact:true}).fill('101');
@@ -46,6 +47,7 @@ test.describe('QA owner regression (private storage state required)',()=>{
   }finally{
    if(await row.count()){
     await expect(page.locator('.store-switcher')).toHaveValue('12');
+    await expect(page.locator('.store-switcher option:checked')).toHaveText(/qa/i);
     await row.getByRole('button',{name:'Delete',exact:true}).click();
     await row.getByRole('button',{name:'Yes, delete',exact:true}).click();
     await expect(row).toHaveCount(0);
