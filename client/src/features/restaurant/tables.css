@@ -107,4 +107,4 @@
 .tv-order .tv-add + .tv-add { margin-left: 8px; }
 .tv-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; } .tv-acts .btn { margin: 0; }
 .tv-order .tv-acts .tv-add { display: inline-flex; width: auto; }
-.tv-receipt.tv-edit { background: var(--card); color: var(--ink); } .tv-receipt.tv-edit .tv-note { color: var(--ink-soft); } .tv-receipt.tv-edit hr { border-top-color: var(--line); }
+.tv-receipt.tv-new { background: var(--card); color: var(--ink); } .tv-receipt.tv-new .tv-note { color: var(--ink-soft); } .tv-receipt.tv-new hr { border-top-color: var(--line); }
