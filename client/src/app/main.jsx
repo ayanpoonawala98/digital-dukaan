@@ -5,6 +5,7 @@ import App from './App.jsx';
 import './styles.css';
 import './polish.css';
 import './ui-polish.css';
+import './brand.css';
 import { reloadForNewBuild } from '../shared/lib/chunk-reload.js';
 createRoot(document.getElementById('root')).render(<React.StrictMode><BrowserRouter><App/></BrowserRouter></React.StrictMode>);
 

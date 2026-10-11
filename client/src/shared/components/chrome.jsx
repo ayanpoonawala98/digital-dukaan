@@ -10,7 +10,8 @@ import { imageSrc } from '../lib/api.js';
 import { storePath } from '../../features/storefront/store-domain.js';
 
 export function Logo({ light = false }) {
-  return <Link className={`brand ${light ? 'brand-light' : ''}`} to="/"><span className="brand-mark"><Store size={22} strokeWidth={2.5}/></span><span>{'digital'}<span className="brand-accent">{'shop.'}</span></span></Link>;
+  // light = the surface behind the logo is always dark (sidebar, auth panel, footer): use the dark-surface artwork.
+  return <Link className={`brand brand-logo-link ${light ? 'brand-light brand-on-dark' : ''}`} to="/" aria-label="Digital Shop"><img className="brand-logo brand-logo-light" src="/brand/digital-shop-horizontal-light.svg" alt="" width="155" height="37"/><img className="brand-logo brand-logo-dark" src="/brand/digital-shop-horizontal-dark.svg" alt="" width="155" height="37"/></Link>;
 }
 
 export function Header({ shop, business }) {

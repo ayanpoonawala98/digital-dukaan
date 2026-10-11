@@ -1,0 +1,17 @@
+/* Digital Shop logo 1D (approved artwork keeps its own greens; do not recolour to the site accent) */
+.brand-logo-link { display: inline-flex; align-items: center; min-height: 44px; line-height: 0; }
+.brand-logo { height: 37px; width: auto; display: block; }
+.brand-logo-dark { display: none; }
+[data-theme="dark"] .brand-logo-light { display: none; }
+[data-theme="dark"] .brand-logo-dark { display: block; }
+/* Surfaces that are dark in both themes always use the dark-surface artwork */
+.brand-on-dark .brand-logo-light { display: none; }
+.brand-on-dark .brand-logo-dark { display: block; }
+@media (max-width: 760px) {
+  .brand-logo { height: 32px; }
+}
+
+/* The fixed notify bell must never sit over footer content: reserve its zone below the footer text (bell 52px + 22px offset, 44px + 16px on mobile) */
+body:has(.notify-fab) footer { padding-bottom: 96px; }
+@media (max-width: 760px) { body:has(.notify-fab) footer { padding-bottom: 84px; } }
+.footer-inner .creator-credit { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
