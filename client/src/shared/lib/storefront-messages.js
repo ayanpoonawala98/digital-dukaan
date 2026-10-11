@@ -20,9 +20,13 @@ export const storefrontMessages = {
     "hi": "सत्यापित नंबर, अंतिम अंक",
     "mr": "सत्यापित नंबर, शेवटचे अंक"
   },
-  "orders placed with this number at this store show here on any device.": {
-    "hi": "इस नंबर से इस दुकान में दिए गए सभी ऑर्डर किसी भी डिवाइस पर यहाँ दिखते हैं।",
-    "mr": "या नंबरने या दुकानात दिलेल्या सर्व ऑर्डर कोणत्याही डिव्हाइसवर इथे दिसतात."
+  "Your latest orders at this store with your verified number, on any device. Status updates appear here automatically.": {
+    "hi": "आपके सत्यापित नंबर से इस दुकान के आपके ताज़ा ऑर्डर, किसी भी डिवाइस पर। स्थिति अपने आप अपडेट होती है।",
+    "mr": "तुमच्या सत्यापित नंबरने या दुकानातील तुमच्या ताज्या ऑर्डर, कोणत्याही डिव्हाइसवर. स्थिती आपोआप अपडेट होते."
+  },
+  "Orders you place at this store with your verified number will show up here.": {
+    "hi": "आपके सत्यापित नंबर से इस दुकान में दिए गए ऑर्डर यहाँ दिखेंगे।",
+    "mr": "तुमच्या सत्यापित नंबरने या दुकानात दिलेल्या ऑर्डर इथे दिसतील."
   },
   "Could not log out. Try again.": {
     "hi": "लॉग आउट नहीं हो सका। फिर कोशिश करें।",

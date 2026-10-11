@@ -171,7 +171,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
 
 const TRACKING_KINDS = { 'restaurant-orders': { kind: 'restaurant', model: () => RestaurantOrder, allowed: b => b.storeType === 'restaurant' }, 'lead-orders': { kind: 'lead', model: () => Lead, allowed: b => b.storeType !== 'restaurant' } };
 const kindModel = kind => (kind === 'restaurant' ? RestaurantOrder : Lead);
-function signTracking(kind, orderId, businessId) { return jwt.sign({ orderId, businessId, kind }, process.env.JWT_SECRET, { audience: 'restaurant-tracking', issuer: 'digital-dukaan', expiresIn: '30d' }); }
+function signTracking(kind, orderId, businessId, scope) { return jwt.sign({ orderId, businessId, kind, ...(scope ? { scope } : {}) }, process.env.JWT_SECRET, { audience: 'restaurant-tracking', issuer: 'digital-dukaan', expiresIn: '30d' }); }
 const verifyTracking = (token, id, kind) => {
   let access;
   try { access = jwt.verify(token || '', process.env.JWT_SECRET, { audience: 'restaurant-tracking', issuer: 'digital-dukaan', algorithms: ['HS256'] }); } catch { throw bad(404, 'Order tracking link is invalid or expired'); }
@@ -181,6 +181,9 @@ const verifyTracking = (token, id, kind) => {
 const bearer = req => req.header('authorization')?.match(/^Bearer (.+)$/)?.[1];
 const trackingPath = (slug, kind, id, token) => `/store/${slug}/order/${kind === 'lead' ? 'lead/' : ''}${id}#token=${token}`;
 // No customer PII is returned from any tracking read.
+// Phone-history reads (verified session, any device) never include customer-written text: per-item notes and answers can hold names, phones or addresses.
+const safeItem = i => ({ name: i?.name, qty: i?.qty, price: i?.price, ...(i?.variant ? { variant: i.variant } : {}), ...(Array.isArray(i?.addons) && i.addons.length ? { addons: i.addons.map(a => ({ group: a?.group, name: a?.name, price: a?.price })) } : {}) });
+const serializePhoneHistory = (kind, o) => { const full = serializeOrder(kind, o); return { ...full, items: (Array.isArray(full.items) ? full.items : []).map(safeItem) }; };
 const serializeOrder = (kind, o) => kind === 'restaurant'
   ? { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, items: o.items, subtotal: o.subtotal, discount: o.discount, deliveryFee: o.deliveryFee, estimateMinutes: o.estimateMinutes, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
   : { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, items: Array.isArray(o.items) && o.items.length ? o.items.map(i => ({ name: i.name, qty: i.qty, price: i.price })) : [{ name: o.productName, qty: 1, price: o.price }], discount: o.discount, total: o.price, createdAt: o.createdAt };
@@ -213,7 +216,7 @@ for (const [segment, cfg] of Object.entries(TRACKING_KINDS)) {
     const business = await trackedBusiness(req.params.slug, cfg, access);
     const order = await cfg.model().findOne({ where: { id, businessId: business.id } });
     if (!order) throw bad(404, 'Order not found');
-    res.json({ order: serializeOrder(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
+    res.json({ order: (access.scope === 'history' ? serializePhoneHistory : serializeOrder)(kind, order), restaurant: { name: business.name, slug: business.slug }, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
   }));
   r.get(`/stores/:slug/${segment}/:id/push-subscription`, wrap(async (req, res) => {
     res.set('Cache-Control', 'no-store');
@@ -255,7 +258,7 @@ const myOrderRefs = (body, businessId) => {
     try { verifyTracking(item?.token, id, kind); } catch { continue; }
     const access = jwt.decode(item.token);
     if (access.businessId !== businessId) continue;
-    refs.set(`${kind}:${id}`, { kind, id, token: item.token });
+    refs.set(`${kind}:${id}`, { kind, id, token: item.token, phoneOnly: access.scope === 'history' });
   }
   return refs;
 };
@@ -270,20 +273,22 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
     const subs = await OrderPushSubscription.findAll({ where: { businessId: business.id, endpoint }, order: [['createdAt', 'DESC']], limit: 50 });
     for (const sub of subs) { const key = `${sub.orderType}:${sub.orderId}`; if (!refs.has(key)) refs.set(key, { kind: sub.orderType, id: sub.orderId }); paths.set(key, sub.returnPath); }
   }
-  // A verified session (WhatsApp, ds_id cookie) also lists every order placed with that verified phone at THIS store, on any browser.
-  // Same fields as the private tracking read: status and items, never address or other customer details.
+  // A verified session (WhatsApp, ds_id cookie) also lists the latest 50 orders at THIS store placed with that verified phone, on any browser.
+  // Their tracking links carry a "history" scope: status and menu items only, never customer-written notes/answers, address or phone.
   let verifiedPhone = '';
   if (enabledForSlug(business.slug)) {
     const a = await platformSession(req).catch(() => null);
-    const suffix = a && String(a.identity.phone).replace(/\D/g, '').slice(-10);
-    if (suffix && suffix.length === 10) {
-      verifiedPhone = a.identity.phone;
+    const phone = a && String(a.identity.phone).replace(/\D/g, '');
+    if (phone && /^[1-9]\d{7,14}$/.test(phone)) {
+      verifiedPhone = phone;
+      // Every stored spelling that normalizes to this number, matched in SQL BEFORE the limit so look-alikes can never crowd the real shopper out.
+      const spellings = [phone]; if (/^91[6-9]\d{9}$/.test(phone)) spellings.push(phone.slice(2), `0${phone.slice(2)}`);
       for (const kind of ['restaurant', 'lead']) {
-        const rows = await kindModel(kind).findAll({ where: { businessId: business.id, [Op.and]: [sqlWhere(fn('regexp_replace', col('customerPhone'), '\\D', '', 'g'), { [Op.like]: `%${suffix}` })] }, order: [['createdAt', 'DESC']], limit: 50 });
+        const rows = await kindModel(kind).findAll({ where: { businessId: business.id, [Op.and]: [sqlWhere(fn('regexp_replace', col('customerPhone'), '\\D', '', 'g'), { [Op.in]: spellings })] }, order: [['createdAt', 'DESC']], limit: 50 });
         for (const row of rows) {
-          if (orderPhone(row.customerPhone) !== a.identity.phone) continue; // exact normalized number, never just the last 10 digits
-          const key = `${kind}:${row.id}`;
-          if (!refs.has(key)) refs.set(key, { kind, id: row.id, token: signTracking(kind, row.id, business.id) });
+          if (orderPhone(row.customerPhone) !== phone) continue; // exact normalized number as a final guard
+          // Always a fresh, history-scoped access: it replaces any stale browser/push capability for the same order.
+          refs.set(`${kind}:${row.id}`, { kind, id: row.id, token: signTracking(kind, row.id, business.id, 'history'), phoneOnly: true });
         }
       }
     }
@@ -295,7 +300,7 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
     const rows = await kindModel(kind).findAll({ where: { businessId: business.id, id: { [Op.in]: ids } } });
     for (const row of rows) {
       const key = `${kind}:${row.id}`, ref = refs.get(key);
-      out.push({ ...serializeOrder(kind, row), path: ref?.token ? trackingPath(business.slug, kind, row.id, ref.token) : paths.get(key) || null });
+      out.push({ ...(ref?.phoneOnly ? serializePhoneHistory : serializeOrder)(kind, row), path: ref?.token ? trackingPath(business.slug, kind, row.id, ref.token) : paths.get(key) || null });
     }
   }
   out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
