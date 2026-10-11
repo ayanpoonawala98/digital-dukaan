@@ -27,7 +27,13 @@ for(const [type,slug] of stores) for(const width of [390,1280]) {
   const product=page.locator('main a[href*="/product/"]').first();
   if(await product.count()){
    await product.click();await expect(page).toHaveURL(/\/product\/\d+/);
-   await expect(page.locator('main')).toBeVisible();
+   await expect(page.locator('main h1')).toContainText('QA');
+   if(width===390){
+    await expect(page.locator('header.header select')).toBeVisible();
+    for(const control of await page.locator('header button,header select').all()){
+     if(await control.isVisible()){const b=await control.boundingBox();expect(b.x,'mobile product header control left edge').toBeGreaterThanOrEqual(0);expect(b.x+b.width,'mobile product header control right edge').toBeLessThanOrEqual(width);}
+    }
+   }
    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }else test.info().annotations.push({type:'coverage',description:'No product fixture: product-detail path not exercised'});
   expect(errors,'Uncaught browser errors').toEqual([]);
