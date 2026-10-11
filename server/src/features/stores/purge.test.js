@@ -25,18 +25,20 @@ test('purge endpoint rejects callers without the cron secret; restore deadline i
 test('purge does not touch database when domain removal fails', async () => {
   const { purgeExpiredStore } = await import('../../shared/retention.js');
   const { sequelize } = await import('../../models/index.js');
-  const priorFind = Business.findAll, priorTxn = sequelize.transaction, priorFetch = globalThis.fetch, priorToken = process.env.VERCEL_STORE_DOMAIN_TOKEN;
+  const priorFind = Business.findAll, priorTxn = sequelize.transaction, priorFetch = globalThis.fetch, priorToken = process.env.VERCEL_STORE_DOMAIN_TOKEN, priorReady = process.env.STORE_SUBDOMAINS_READY;
   let transactionCalled = false;
   Business.findAll = async () => [{ id: 72, slug: 'test-restaurant' }];
   sequelize.transaction = async () => { transactionCalled = true; };
   globalThis.fetch = async () => ({ ok: false, status: 503 });
   process.env.VERCEL_STORE_DOMAIN_TOKEN = 'test-token';
+  process.env.STORE_SUBDOMAINS_READY = 'true';
   try {
     await assert.rejects(purgeExpiredStore(), /domain removal failed \(503\)/);
     assert.equal(transactionCalled, false);
   } finally {
     Business.findAll = priorFind; sequelize.transaction = priorTxn; globalThis.fetch = priorFetch;
     if (priorToken === undefined) delete process.env.VERCEL_STORE_DOMAIN_TOKEN; else process.env.VERCEL_STORE_DOMAIN_TOKEN = priorToken;
+    if (priorReady === undefined) delete process.env.STORE_SUBDOMAINS_READY; else process.env.STORE_SUBDOMAINS_READY = priorReady;
   }
 });
 
@@ -44,13 +46,14 @@ test('purge does not touch database when domain removal fails', async () => {
 test('purge keeps an expired tombstone when database cleanup fails after domain detachment', async () => {
   const { purgeExpiredStore } = await import('../../shared/retention.js');
   const { sequelize } = await import('../../models/index.js');
-  const priorFind = Business.findAll, priorTxn = sequelize.transaction, priorFetch = globalThis.fetch, priorToken = process.env.VERCEL_STORE_DOMAIN_TOKEN;
+  const priorFind = Business.findAll, priorTxn = sequelize.transaction, priorFetch = globalThis.fetch, priorToken = process.env.VERCEL_STORE_DOMAIN_TOKEN, priorReady = process.env.STORE_SUBDOMAINS_READY;
   let detached = false;
   const store = { id: 72, slug: 'test-restaurant', deletedAt: new Date('2026-01-01') };
   Business.findAll = async () => [store];
   sequelize.transaction = async () => { throw Error('simulated DB rollback'); };
   globalThis.fetch = async () => { detached = true; return { ok: true, status: 204 }; };
   process.env.VERCEL_STORE_DOMAIN_TOKEN = 'test-token';
+  process.env.STORE_SUBDOMAINS_READY = 'true';
   try {
     await assert.rejects(purgeExpiredStore(), /simulated DB rollback/);
     assert.equal(detached, true);
@@ -58,5 +61,6 @@ test('purge keeps an expired tombstone when database cleanup fails after domain 
   } finally {
     Business.findAll = priorFind; sequelize.transaction = priorTxn; globalThis.fetch = priorFetch;
     if (priorToken === undefined) delete process.env.VERCEL_STORE_DOMAIN_TOKEN; else process.env.VERCEL_STORE_DOMAIN_TOKEN = priorToken;
+    if (priorReady === undefined) delete process.env.STORE_SUBDOMAINS_READY; else process.env.STORE_SUBDOMAINS_READY = priorReady;
   }
 });
