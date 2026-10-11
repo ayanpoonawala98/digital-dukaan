@@ -31,6 +31,7 @@ import { whatsappCloudOwnerRoutes } from '../features/whatsapp/whatsapp-cloud.js
 import { byoOwnerRoutes, sendOrderStatus as sendOrderStatusWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { recordCustomerOrder } from '../features/crm/customer-sync.js';
 import { reviewOwnerRoutes } from '../features/reviews/reviews.js';
+import { blockRoutes } from '../features/whatsapp/storefront-verify.js';
 import { customerRoutes } from '../features/crm/customer-routes.js';
 import { crmRoutes } from '../features/crm/crm.js';
 import webpush from 'web-push';
@@ -154,6 +155,7 @@ r.post('/:storeId/notifications/test', ownerOnly, wrap(async (req, res) => {
 r.use('/:storeId/whatsapp-byo', byoOwnerRoutes);
 r.use('/:storeId/whatsapp-cloud', whatsappCloudOwnerRoutes); // owner owns connect/manage; staff may read the inbox and send reviewed replies (allow-list above)
 r.use('/:storeId/campaigns',campaignOwnerRoutes);
+r.use('/:storeId/blocked-phones', blockRoutes(Router, ownerOnly));
 r.use('/:storeId/customers', customerRoutes, crmRoutes);
 r.use('/:storeId/reviews', reviewOwnerRoutes);
 

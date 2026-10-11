@@ -26,7 +26,7 @@ function fake(Model, name, uniqueKeys = []) {
 }
 function setup() {
   for (const k of Object.keys(tables)) delete tables[k];
-  fake(V.PlatformIdentity, 'identity'); fake(V.PlatformSession, 'session'); fake(V.StoreEnrollment, 'enroll'); fake(V.VerifyChallenge, 'challenge'); fake(Customer, 'customer');
+  fake(V.PlatformIdentity, 'identity'); fake(V.PlatformSession, 'session'); fake(V.StoreEnrollment, 'enroll'); fake(V.VerifyChallenge, 'challenge'); fake(Customer, 'customer'); fake(V.StoreBlock, 'block'); V.StoreBlock.destroy = async ({ where }) => { const t = tables.block; for (let i = t.length - 1; i >= 0; i--) if (matches(t[i], where)) t.splice(i, 1); };
   sequelize.query = async () => [[]];
   sequelize.transaction = async cb => { const snap = Object.fromEntries(Object.entries(tables).map(([k, v]) => [k, v.map(r => ({ ...r }))])); try { return await cb({}); } catch (e) { for (const k of Object.keys(snap)) { tables[k].splice(0, tables[k].length, ...snap[k]); } throw e; } };
   Object.assign(process.env, { STOREFRONT_VERIFY_WHATSAPP_ENABLED: 'true', STOREFRONT_VERIFY_WABA_ID: 'W1', WHATSAPP_PHONE_NUMBER_ID: 'P1', STOREFRONT_VERIFY_WA_NUMBER: '919326069692', CRM_ENABLED: 'true' });
@@ -202,4 +202,42 @@ test('blank or missing phone is never exempt when verification is on for the sto
   for (const v of ['', '   ', undefined, null]) await assert.rejects(V.requireVerifiedPhone({ headers: {} }, { id: 1, slug: 'store-1' }, v), e => e.code === 'PHONE_NOT_VERIFIED');
   process.env.STOREFRONT_VERIFY_STORE_SLUGS = 'other'; await V.requireVerifiedPhone({ headers: {} }, { id: 1, slug: 'store-1' }, ''); // excluded store: no-op
   delete process.env.STOREFRONT_VERIFY_STORE_SLUGS;
+});
+
+test('per-store block: blocked number cannot start, verify, or order on that store; other stores and numbers are unaffected', async () => {
+  setup(); noLimit(); V.VerifyChallenge.count = async () => 0;
+  await withApp(async base => {
+    const { cookie } = await verifiedCookie(base); // verified on store 1 and not yet blocked
+    tables.block.push({ id: 1, businessId: 1, phone: '919876543210' });
+    const req = { headers: { cookie } };
+    await assert.rejects(V.requireVerifiedPhone(req, { id: 1, slug: 'store-1' }, '9876543210'), e => e.status === 403 && e.code === 'PHONE_BLOCKED'); // live session no longer works here
+    await V.requireVerifiedPhone(req, { id: 2, slug: 'store-2' }, '9876543210'); // another store is unaffected
+    const start = await post(base, 'store-1', 'start', { phone: '9876543210', claimSecret: SECRET }); assert.equal(start.status, 403);
+    assert.equal((await post(base, 'store-2', 'start', { phone: '9876543210', claimSecret: SECRET })).status, 201);
+    assert.equal((await post(base, 'store-1', 'start', { phone: '9123456780', claimSecret: SECRET })).status, 201); // other number fine
+  });
+  // an in-flight challenge for a number blocked meanwhile is never verified or enrolled
+  setup(); tables.block.push({ id: 1, businessId: 1, phone: '919876543210' }); const t = seed();
+  assert.equal(await call(msg(t)), true); assert.equal(tables.identity.length, 0); assert.equal(tables.enroll.length, 0); assert.equal(tables.customer.length, 0);
+  process.env.DISABLE_ABUSE_LIMITS = '1';
+});
+test('block routes: owner-only writes, scoped to the store, idempotent, unblock works', async () => {
+  setup(); const { Router } = await import('express');
+  const ownerOnly = (req, res, next) => (req.user.role === 'owner' ? next() : res.status(403).json({ error: 'Only the store owner can do this' }));
+  const app = express(); app.use(express.json());
+  app.use('/o/:storeId', (req, res, next) => { req.store = { id: Number(req.params.storeId) }; req.user = { id: 1, role: req.headers['x-role'] || 'owner' }; next(); }, V.blockRoutes(Router, ownerOnly));
+  app.use((err, req, res, next) => res.status(err.status || 500).json({ error: err.message }));
+  const server = app.listen(0), b = `http://127.0.0.1:${server.address().port}/o`;
+  const j = (u, o = {}) => fetch(b + u, { ...o, headers: { 'content-type': 'application/json', ...(o.headers || {}) }, body: o.body && JSON.stringify(o.body) });
+  try {
+    assert.equal((await j('/1', { method: 'POST', body: { phone: '+91 98765 43210' } })).status, 201);
+    assert.equal((await j('/1', { method: 'POST', body: { phone: '9876543210' } })).status, 201); assert.equal(tables.block.length, 1);
+    assert.equal((await j('/1', { method: 'POST', body: { phone: 'abc' } })).status, 400);
+    assert.equal((await j('/1', { method: 'POST', body: { phone: '9876543211' }, headers: { 'x-role': 'staff' } })).status, 403);
+    assert.equal(tables.block[0].businessId, 1);
+    V.StoreBlock.findAll = async ({ where }) => tables.block.filter(r => matches(r, where)).map(r => ({ toJSON: () => r }));
+    assert.equal((await (await j('/2')).json()).blocked.length, 0); assert.equal((await (await j('/1')).json()).blocked.length, 1);
+    assert.equal((await j('/2/9876543210', { method: 'DELETE' })).status, 200); assert.equal(tables.block.length, 1); // other store cannot unblock it
+    assert.equal((await j('/1/9876543210', { method: 'DELETE' })).status, 200); assert.equal(tables.block.length, 0);
+  } finally { server.close(); }
 });

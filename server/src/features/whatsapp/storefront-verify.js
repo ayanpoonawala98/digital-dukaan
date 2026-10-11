@@ -51,6 +51,16 @@ export const StoreEnrollment = sequelize.define('StoreEnrollment', {
   identityId: { type: DataTypes.BIGINT, allowNull: false }
 }, { tableName: 'store_enrollments', indexes: [{ unique: true, fields: ['businessId', 'identityId'], name: 'store_enrollments_store_identity' }] });
 
+// A shop can block a phone number for itself only. Blocks are per store, never shared, and never copy any data between stores.
+export const StoreBlock = sequelize.define('StoreBlock', {
+  id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false },
+  phone: { type: DataTypes.STRING(15), allowNull: false },
+  blockedByUserId: { type: DataTypes.INTEGER }
+}, { tableName: 'store_blocks', indexes: [{ unique: true, fields: ['businessId', 'phone'] }] });
+export const isBlocked = async (businessId, phone) => Boolean(phone) && Boolean(await StoreBlock.findOne({ where: { businessId, phone }, attributes: ['id'] }));
+const BLOCKED_MSG = 'This phone number cannot be used to order from this shop.';
+
 export const VerifyChallenge = sequelize.define('StorefrontVerifyChallenge', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
   publicId: { type: DataTypes.STRING(40), allowNull: false, unique: true },
@@ -73,7 +83,7 @@ const COLS = 'ALTER TABLE storefront_verify_challenges ADD COLUMN IF NOT EXISTS 
 // Any failure leaves the module not ready and surfaces as an error, rather than serving with half a schema.
 export const ensureVerifySchema = () => (ready ||= (async () => {
   await sequelize.query('ALTER TABLE IF EXISTS storefront_verify_challenges ADD COLUMN IF NOT EXISTS "claimHash" VARCHAR(64), ADD COLUMN IF NOT EXISTS "identityId" BIGINT, ADD COLUMN IF NOT EXISTS "sessionId" BIGINT');
-  await Promise.all([PlatformIdentity.sync(), PlatformSession.sync(), StoreEnrollment.sync(), VerifyChallenge.sync()]);
+  await Promise.all([PlatformIdentity.sync(), PlatformSession.sync(), StoreEnrollment.sync(), VerifyChallenge.sync(), StoreBlock.sync()]);
   await sequelize.query(COLS);
 })().catch(e => { ready = null; throw e; }));
 
@@ -115,6 +125,8 @@ export async function handleVerifyMessage({ wabaId, phoneNumberId, message, now 
   const token = parseVerifyText(message.text.body);
   if (!token || !/^[1-9]\d{7,14}$/.test(sender) || !message.id || !Number.isFinite(at) || now - at > MAX_MESSAGE_AGE_MS || at > now + 60000) return true;
   // Consume, identity and challenge link commit together. A failed write rolls the consume back, so a redelivery can still succeed.
+  const pending = await VerifyChallenge.findOne({ where: { tokenHash: sha(token), phone: sender, consumedAt: null }, attributes: ['businessId'] });
+  if (pending && await isBlocked(pending.businessId, sender)) return true; // blocked here: never verified, never enrolled
   const done = await sequelize.transaction(async transaction => {
     const [count] = await VerifyChallenge.update(
       { consumedAt: new Date(now), messageId: String(message.id).slice(0, 255) },
@@ -151,6 +163,7 @@ export async function requireVerifiedPhone(req, business, rawPhone) {
   const phone = orderPhone(rawPhone);
   const auth = phone && await platformSession(req);
   if (!auth || auth.identity.phone !== phone) { const e = bad(403, 'Please verify your phone number with WhatsApp to place this order.'); e.code = 'PHONE_NOT_VERIFIED'; throw e; }
+  if (await isBlocked(business.id, auth.identity.phone)) { const e = bad(403, BLOCKED_MSG); e.code = 'PHONE_BLOCKED'; throw e; }
   await enrollInStore(business.id, auth.identity);
 }
 
@@ -166,6 +179,7 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
     const phone = orderPhone(req.body?.phone);
     if (!phone || !platformNumber()) throw bad(400, 'Enter a valid phone number with country code');
     await ensureVerifySchema();
+    if (await isBlocked(business.id, phone)) { const e = bad(403, BLOCKED_MSG); e.code = 'PHONE_BLOCKED'; throw e; }
     purgeExpiredVerify();
     const since = new Date(Date.now() - 15 * 60 * 1000);
     const [byDevice, byNumber, global] = await Promise.all([
@@ -234,4 +248,24 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
     clearCookie(res);
     res.json({ ok: true });
   }));
+}
+
+// Owner routes (mounted under /owner/:storeId/blocked-phones). Everything is scoped to req.store.id.
+export function blockRoutes(Router, ownerOnly) {
+  const r = Router();
+  r.get('/', async (req, res, next) => { try { await ensureVerifySchema(); res.json({ blocked: (await StoreBlock.findAll({ where: { businessId: req.store.id }, order: [['id', 'DESC']], limit: 500, attributes: ['id', 'phone', 'createdAt'] })).map(b => b.toJSON()) }); } catch (e) { next(e); } });
+  r.post('/', ownerOnly, async (req, res, next) => { try {
+    const phone = orderPhone(req.body?.phone); if (!phone) throw bad(400, 'Enter a valid phone number with country code');
+    await ensureVerifySchema();
+    const [row] = await StoreBlock.findOrCreate({ where: { businessId: req.store.id, phone }, defaults: { businessId: req.store.id, phone, blockedByUserId: req.user?.id ?? null } });
+    // Existing live sessions need no revoking: the order guard checks the block on every order.
+    res.status(201).json({ blocked: { id: row.id, phone: row.phone } });
+  } catch (e) { next(e); } });
+  r.delete('/:phone', ownerOnly, async (req, res, next) => { try {
+    const phone = orderPhone(req.params.phone); if (!phone) throw bad(400, 'Invalid phone number');
+    await ensureVerifySchema();
+    await StoreBlock.destroy({ where: { businessId: req.store.id, phone } });
+    res.json({ ok: true });
+  } catch (e) { next(e); } });
+  return r;
 }

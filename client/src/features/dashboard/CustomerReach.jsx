@@ -20,6 +20,7 @@ function Composer({ title, children, onSend, channel, limit = 180, busy }) {
     <button className="btn btn-green" disabled={busy || (!isPush && !form.confirmCosts)}>{busy ? ot("Sending...") : ot("Send")}</button></form>;
 }
 
+import { BlockToggle } from './BlockedPhones.jsx';
 export function CustomerDetail({ token, storeId, id, staffMode, onClose, onChanged }) {
   const [data, setData] = useState(null), [error, setError] = useState(''), [notice, setNotice] = useState(''), [busy, setBusy] = useState(false), [open, setOpen] = useState('');
   const base = `/owner/${storeId}/customers/${id}`;
@@ -38,6 +39,7 @@ export function CustomerDetail({ token, storeId, id, staffMode, onClose, onChang
     <button className="btn btn-outline" style={{ marginBottom: 14 }} onClick={onClose}>{ot("Back to customers")}</button>
     <h3>{c.name || ot("Unnamed customer")}</h3>
     <p>{c.phone}{c.email ? ` - ${c.email}` : ''}</p>
+    {!staffMode && <BlockToggle token={token} storeId={storeId} phone={c.phone}/>}
     <p className="muted">{c.orderCount} {ot("order(s),")} {money(c.totalSpent)} {ot("total, last order")} {when(c.lastOrderAt)}{ot(". Added from:")} {c.source}.</p>
     {error && <p className="notice error" role="alert">{ot(error)}</p>}{notice && <p className="notice" role="status">{notice}</p>}
     <div className="inline-form"><Btn ch="push" label={ot("Send notification ({v0})", {v0: devices.length})}/><Btn ch="email" label={ot("Send email")}/><Btn ch="sms" label={ot("Send SMS")}/><a className="btn btn-outline" href={wa} target="_blank" rel="noopener noreferrer">{ot("Open WhatsApp")}</a></div>
