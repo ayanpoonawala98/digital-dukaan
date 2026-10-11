@@ -281,7 +281,7 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
         try {
           const t = decodeURIComponent(String(sub.returnPath || '').split('#token=')[1] || '');
           const acc = jwt.verify(t, process.env.JWT_SECRET, { audience: 'restaurant-tracking', issuer: 'digital-dukaan', algorithms: ['HS256'], ignoreExpiration: true });
-          if (acc.orderId === sub.orderId && (acc.kind || 'restaurant') === sub.orderType && acc.businessId === business.id && acc.scope !== 'history') phoneOnly = false;
+          if (acc.orderId === sub.orderId && (acc.kind || 'restaurant') === sub.orderType && acc.businessId === business.id && !acc.scope) phoneOnly = false;
         } catch { /* unverifiable: stays restricted */ }
         refs.set(key, { kind: sub.orderType, id: sub.orderId, phoneOnly });
       }

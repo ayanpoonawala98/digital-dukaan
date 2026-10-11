@@ -175,7 +175,7 @@ export function MyOrdersPage() {
       {o.path && <Link className="btn btn-outline btn-small" to={o.path}>{st("Open tracking page")}</Link>}
     </section>; })}
     <PushControl slug={slug} orders={saved} onChange={load}/>
-    <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString(storeLocale()) : '-'} {st("· Orders are tied to this browser's notification setting; they do not follow you to another phone.")}</small></p>
+    <p><small>{st("Last checked:")} {updated ? updated.toLocaleTimeString(storeLocale()) : '-'} {!data?.verified && st("· Orders are tied to this browser's notification setting; they do not follow you to another phone.")}</small></p>
     <Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Back to store")}</Link>
   </main></>;
 }
