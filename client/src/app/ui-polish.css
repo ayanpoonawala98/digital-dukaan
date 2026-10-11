@@ -239,3 +239,9 @@ button[aria-label^="How to connect"][style]::before { content: ""; position: abs
 .admin-content .remove-store-panel label strong { display: inline; }
 .shop-root .catalog-tools { margin-top: 12px; }
 .admin-content .remove-store-panel label input { display: block; margin-top: 8px; width: 100%; max-width: 340px; }
+/* Long store names: brand shrinks with an ellipsis so language, theme and menu stay on screen */
+.header-inner > .store-header-brand { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 600px) { .header-inner > .store-header-brand { flex: 1 1 0; max-width: none; } }
+.header-inner > .store-header-brand .header-store-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-inner > .store-header-brand .header-store-logo, .header-inner > .store-header-brand .brand-mark { flex: none; }
+.header-inner .header-controls { flex: none; }
