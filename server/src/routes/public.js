@@ -271,7 +271,17 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
   const paths = new Map();
   if (endpoint) {
     const subs = await OrderPushSubscription.findAll({ where: { businessId: business.id, endpoint }, order: [['createdAt', 'DESC']], limit: 50 });
-    for (const sub of subs) { const key = `${sub.orderType}:${sub.orderId}`; if (!refs.has(key)) refs.set(key, { kind: sub.orderType, id: sub.orderId }); paths.set(key, sub.returnPath); }
+    for (const sub of subs) {
+      const key = `${sub.orderType}:${sub.orderId}`;
+      if (!refs.has(key)) {
+        // The saved return link carries the signed access the subscription was made with. Its scope must survive: a history-scoped
+        // link never turns into a full-detail read just because it was reached through a push endpoint.
+        let phoneOnly = false;
+        try { const t = decodeURIComponent(String(sub.returnPath || '').split('#token=')[1] || ''); const acc = verifyTracking(t, sub.orderId, sub.orderType); phoneOnly = acc.businessId === business.id && acc.scope === 'history'; } catch { /* legacy or unverifiable link: treated as before */ }
+        refs.set(key, { kind: sub.orderType, id: sub.orderId, phoneOnly });
+      }
+      paths.set(key, sub.returnPath);
+    }
   }
   // A verified session (WhatsApp, ds_id cookie) also lists the latest 50 orders at THIS store placed with that verified phone, on any browser.
   // Their tracking links carry a "history" scope: status and menu items only, never customer-written notes/answers, address or phone.

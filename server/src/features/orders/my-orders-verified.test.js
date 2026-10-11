@@ -44,6 +44,11 @@ test('My orders for a verified session lists only orders with that exact verifie
     assert.deepEqual(v.verified, { phoneEnding: '3210' });
     assert.ok(v.orders.every(o => o.path?.includes('#token=')), 'each gets a tracking link');
     const text = JSON.stringify(v); assert.ok(!/Secret Name|Private Road|98765|919876543210/.test(text), 'no address, name or phone in the response');
+    // history token -> push subscribe -> anonymous endpoint read: still whitelisted
+    OrderPushSubscription.findAll = async () => [{ orderType: 'restaurant', orderId: 31, returnPath: rest.path }];
+    const viaPush = await (await fetch(`${base}/diner/my-orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: 'https://fcm.googleapis.com/e1' }) })).json();
+    assert.equal(viaPush.orders.length, 1); assert.ok(!/Ravi|9111111111|ring bell|Flat 9|secret/i.test(JSON.stringify(viaPush)), 'push-endpoint read keeps the history whitelist, no cookie needed');
+    assert.equal(viaPush.orders[0].items[0].name, 'Paneer');
     const anon = await post('shop'); assert.deepEqual(anon.orders, []); assert.equal(anon.verified, null);
     cookieOk = false; assert.deepEqual((await post('shop', COOKIE)).orders, [], 'no valid session, no phone lookup'); cookieOk = true;
     const off = await post('other', COOKIE); assert.deepEqual(off.orders, [], 'store outside the verification list is untouched'); assert.equal(off.verified, null);
