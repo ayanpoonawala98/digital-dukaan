@@ -71,7 +71,7 @@ const ORDER_CAP = 2000;
 export async function tablesState(store) {
   await ensureTableBillSchema();
   const orders = await sequelize.query(
-    `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' ORDER BY "createdAt" ASC LIMIT ${ORDER_CAP}`,
+    `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,"paymentStatus",note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' ORDER BY "createdAt" ASC LIMIT ${ORDER_CAP}`,
     { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
   // Old unbilled orders stay visible so they can still be billed or cancelled. If more than the cap exist, say so instead of hiding them.
   const [{ n: openCount }] = await sequelize.query(`SELECT COUNT(*)::int AS n FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled'`, { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
