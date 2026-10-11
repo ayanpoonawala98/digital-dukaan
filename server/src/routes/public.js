@@ -4,7 +4,7 @@ import {shopCardPdf} from '../features/stores/shop-card-pdf.js';
 import {campaignPublicRoutes} from '../features/notifications/campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../features/stores/hours.js';
 import { Router } from 'express';
-import { couponPreviewLimits, orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
+import { couponPreviewLimits, verifyLimit, verifyPollLimit, orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { haversineKm } from '../shared/utils/geo.js';
 import jwt from 'jsonwebtoken';
 import { Op } from 'sequelize';
@@ -25,6 +25,7 @@ import { orderBotEnabledFor, withOrderRef, newClaimCode } from '../features/what
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { notifyShopRequest } from '../features/platform/platform-alerts.js';
 import { publicDomainRoutes } from '../features/domains/domain-public.js';
+import { installVerifyRoutes, requireVerifiedPhone } from '../features/whatsapp/storefront-verify.js';
 const r = Router();
 r.use(publicDomainRoutes);
 r.post('/stores/:slug/restaurant-orders', ...orderLimits);
@@ -122,6 +123,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   if (blocksOrders(business)) throw bad(409, 'The shop is closed right now and is not taking orders. Please try again when it opens.');
   if (business.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
   const { orderType, tableNumber, customerName, customerPhone, deliveryAddress } = req.body || {};
+  if (orderType !== 'dine-in') await requireVerifiedPhone(req, business, customerPhone);
   if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
   const table = Number(tableNumber);
   if (orderType === 'dine-in' && (!Number.isInteger(table) || table < 1 || table > business.tableCount)) throw bad(400, 'Select a valid table number');
@@ -349,6 +351,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   if(!Number.isInteger(qty)||qty<1||qty>99)throw bad(400,'Invalid quantity');
   if (product.stock === 0) throw bad(400, 'This product is out of stock right now');
   if(product.stock!==null&&qty>product.stock)throw bad(400,`Only ${product.stock} left in stock for ${product.name}`);
+  if (req.body?.customerPhone) await requireVerifiedPhone(req, business, req.body.customerPhone);
   const subtotal=Number((product.price*qty).toFixed(2));
   if(business.minOrder>0&&subtotal<business.minOrder)throw bad(400,`Minimum order is Rs.${business.minOrder.toFixed(0)}. Add more quantity or use the cart.`);
   const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
@@ -389,6 +392,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
     const answers = validateAnswers(product.customFields, entry.answers, product.name);
     lines.push({ productId: product.id, name: product.name, price: product.price, qty, ...(answers.length ? { answers } : {}) });
   }
+  if (req.body?.customerPhone) await requireVerifiedPhone(req, business, req.body.customerPhone);
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);
@@ -473,4 +477,5 @@ r.post('/stores/:slug/push-subscription', wrap(async (req, res) => {
   res.status(201).json({ ok: true });
 }));
 
+installVerifyRoutes(r, shop, { strict: [verifyLimit], poll: [verifyPollLimit] });
 export default r;

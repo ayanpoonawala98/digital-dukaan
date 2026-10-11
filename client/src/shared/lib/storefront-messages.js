@@ -1,5 +1,53 @@
 // English source text is a presentation key. Never apply to customer values.
 export const storefrontMessages = {
+  "Could not check phone verification.": {
+    "hi": "फ़ोन सत्यापन जाँचा नहीं जा सका।",
+    "mr": "फोन सत्यापन तपासता आले नाही."
+  },
+  "Try again": {
+    "hi": "फिर कोशिश करें",
+    "mr": "पुन्हा प्रयत्न करा"
+  },
+  "The code expired. Start again.": {
+    "hi": "कोड की समय सीमा खत्म हो गई। फिर से शुरू करें।",
+    "mr": "कोडची मुदत संपली. पुन्हा सुरू करा."
+  },
+  "Enter your phone number first.": {
+    "hi": "पहले अपना फ़ोन नंबर डालें।",
+    "mr": "आधी तुमचा फोन नंबर टाका."
+  },
+  "Phone verified with WhatsApp": {
+    "hi": "फ़ोन WhatsApp से सत्यापित",
+    "mr": "फोन WhatsApp द्वारे सत्यापित"
+  },
+  "Change number": {
+    "hi": "नंबर बदलें",
+    "mr": "नंबर बदला"
+  },
+  "Send the ready-made WhatsApp message, then come back here. Only send it if you started this yourself.": {
+    "hi": "तैयार WhatsApp संदेश भेजें, फिर यहाँ लौटें। इसे तभी भेजें जब आपने खुद शुरू किया हो।",
+    "mr": "तयार WhatsApp संदेश पाठवा, मग इथे परत या. तुम्ही स्वतः सुरू केले असेल तरच पाठवा."
+  },
+  "Open WhatsApp": {
+    "hi": "WhatsApp खोलें",
+    "mr": "WhatsApp उघडा"
+  },
+  "Scan with your phone": {
+    "hi": "अपने फ़ोन से स्कैन करें",
+    "mr": "तुमच्या फोनने स्कॅन करा"
+  },
+  "Waiting for your message...": {
+    "hi": "आपके संदेश का इंतज़ार...",
+    "mr": "तुमच्या संदेशाची वाट पाहत आहे..."
+  },
+  "Cancel": {
+    "hi": "रद्द करें",
+    "mr": "रद्द करा"
+  },
+  "Verify with WhatsApp": {
+    "hi": "WhatsApp से सत्यापित करें",
+    "mr": "WhatsApp ने सत्यापित करा"
+  },
   "(optional)": {
     "hi": "(वैकल्पिक)",
     "mr": "(ऐच्छिक)"

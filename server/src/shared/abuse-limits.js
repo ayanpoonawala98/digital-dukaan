@@ -37,3 +37,8 @@ export function isAllowedPushEndpoint(value) {
     return PUSH_HOSTS.some(re => re.test(u.hostname.toLowerCase()));
   } catch { return false; }
 }
+// Starting a challenge or logging out is strict per IP. Per-device, per-number and global start caps live in the verify module.
+export const verifyLimit = make(15 * 60 * 1000, 30, ip, slow);
+// Status and session reads are polled every 2.5s for up to 5 minutes (about 120 calls) per verification, often behind one shared
+// IP, and only answer for the caller's own browser id. Budget fits several verifications in one window.
+export const verifyPollLimit = make(15 * 60 * 1000, 600, ip, slow);

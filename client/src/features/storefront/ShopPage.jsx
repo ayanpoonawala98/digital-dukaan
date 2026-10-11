@@ -186,7 +186,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
             <button className="icon-btn danger" onClick={() => cart.setQty(item.id, 0)} aria-label={st("Remove {v0}", {v0:item.name})}><Trash2 size={16}/></button>
           </div>)}
         </div>
-        <ContactFields contact={contact} onChange={setContact}/>
+        <ContactFields contact={contact} onChange={setContact} slug={slug}/>
         <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder={'SAVE10'}/></label>
         {couponCode && (cpv.error ? <p className="notice warn" role="status">{storefrontError(cpv.error)}</p> : cpv.checking ? <p className="drawer-hint">{st("Checking coupon...")}</p> : cpv.code ? <p className="drawer-hint">{st("Coupon")} {cpv.code} {st("applied. The shop confirms it again when you order.")}</p> : <p className="drawer-hint">{st("The shop verifies the code before opening WhatsApp.")}</p>)}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">{st("Minimum order is {total}. Add {remaining} more.",{total:inr(business.minOrder),remaining:inr(business.minOrder-cart.subtotal)})}</p>}

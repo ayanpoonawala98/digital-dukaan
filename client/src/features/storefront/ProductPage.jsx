@@ -36,7 +36,7 @@ function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
       if (tab) tab.location.href = url; else window.location.href = url;
     } catch (e) { if (tab) tab.close(); setError(e.message); } finally { setBusy(false); }
   };
-  return <><ContactFields contact={contact} onChange={setContact}/><button onClick={buy} disabled={busy || blocked} className="btn btn-green">{busy ? st("Opening...") : children || st("Buy on WhatsApp")} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{storefrontError(error)}</small>}</>;
+  return <><ContactFields contact={contact} onChange={setContact} slug={slug}/><button onClick={buy} disabled={busy || blocked} className="btn btn-green">{busy ? st("Opening...") : children || st("Buy on WhatsApp")} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{storefrontError(error)}</small>}</>;
 }
 
 export default function ProductPage({ hostedSlug }) {

@@ -7,6 +7,7 @@ import { merchantConnection, connectionForEvent, connectionToken, signupConfig, 
 import { Lead, Business } from '../../models/index.js';
 import { installInboxRoutes } from './whatsapp-inbox.js';
 import { accessibleLead } from './whatsapp-order-access.js';
+import { handleVerifyMessage } from './storefront-verify.js';
 import { orderBotEnabledFor, parseOrderClaim, confirmationText, statusMessage, itemsText } from './whatsapp-orders.js';
 
 export const WhatsAppMessage = sequelize.define('WhatsAppMessage', {
@@ -201,6 +202,12 @@ export async function persistWhatsAppEvents(payload) {
       }
       // history and smb_app_state_sync are acknowledged and not stored yet.
       if (change.field !== 'messages') continue;
+      // Storefront phone verification is claimed first so the order bot and shop dispatchers never see it.
+      const claimed = new Set();
+      for (const m of value.messages || []) {
+        if (await handleVerifyMessage({ wabaId: entry.id, phoneNumberId: value.metadata.phone_number_id, message: m })) claimed.add(m);
+      }
+      value.messages = (value.messages || []).filter(m => !claimed.has(m));
       const connection=await connectionForEvent(entry.id,value.metadata.phone_number_id);
       if(!connection)continue;
       const {businessId,phoneNumberId}=connection;
@@ -307,3 +314,4 @@ whatsappCloudOwnerRoutes.post('/send',wrap(async(req,res)=>{
     throw bad(502,'Message was not confirmed. Check the inbox before retrying.');
   }
 }));
+
