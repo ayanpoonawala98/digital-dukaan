@@ -644,7 +644,7 @@ r.get('/:storeId/export/vyapar.csv', wrap(async (req, res) => {
   const leads = await Lead.findAll({ where: { businessId: bid(req), status: { [sequelize.Sequelize.Op.ne]: 'cancelled' } }, order: [['createdAt', 'ASC']], limit: 5000 });
   const rows = [['Date', 'Invoice No', 'Party Name', 'Party Phone', 'Item Name', 'Quantity', 'Unit', 'Price/Unit', 'Total', 'Order Status', 'Notes'].join(',')];
   for (const lead of leads) {
-    const date = new Date(lead.createdAt).toLocaleDateString('en-IN');
+    const date = new Date(lead.createdAt).toLocaleDateString('en-IN', { timeZone: 'Asia/Kolkata' });
     const items = Array.isArray(lead.items) && lead.items.length ? lead.items : [{ name: lead.productName, qty: 1, price: lead.price }];
     for (const item of items) {
       rows.push([csvCell(date), csvCell(`DD-${lead.id}`), csvCell(lead.customerPhone ? 'WhatsApp Customer' : 'WhatsApp Customer'), csvCell(lead.customerPhone || ''), csvCell(item.name), csvCell(Number(item.qty) || 1), csvCell('PCS'), csvCell((Number(item.price) || 0).toFixed(2)), csvCell(((Number(item.qty) || 1) * (Number(item.price) || 0)).toFixed(2)), csvCell(lead.status), csvCell('Ordered via WhatsApp storefront')].join(','));
