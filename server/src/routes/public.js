@@ -7,7 +7,8 @@ import { Router } from 'express';
 import { couponPreviewLimits, verifyLimit, verifyPollLimit, orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { haversineKm } from '../shared/utils/geo.js';
 import jwt from 'jsonwebtoken';
-import { Op } from 'sequelize';
+import { orderPhone } from '../features/crm/customer-pure.js';
+import { Op, fn, col, where as sqlWhere } from 'sequelize';
 import { storeUrl } from '../shared/utils/store-domain.js';
 import {shopQrSvg, tableQrSvg} from '../features/stores/shop-qr.js';
 import { recordCustomerOrder, attachCustomerDevice, removeCustomerDevice } from '../features/crm/customer-sync.js';
@@ -25,7 +26,7 @@ import { orderBotEnabledFor, withOrderRef, newClaimCode } from '../features/what
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { notifyShopRequest } from '../features/platform/platform-alerts.js';
 import { publicDomainRoutes } from '../features/domains/domain-public.js';
-import { installVerifyRoutes, requireVerifiedPhone, enabledForSlug } from '../features/whatsapp/storefront-verify.js';
+import { installVerifyRoutes, requireVerifiedPhone, enabledForSlug, platformSession } from '../features/whatsapp/storefront-verify.js';
 const r = Router();
 r.use(publicDomainRoutes);
 r.post('/stores/:slug/restaurant-orders', ...orderLimits);
@@ -269,6 +270,24 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
     const subs = await OrderPushSubscription.findAll({ where: { businessId: business.id, endpoint }, order: [['createdAt', 'DESC']], limit: 50 });
     for (const sub of subs) { const key = `${sub.orderType}:${sub.orderId}`; if (!refs.has(key)) refs.set(key, { kind: sub.orderType, id: sub.orderId }); paths.set(key, sub.returnPath); }
   }
+  // A verified session (WhatsApp, ds_id cookie) also lists every order placed with that verified phone at THIS store, on any browser.
+  // Same fields as the private tracking read: status and items, never address or other customer details.
+  let verifiedPhone = '';
+  if (enabledForSlug(business.slug)) {
+    const a = await platformSession(req).catch(() => null);
+    const suffix = a && String(a.identity.phone).replace(/\D/g, '').slice(-10);
+    if (suffix && suffix.length === 10) {
+      verifiedPhone = a.identity.phone;
+      for (const kind of ['restaurant', 'lead']) {
+        const rows = await kindModel(kind).findAll({ where: { businessId: business.id, [Op.and]: [sqlWhere(fn('regexp_replace', col('customerPhone'), '\\D', '', 'g'), { [Op.like]: `%${suffix}` })] }, order: [['createdAt', 'DESC']], limit: 50 });
+        for (const row of rows) {
+          if (orderPhone(row.customerPhone) !== a.identity.phone) continue; // exact normalized number, never just the last 10 digits
+          const key = `${kind}:${row.id}`;
+          if (!refs.has(key)) refs.set(key, { kind, id: row.id, token: signTracking(kind, row.id, business.id) });
+        }
+      }
+    }
+  }
   const out = [];
   for (const kind of ['restaurant', 'lead']) {
     const ids = [...refs.values()].filter(x => x.kind === kind).map(x => x.id);
@@ -280,7 +299,7 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
     }
   }
   out.sort((a, b) => +new Date(b.createdAt) - +new Date(a.createdAt));
-  res.json({ orders: out.slice(0, 50), store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
+  res.json({ orders: out.slice(0, 50), verified: verifiedPhone ? { phoneEnding: verifiedPhone.slice(-4) } : null, store: { name: business.name, slug: business.slug, storeType: business.storeType, logoUrl: business.logoUrl } });
 }));
 r.post('/stores/:slug/my-orders/push-subscription', wrap(async (req, res) => {
   res.set('Cache-Control', 'no-store');
