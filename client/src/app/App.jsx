@@ -8,6 +8,8 @@ import { ThemeProvider } from './theme.jsx';
 import { OfferOptOut } from '../features/dashboard/OfferCampaigns.jsx';
 import ShopPage from '../features/storefront/ShopPage.jsx';
 import { hostedStoreSlug } from '../features/storefront/store-domain.js';
+import { customHost } from '../features/storefront/custom-host.js';
+const CustomHostRoutes = lazy(() => import('../features/storefront/CustomHostRoutes.jsx'));
 import { RestaurantOrderTracking, LeadOrderTracking, MyOrdersPage } from '../features/storefront/OrderTracking.jsx';
 import Motion from '../shared/components/Motion.jsx';
 import HashScroll from '../shared/components/HashScroll.jsx';
@@ -31,6 +33,8 @@ function Guard({ role, children }) {
 
 export default function App() {
   const hostedSlug = hostedStoreSlug();
+  const clientHost = customHost();
+  if (clientHost) return <ThemeProvider><AuthProvider><StorefrontLocale><Toasts/><AppBoundary><Suspense fallback={<BrandLoader full label="Loading"/>}><CustomHostRoutes host={clientHost}/></Suspense></AppBoundary></StorefrontLocale></AuthProvider></ThemeProvider>;
   return <ThemeProvider><AuthProvider><StorefrontLocale><Toasts/><Motion/><HashScroll/><AppBoundary><Suspense fallback={<BrandLoader full label="Loading"/>}><Routes>
       <Route path="/offers/opt-out/:token" element={<OfferOptOut/>}/>
     <Route path="/" element={hostedSlug ? <ShopPage hostedSlug={hostedSlug}/> : <Landing/>}/>

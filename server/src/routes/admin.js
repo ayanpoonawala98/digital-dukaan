@@ -17,9 +17,11 @@ import { alertState, saveAlertKeys, saveAlertSettings, sendAlertTest } from '../
 import { clientList, updateClient, clientPayments, markPaid, undoPayment, sendPaymentMail, sendDigest } from '../features/platform/subscriptions.js';
 import { systemStatusRouter } from '../features/platform/system-status-routes.js';
 import { statusService, searchStores } from '../features/platform/system-status-wiring.js';
+import domainRoutes from '../features/domains/domain-routes.js';
 const r = Router();
 r.use(auth, roles('superadmin'));
 r.use('/system-status', systemStatusRouter({ service: statusService, searchStores, wrap, bad }));
+r.use('/domains', domainRoutes);
 const numId = value => { const n = Number(value); if (!Number.isInteger(n) || n <= 0) throw bad(400, 'Invalid ID'); return n; };
 let welcomeSampleAt=0;
 r.get('/welcome-sample',wrap(async(req,res)=>res.json(welcomeSample(req.user))));

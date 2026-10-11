@@ -4,6 +4,7 @@ import SendOwnerWelcome from './SendOwnerWelcome.jsx';
 import ResetOwnerPassword from './ResetOwnerPassword.jsx';
 import PlatformSales from './PlatformSales.jsx';
 import Clients from './Clients.jsx';
+import Domains from './Domains.jsx';
 import { FilterBar, matches, matchesStatus } from '../dashboard/DataTools.jsx';
 import { useFeedbackState } from '../../shared/components/Toasts.jsx';
 import React, { useEffect, useState } from 'react';
@@ -23,7 +24,7 @@ export default function SuperAdmin() {
   const { session } = useAuth(), token = session.token;
   const [resetOwner,setResetOwner]=useState(null);
   useEffect(() => { document.title = 'Super admin - Digital Shop'; return () => { document.title = 'Digital Shop - Your shop, one link away'; }; }, []);
-  const [tab, setTabState] = useState(() => ['overview','sales','clients','businesses','users','requests','system-status'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || 'overview');
+  const [tab, setTabState] = useState(() => ['overview','sales','clients','businesses','users','requests','system-status','domains'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || 'overview');
   const setTab = next => { setTabState(next); try { if (typeof next === 'string') history.replaceState(null, '', `${location.pathname}${location.search}#${next}`); } catch { /* optional */ } };
   const [filters,setFilters]=useState({q:''});
   const [loading, setLoading] = useState(true);
@@ -77,11 +78,12 @@ export default function SuperAdmin() {
   };
   const toggle = async (kind, item) => { if (pending) return; setPending(`${kind}-${item.id}`); setError(''); try { await api(`/admin/${kind}/${item.id}`, { method: 'PATCH', token, body: { active: !item.active } }); setListRefresh(n=>n+1);await load(); } catch (e) { setError(e.message); } finally { setPending(''); } };
   return <AdminShell tab={tab} setTab={setTab} superMode><div className="admin-content">
-    <div className="page-title"><div><span className="kicker">PLATFORM ADMIN</span><h1>{tab === 'sales' ? 'Sales & commission.' : tab === 'clients' ? 'Clients & billing.' : tab === 'overview' ? 'The big picture.' : tab === 'businesses' ? 'Businesses.' : tab === 'requests' ? 'Shop requests.' : tab === 'system-status' ? 'System status' : 'People.'}</h1><p>{tab === 'system-status' ? 'Check connections without sending messages or changing settings.' : 'Keep track of the community growing on Digital Shop.'}</p></div></div>
-    <Notice error={error}/>{!['overview','sales','clients','system-status'].includes(tab) && <FilterBar value={filters} onChange={setFilters} statuses={['businesses','users'].includes(tab)?['active','inactive']:[]}/>}
+    <div className="page-title"><div><span className="kicker">PLATFORM ADMIN</span><h1>{tab === 'sales' ? 'Sales & commission.' : tab === 'clients' ? 'Clients & billing.' : tab === 'overview' ? 'The big picture.' : tab === 'businesses' ? 'Businesses.' : tab === 'requests' ? 'Shop requests.' : tab === 'system-status' ? 'System status' : tab === 'domains' ? 'Custom domains' : 'People.'}</h1><p>{tab === 'domains' ? 'Point a client\'s own domain at their store. Nothing goes live until every check passes.' : tab === 'system-status' ? 'Check connections without sending messages or changing settings.' : 'Keep track of the community growing on Digital Shop.'}</p></div></div>
+    <Notice error={error}/>{!['overview','sales','clients','system-status','domains'].includes(tab) && <FilterBar value={filters} onChange={setFilters} statuses={['businesses','users'].includes(tab)?['active','inactive']:[]}/>}
     {loading ? <LoadSkeleton label={`Loading ${tab === 'overview' ? 'platform overview' : tab}`} cards={tab === 'overview' ? 4 : 2} rows={3}/> : <>
     {tab === 'overview' && <><PlatformEmailSummary token={token}/><PlatformEmailSummary token={token} sample/></>}
     {tab === 'system-status' && <SystemStatus token={token}/>}
+    {tab === 'domains' && <Domains/>}
     {tab === 'sales' && <PlatformSales token={token}/>}
     {tab === 'clients' && <Clients token={token}/>}
     {tab === 'users' && <div className="dashboard-panel"><h3>Create an owner and store</h3><p className="muted">Only your superadmin account can create new owner logins. Agree on a password and share it with the owner through a secure channel.</p><form className="owner-create-form" onSubmit={createOwner}>
