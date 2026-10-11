@@ -42,6 +42,7 @@ export const CustomerDevice = sequelize.define('CustomerDevice', {
   lastSeenAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'customer_devices', indexes: [{ unique: true, fields: ['businessId', 'endpoint'], name: 'customer_devices_store_endpoint' }, { fields: ['customerId'] }] });
 Customer.hasMany(CustomerDevice, { foreignKey: 'customerId' });
+CustomerDevice.belongsTo(Customer, { foreignKey: 'customerId' });
 
 // Every reach-out, whatever the channel (push now; email and sms use the same table when connected).
 export const CustomerMessage = sequelize.define('CustomerMessage', {
