@@ -2,7 +2,7 @@ import {test,expect} from '@playwright/test';
 for(const width of [390,1280])test(`restaurant ${width}px: variants/addons/notes, cart, required fields, invalid coupon (no submit)`,async({page},info)=>{
  await page.setViewportSize({width,height:844});await page.goto('/store/qa-restaurant-20261008');
  await expect(page.locator('main article')).toHaveCount(1);
- await page.locator('main select').selectOption('en');
+ await page.getByRole('combobox',{name:'Storefront language',exact:true}).selectOption('en');
  await page.getByRole('button',{name:'Add QA Meal - do not order',exact:true}).click();
  const sheet=page.getByRole('dialog');await expect(sheet).toBeVisible();
  await sheet.getByRole('radio',{name:'Full ₹220',exact:true}).check();
