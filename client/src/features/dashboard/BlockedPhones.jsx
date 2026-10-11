@@ -43,7 +43,7 @@ export function BlockedPhonesPanel({ token, storeId }) {
       <label>{ot("Phone number")}<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+91 98765 43210" maxLength={25}/></label>
       <button className="btn btn-outline" disabled={busy || !phone.trim()}>{ot("Block")}</button>
     </form>
-    {list && list.map(b => <p key={b.id}>{b.phone} <button type="button" className="btn btn-outline" disabled={busy} onClick={() => unblock(b.phone)}>{ot("Unblock")}</button></p>)}
+    {list && list.map(b => <p key={b.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, maxWidth: 420 }}><span>{b.phone}</span> <button type="button" className="btn btn-outline" disabled={busy} onClick={() => unblock(b.phone)}>{ot("Unblock")}</button></p>)}
     {truncated && <p className="notice warn">{ot("Showing the 500 most recent blocked numbers. Older ones are still blocked.")}</p>}
   </details>;
 }
