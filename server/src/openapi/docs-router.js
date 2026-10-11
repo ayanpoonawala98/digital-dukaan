@@ -15,6 +15,6 @@ export function docsRouter() {
   // Swagger UI needs inline script/style, so the strict CSP of the main app is relaxed for /docs only.
   r.use(helmet({ contentSecurityPolicy: false, crossOriginResourcePolicy: { policy: 'same-origin' } }));
   r.get('/openapi.json', (req, res) => res.json(spec));
-  r.use('/', swaggerUi.serve, swaggerUi.setup(spec, { customSiteTitle: 'Digital Shop API', swaggerOptions: { persistAuthorization: false, docExpansion: 'none', tagsSorter: 'alpha' } }));
+  r.use('/', swaggerUi.serve, swaggerUi.setup(spec, { customSiteTitle: 'Digital Shop API', swaggerOptions: { supportedSubmitMethods: ['get'], persistAuthorization: false, docExpansion: 'none', tagsSorter: 'alpha' } }));
   return r;
 }

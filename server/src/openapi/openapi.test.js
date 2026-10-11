@@ -21,5 +21,8 @@ test('/docs and the spec are served read-only', async () => {
     const ui = await fetch(`http://127.0.0.1:${port}/docs/`); assert.equal(ui.status, 200); assert.match(await ui.text(), /swagger/i);
     const js = await fetch(`http://127.0.0.1:${port}/docs/openapi.json`); assert.equal(js.status, 200); assert.equal((await js.json()).openapi, '3.0.3');
     const w = await fetch(`http://127.0.0.1:${port}/docs/openapi.json`, { method: 'POST' }); assert.notEqual(w.status, 200);
+    const init = await (await fetch(`http://127.0.0.1:${port}/docs/swagger-ui-init.js`)).text();
+    assert.match(init, /supportedSubmitMethods/); assert.doesNotMatch(init, /"url"\s*:\s*"http/); assert.doesNotMatch(init, /queryConfigEnabled\s*:\s*true/);
+    assert.match(init, /"supportedSubmitMethods"\s*:\s*\[\s*"get"\s*\]/);
   } finally { server.close(); }
 });
