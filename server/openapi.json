@@ -7170,6 +7170,94 @@
             "bearerAuth": []
           }
         ]
+      },
+      "patch": {
+        "tags": [
+          "Owner and staff"
+        ],
+        "summary": "Edit items on a New restaurant order (lower or remove only)",
+        "description": "Only allowed while the order status is New. Quantities can only go down or lines be removed. Delivery fee never increases; an edit that would put the items subtotal below the saved discount is refused with 409. Send dryRun: true to preview totals without saving.",
+        "operationId": "patch_api_owner_storeId_restaurant_orders_id_items",
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "idx": {
+                          "type": "integer"
+                        },
+                        "qty": {
+                          "type": "integer",
+                          "minimum": 0
+                        }
+                      },
+                      "required": [
+                        "idx",
+                        "qty"
+                      ]
+                    }
+                  },
+                  "dryRun": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "lines"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated (or previewed) order totals"
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          },
+          "409": {
+            "description": "Order is locked, or the edit would drop below the saved discount"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/api/owner/{storeId}/restaurant-orders/{id}/kot": {
