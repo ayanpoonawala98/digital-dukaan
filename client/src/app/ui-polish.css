@@ -229,3 +229,10 @@ button[aria-label^="How to connect"][style]::before { content: ""; position: abs
 
 /* Sales: chart axis, hour axis and small notes were faded by opacity to ~2:1; keep them readable */
 .sd .sd-hour-axis, .sd .sd-axis, .sd .sd-donut-l, .sd .sd-delta span, .sd .sd-kpi small, .sd .sd-people span, .sd .sd-legend { opacity: .85; }
+
+/* Long store names: brand shrinks with an ellipsis so language, theme and menu stay on screen */
+.header-inner > .store-header-brand { flex: 0 1 auto; min-width: 0; }
+@media (max-width: 600px) { .header-inner > .store-header-brand { flex: 1 1 0; max-width: none; } }
+.header-inner > .store-header-brand .header-store-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.header-inner > .store-header-brand .header-store-logo, .header-inner > .store-header-brand .brand-mark { flex: none; }
+.header-inner .header-controls { flex: none; }
