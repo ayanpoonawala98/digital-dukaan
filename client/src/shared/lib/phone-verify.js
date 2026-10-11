@@ -14,7 +14,7 @@ export function verifyHeaders(path, method = 'GET') {
 }
 // Cookies are needed only for verification and order calls, and only on the platform's own site. A client's custom domain is cross-site
 // to the API, so it keeps the plain CORS request (no credentials) exactly as before.
-export const needsCredentials = path => !customHost() && /^\/public\/stores\/[^/]+\/(verify\/|restaurant-orders|enquire-cart|products\/[^/]+\/enquire)/.test(path);
+export const needsCredentials = path => !customHost() && /^\/public\/stores\/[^/]+\/(verify\/|my-orders$|restaurant-orders|enquire-cart|products\/[^/]+\/enquire)/.test(path);
 // Same normalisation as the server: bare 10 digit Indian mobiles get 91.
 export function normalizePhone(value) {
   const d = String(value ?? '').replace(/\D/g, '');

@@ -15,6 +15,13 @@ export const storefrontMessages = {
   "WhatsApp opened. Send the ready-made message, then come back here. Only send it if you started this yourself.": {
     "hi": "WhatsApp खुल गया। तैयार मैसेज भेजें, फिर यहाँ वापस आएँ। इसे तभी भेजें जब आपने खुद शुरू किया हो।",
     "mr": "WhatsApp उघडले. तयार मेसेज पाठवा, मग इथे परत या. तुम्ही स्वतः सुरू केले असेल तरच पाठवा."
+  "Verified number ending": {
+    "hi": "सत्यापित नंबर, अंतिम अंक",
+    "mr": "सत्यापित नंबर, शेवटचे अंक"
+  },
+  "orders placed with this number at this store show here on any device.": {
+    "hi": "इस नंबर से इस दुकान में दिए गए सभी ऑर्डर किसी भी डिवाइस पर यहाँ दिखते हैं।",
+    "mr": "या नंबरने या दुकानात दिलेल्या सर्व ऑर्डर कोणत्याही डिव्हाइसवर इथे दिसतात."
   },
   "Could not log out. Try again.": {
     "hi": "लॉग आउट नहीं हो सका। फिर कोशिश करें।",

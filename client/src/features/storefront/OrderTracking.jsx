@@ -163,6 +163,7 @@ export function MyOrdersPage() {
   return <><Header shop={slug} business={data?.store || data?.restaurant}/><main className="container" style={{ maxWidth: 760, paddingTop: 40, paddingBottom: 60 }}>
     <span className="kicker">{data?.store?.name || st("MY ORDERS")}</span><h1>{st("My orders")}</h1>
     <p>{st("Orders placed from this browser. No login needed. Status updates appear here automatically.")}</p>
+    {data?.verified && <p className="notice" role="status">✓ {st("Verified number ending")} {data.verified.phoneEnding}: {st("orders placed with this number at this store show here on any device.")}</p>}
     {error && <p className="notice error" role="alert">{storefrontError(error)}</p>}
     {!data && !error && <BrandLoader compact label={st("Loading your orders")}/>}
     {data && !orders.length && <div className="empty-state"><h3>{st("No orders yet")}</h3><p>{st("Orders you place on this store from this browser will show up here.")}</p><Link className="btn btn-outline btn-small" to={`/store/${slug}`}>{st("Browse the store")}</Link></div>}
