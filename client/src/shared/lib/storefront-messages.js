@@ -36,6 +36,10 @@ export const storefrontMessages = {
     "hi": "फिर से शुरू करें",
     "mr": "पुन्हा सुरू करा"
   },
+  "This phone number cannot be used to order from this shop.": {
+    "hi": "इस फ़ोन नंबर से इस दुकान में ऑर्डर नहीं किया जा सकता।",
+    "mr": "हा फोन नंबर वापरून या दुकानात ऑर्डर करता येत नाही."
+  },
   "Phone verified with WhatsApp": {
     "hi": "फ़ोन WhatsApp से सत्यापित",
     "mr": "फोन WhatsApp द्वारे सत्यापित"

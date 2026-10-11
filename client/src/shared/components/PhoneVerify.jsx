@@ -25,7 +25,7 @@ export default function PhoneVerify({ slug, phone, onState, onPhone }) {
       if (g !== gen.current) return;
       if (r.verified && !norm) cb.current.onPhone?.(r.phone); // a verified browser fills its own number
       apply(r.verified && r.phone === norm ? 'verified' : 'idle');
-    }).catch(e => { if (g === gen.current) apply(isOff(e) ? 'off' : 'error'); });
+    }).catch(e => { if (g !== gen.current) return; if (e?.status === 403) setNote(e.message || ''); apply(isOff(e) ? 'off' : 'error'); });
   }, [slug, norm, apply]);
   useEffect(() => { check(); return () => { gen.current++; }; }, [check]);
 
@@ -40,7 +40,8 @@ export default function PhoneVerify({ slug, phone, onState, onPhone }) {
       try {
         const r = await api(`/public/stores/${slug}/verify/status`, { method: 'POST', body: { challengeId: challenge.challengeId, claimSecret: claim.current }, feedback: false });
         if (g !== gen.current) return;
-        if (r.status === 'verified') { clearInterval(timer); setNote(''); apply('verified'); }
+        if (r.status === 'blocked') { clearInterval(timer); setNote(st('This phone number cannot be used to order from this shop.')); apply('idle'); }
+        else if (r.status === 'verified') { clearInterval(timer); setNote(''); apply('verified'); }
         else if (r.status === 'expired') { clearInterval(timer); setNote(st('The code expired. Start again.')); apply('idle'); }
       } catch { /* keep trying until it expires */ } finally { inflight.current = false; }
     }, POLL_MS);
@@ -48,7 +49,7 @@ export default function PhoneVerify({ slug, phone, onState, onPhone }) {
   }, [mode, challenge, slug, apply]);
 
   if (mode === 'off' || mode === 'loading') return null;
-  if (mode === 'error') return <div className="drawer-hint"><p className="notice warn" role="status">{st('Could not check phone verification.')} <button type="button" className="link-btn" onClick={check}>{st('Try again')}</button></p></div>;
+  if (mode === 'error') return <div className="drawer-hint"><p className="notice warn" role="status">{note || st('Could not check phone verification.')} <button type="button" className="link-btn" onClick={check}>{st('Try again')}</button></p></div>;
   const start = async () => {
     if (starting) return;
     if (!norm) { setNote(st('Enter your phone number first.')); return; }

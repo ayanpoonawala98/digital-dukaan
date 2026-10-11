@@ -32,7 +32,7 @@ export function useVerifyGate({ slug, phone, setPhone, onProceed, active = true,
     } catch (e) {
       if (!valid()) return;
       if (e?.status === 404) setGo(true); // verification is off for this store
-      else setErr(st('Could not check phone verification.'));
+      else setErr(e?.status === 403 && e.message ? e.message : st('Could not check phone verification.')); // 403 = this number is blocked here
     } finally { if (valid()) setChecking(false); }
   };
   const onState = v => { if (v.verified && live.current) { setOpen(false); setGo(true); } };

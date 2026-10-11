@@ -241,3 +241,30 @@ test('block routes: owner-only writes, scoped to the store, idempotent, unblock 
     assert.equal((await j('/1/9876543210', { method: 'DELETE' })).status, 200); assert.equal(tables.block.length, 0);
   } finally { server.close(); }
 });
+
+test('block is checked at enroll, status issuance/recovery and session, without touching the global identity or other stores', async () => {
+  setup(); noLimit(); V.VerifyChallenge.count = async () => 0;
+  await withApp(async base => {
+    // verified at store 1, then store 2 blocks the number
+    const ok = await verifiedCookie(base); const cookie = ok.cookie; assert.equal(ok.body.status, 'verified');
+    tables.block.push({ id: 1, businessId: 2, phone: '919876543210' });
+    const get = (slug, path, method = 'GET') => fetch(`${base}/${slug}/verify/${path}`, { method, headers: { cookie, 'x-ds-browser': BR } });
+    const enroll2 = await get('store-2', 'enroll', 'POST'); assert.equal(enroll2.status, 403); assert.equal(tables.enroll.filter(e => e.businessId === 2).length, 0); assert.equal(tables.customer.filter(c => c.businessId === 2).length, 0);
+    const sess2 = await get('store-2', 'session'); assert.equal(sess2.status, 403); assert.match((await sess2.json()).error, /cannot be used to order/);
+    const sess1 = await get('store-1', 'session'); assert.equal(sess1.status, 200); assert.equal((await sess1.json()).verified, true); // other store unaffected
+    assert.equal((await get('store-1', 'enroll', 'POST')).status, 200);
+    assert.equal(tables.identity.length, 1); assert.ok(tables.session.every(s => !s.revokedAt)); // the global identity and sessions are untouched
+  });
+  // consumed before the block, blocked before the browser claims: no session is issued
+  setup(); noLimit(); V.VerifyChallenge.count = async () => 0;
+  await withApp(async base => {
+    const start = await (await post(base, 'store-1', 'start', { phone: '9876543210', claimSecret: SECRET })).json();
+    const row = tables.challenge.find(r => r.publicId === start.challengeId);
+    const token = decodeURIComponent(start.link.split('text=')[1]).replace('DS VERIFY ', '');
+    await call(msg(token, { from: row.phone })); assert.ok(row.consumedAt);
+    tables.block.push({ id: 1, businessId: 1, phone: '919876543210' });
+    const res = await post(base, 'store-1', 'status', { challengeId: start.challengeId, claimSecret: SECRET });
+    assert.equal((await res.json()).status, 'blocked'); assert.equal(res.headers.get('set-cookie'), null); assert.equal(tables.session.length, 0);
+  });
+  process.env.DISABLE_ABUSE_LIMITS = '1';
+});

@@ -203,6 +203,7 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
     if (!c || !safeEq(c.claimHash, sha(claim))) return res.json({ status: 'expired' });
     if (!c.consumedAt) return res.json({ status: c.expiresAt.getTime() > Date.now() ? 'pending' : 'expired' });
     if (!c.identityId) return res.json({ status: 'pending' }); // webhook is still finishing
+    if (await isBlocked(business.id, c.phone)) return res.json({ status: 'blocked' }); // blocked after the consume: no session is issued or recovered for this store
     // The session secret is derived from the challenge and the browser's claim secret with a server key. Every claim or recovery for the
     // same challenge therefore yields the same cookie value: nothing is re-keyed, no cookie goes stale, and a repeat is idempotent.
     const token = createHmac('sha256', String(process.env.JWT_SECRET || '')).update(`verify-session:${c.id}:${claim}`).digest('base64url');
@@ -224,9 +225,10 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
     res.json({ status: 'verified', phone: c.phone, expiresInDays: 30 });
   }));
   r.get('/stores/:slug/verify/session', ...poll, wrap(async (req, res) => {
-    await shop(req.params.slug);
+    const business = await shop(req.params.slug);
     await ensureVerifySchema();
     const a = await platformSession(req);
+    if (a && await isBlocked(business.id, a.identity.phone)) { const e = bad(403, BLOCKED_MSG); e.code = 'PHONE_BLOCKED'; throw e; } // surfaced here so the order gate never auto-proceeds into an avoidable error
     res.json(a ? { verified: true, phone: a.identity.phone } : { verified: false });
   }));
   // Intentional authenticated visit: the shopper asked to continue as this verified number in this store.
@@ -236,6 +238,7 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
     await ensureVerifySchema();
     const a = await platformSession(req);
     if (!a) return res.json({ verified: false });
+    if (await isBlocked(business.id, a.identity.phone)) { const e = bad(403, BLOCKED_MSG); e.code = 'PHONE_BLOCKED'; throw e; } // blocked here: never enrolled
     await enrollInStore(business.id, a.identity);
     res.json({ verified: true, phone: a.identity.phone });
   }));
@@ -253,7 +256,7 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
 // Owner routes (mounted under /owner/:storeId/blocked-phones). Everything is scoped to req.store.id.
 export function blockRoutes(Router, ownerOnly) {
   const r = Router();
-  r.get('/', async (req, res, next) => { try { await ensureVerifySchema(); res.json({ blocked: (await StoreBlock.findAll({ where: { businessId: req.store.id }, order: [['id', 'DESC']], limit: 500, attributes: ['id', 'phone', 'createdAt'] })).map(b => b.toJSON()) }); } catch (e) { next(e); } });
+  r.get('/', async (req, res, next) => { try { await ensureVerifySchema(); const rows = (await StoreBlock.findAll({ where: { businessId: req.store.id }, order: [['id', 'DESC']], limit: 501, attributes: ['id', 'phone', 'createdAt'] })).map(b => b.toJSON()); res.json({ blocked: rows.slice(0, 500), truncated: rows.length > 500 }); } catch (e) { next(e); } });
   r.post('/', ownerOnly, async (req, res, next) => { try {
     const phone = orderPhone(req.body?.phone); if (!phone) throw bad(400, 'Enter a valid phone number with country code');
     await ensureVerifySchema();

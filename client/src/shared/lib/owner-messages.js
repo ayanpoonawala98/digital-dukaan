@@ -3936,6 +3936,10 @@ export const ownerMessages = {
     "hi": "ब्लॉक करें",
     "mr": "ब्लॉक करा"
   },
+  "Showing the 500 most recent blocked numbers. Older ones are still blocked.": {
+    "hi": "सबसे नए 500 ब्लॉक किए गए नंबर दिख रहे हैं। पुराने भी ब्लॉक हैं।",
+    "mr": "सर्वात नवीन 500 ब्लॉक केलेले नंबर दिसत आहेत. जुने देखील ब्लॉक आहेत."
+  },
   "Undo last import": {
     "hi": "पिछला आयात वापस करें",
     "mr": "मागील आयात मागे घ्या"
