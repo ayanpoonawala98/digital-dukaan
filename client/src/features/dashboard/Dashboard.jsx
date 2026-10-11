@@ -213,6 +213,9 @@ const FESTIVAL_PRESETS = [
 ];
 
 const STAFF_PERMS = [['orders_view', "Kitchen: see all orders and tables", true], ['order_status', "Kitchen: change status, print KOT, sold-out, new order, add items", true], ['billing', "Billing: bill tables and take payment (discount up to 10%)", true], ['whatsapp', "WhatsApp inbox and replies"], ['import', "Bulk import"], ['products', "Add and edit products, categories and sold-out (no delete)"], ['leads', "See enquiries/orders and update status"], ['coupons', "Create and edit discount coupons"], ['customers', "Customers: see, add and edit customers, send a notification to one"]];
+// Staff may only open tabs their permissions show in the nav; a typed or stale #hash must not render a forbidden panel (server still 403s).
+const STAFF_TAB_PERM = { products: 'products', leads: 'leads', coupons: 'coupons', customers: 'customers', imports: 'import', tables: 'orders_view', restaurant: 'orders_view', 'whatsapp-cloud': 'whatsapp' };
+const staffTabAllowed = (user, key) => user?.role !== 'staff' || key === 'overview' || (STAFF_TAB_PERM[key] ? (user.permissions || []).includes(STAFF_TAB_PERM[key]) : false);
 const DEFAULT_STAFF_PERMS = ['orders_view', 'order_status', 'whatsapp', 'import'];
 const KITCHEN_PERMS = ['orders_view', 'order_status'];
 const FULL_PERMS = ['orders_view', 'order_status', 'billing', 'whatsapp', 'import', 'products', 'leads', 'coupons', 'customers'];
@@ -454,7 +457,7 @@ export default function Dashboard() {
   const orderLinkApplied = React.useRef(false);
   const pendingOrderTab = React.useRef(false);
   const linkedStore = new URLSearchParams(location.search).get('store');
-  const initialTab = useRef(['imports','whatsapp-cloud','overview','products','categories','customers','leads','sales','tables','staff','coupons','restaurant','campaigns','broadcast','notifications','settings','reviews'].find(k => k === (location.hash || '').replace(/^#\/?/, '')) || null);
+  const initialTab = useRef(['imports','whatsapp-cloud','overview','products','categories','customers','leads','sales','tables','staff','coupons','restaurant','campaigns','broadcast','notifications','settings','reviews'].find(k => k === (location.hash || '').replace(/^#\/?/, '') && staffTabAllowed(session.user, k)) || null);
   const [tab, setTabState] = useState(initialTab.current || 'overview');
   // Keep the open page in the URL so a browser refresh stays on the same page.
   const setTab = useCallback(next => { setTabState(next); try { const t = typeof next === 'function' ? null : next; if (t) history.replaceState(null, '', `${location.pathname}${location.search}#${t}`); } catch { /* URL sync is optional */ } }, []);
@@ -586,6 +589,7 @@ export default function Dashboard() {
   const currentStore = stores.find(s => String(s.id) === String(storeId));
   useEffect(() => { const h = ot(headings[tab]?.[0] || '')?.replace(/\.$/, ''); document.title = [h, currentStore?.name, 'Digital Shop'].filter(Boolean).join(' - '); return () => { document.title = 'Digital Shop - Your shop, one link away'; }; }, [tab, currentStore?.name, ownerLanguage]);
   useEffect(() => { if (tab === 'leads' && currentStore?.storeType === 'restaurant') setTab('restaurant'); }, [tab, currentStore?.storeType]);
+  useEffect(() => { if (!staffTabAllowed(session.user, tab)) setTab('overview'); }, [tab, session.user]);
   const tabLocked = currentStore ? isTabLocked(currentStore, tab) : false;
   const BASE = import.meta.env.VITE_API_URL || '';
   // Changing one order's status updates only that order's card. No dashboard-wide reload, no list reset, other cards stay usable.
