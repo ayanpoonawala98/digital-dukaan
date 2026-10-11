@@ -27,7 +27,12 @@ for(const [type,slug] of stores) for(const width of [390,1280]) {
   const product=page.locator('main a[href*="/product/"]').first();
   if(await product.count()){
    await product.click();await expect(page).toHaveURL(/\/product\/\d+/);
-   await expect(page.locator('main')).toBeVisible();
+   await expect(page.locator('main h1')).toContainText('QA');
+   if(width===390){
+    await expect(page.locator('header.header select')).toBeVisible();
+    const controls=await page.locator('header.header').evaluate(h=>[...h.querySelectorAll('button,select')].filter(el=>getComputedStyle(el).display!=='none').map(el=>({label:el.getAttribute('aria-label'),x:el.getBoundingClientRect().x,right:el.getBoundingClientRect().right})));
+    for(const b of controls){expect(b.x,`${b.label} left edge`).toBeGreaterThanOrEqual(0);expect(b.right,`${b.label} right edge`).toBeLessThanOrEqual(width);}
+   }
    expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
   }else test.info().annotations.push({type:'coverage',description:'No product fixture: product-detail path not exercised'});
   expect(errors,'Uncaught browser errors').toEqual([]);
@@ -39,4 +44,11 @@ test('public routes: login/signup/near, required form validation, protected dash
  await page.goto('/dashboard');await expect(page).toHaveURL(/\/login/);
  await page.goto('/signup');await expect(page.locator('form')).toBeVisible();
  await page.goto('/near');await expect(page.locator('main')).toBeVisible();
+});
+for(const [type,slug,id] of [['services','qa-service-20261008',102],['restaurant','qa-restaurant-20261008',101]])test(`${type} mobile product header English controls stay on screen`,async({page})=>{
+ await page.setViewportSize({width:390,height:844});await page.goto(`/store/${slug}/product/${id}`);
+ await expect(page.locator('main h1')).toContainText('QA');
+ await page.locator('header.header select').selectOption('en');
+ const controls=await page.locator('header.header').evaluate(h=>[...h.querySelectorAll('button,select')].map(el=>({label:el.getAttribute('aria-label'),right:el.getBoundingClientRect().right})));
+ for(const b of controls)expect(b.right,`${b.label} right edge`).toBeLessThanOrEqual(390);
 });
