@@ -274,10 +274,15 @@ r.post('/stores/:slug/my-orders', wrap(async (req, res) => {
     for (const sub of subs) {
       const key = `${sub.orderType}:${sub.orderId}`;
       if (!refs.has(key)) {
-        // The saved return link carries the signed access the subscription was made with. Its scope must survive: a history-scoped
-        // link never turns into a full-detail read just because it was reached through a push endpoint.
-        let phoneOnly = false;
-        try { const t = decodeURIComponent(String(sub.returnPath || '').split('#token=')[1] || ''); const acc = verifyTracking(t, sub.orderId, sub.orderType); phoneOnly = acc.businessId === business.id && acc.scope === 'history'; } catch { /* legacy or unverifiable link: treated as before */ }
+        // The saved return link carries the signed access the subscription was made with. Only a verified, bound, ordinary order-time
+        // link keeps the full view. A history-scoped link (even expired), or anything unknown, unverifiable or mismatched, stays restricted:
+        // age or a bad link must never loosen the view. Nothing is renewed here; fresh access needs a valid verified session.
+        let phoneOnly = true;
+        try {
+          const t = decodeURIComponent(String(sub.returnPath || '').split('#token=')[1] || '');
+          const acc = jwt.verify(t, process.env.JWT_SECRET, { audience: 'restaurant-tracking', issuer: 'digital-dukaan', algorithms: ['HS256'], ignoreExpiration: true });
+          if (acc.orderId === sub.orderId && (acc.kind || 'restaurant') === sub.orderType && acc.businessId === business.id && acc.scope !== 'history') phoneOnly = false;
+        } catch { /* unverifiable: stays restricted */ }
         refs.set(key, { kind: sub.orderType, id: sub.orderId, phoneOnly });
       }
       paths.set(key, sub.returnPath);
