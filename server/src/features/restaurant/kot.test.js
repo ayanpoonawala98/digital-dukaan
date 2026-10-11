@@ -14,3 +14,11 @@ test('after add-items only new quantities print', () => {
   assert.deepEqual(l.map(x => [x.name, x.qty]), [['Paneer Tikka', 1], ['Lassi', 1]]);
 });
 test('reprint all ignores history', () => { assert.equal(kotLines([a, b], printedMap([a, b]), 'all').length, 2); });
+import { revisedLines } from './kot-lines.js';
+test('lowered or removed lines are reported after a print, names kept', () => {
+  const printed = printedMap([a, b]);
+  assert.deepEqual(revisedLines([a, b], printed), []);
+  assert.deepEqual(revisedLines([{ ...a, qty: 1 }, b], printed).map(x => [x.name, x.from, x.to]), [['Paneer Tikka Full', 2, 1]]);
+  assert.deepEqual(revisedLines([a], printed).map(x => [x.name, x.from, x.to]), [['Naan', 3, 0]]);
+  assert.equal(kotLines([{ ...a, qty: 1 }, b], printed).length, 0);
+});

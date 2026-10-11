@@ -1928,6 +1928,102 @@ export const ownerMessages = {
     "hi": "नया ऑर्डर",
     "mr": "नवीन ऑर्डर"
   },
+  "Edit items": {
+    "hi": "आइटम बदलें",
+    "mr": "आयटम बदला"
+  },
+  "Edit items - Order #{id}": {
+    "hi": "आइटम बदलें - ऑर्डर #{id}",
+    "mr": "आयटम बदला - ऑर्डर #{id}"
+  },
+  "The kitchen has not accepted this order yet. You can lower or remove items. Nothing changes in the kitchen until you save.": {
+    "hi": "किचन ने अभी यह ऑर्डर स्वीकार नहीं किया है। आप आइटम घटा या हटा सकते हैं। सेव करने तक किचन में कुछ नहीं बदलेगा।",
+    "mr": "किचनने ही ऑर्डर अजून स्वीकारलेली नाही. तुम्ही आयटम कमी किंवा काढू शकता. सेव करेपर्यंत किचनमध्ये काही बदलणार नाही."
+  },
+  "was {v0}": {
+    "hi": "पहले {v0}",
+    "mr": "आधी {v0}"
+  },
+  "Removed": {
+    "hi": "हटाया गया",
+    "mr": "काढले"
+  },
+  "Items total": {
+    "hi": "आइटम का कुल",
+    "mr": "आयटमची एकूण रक्कम"
+  },
+  "That would remove every item. Cancel the order instead.": {
+    "hi": "इससे सारे आइटम हट जाएँगे। इसके बजाय ऑर्डर रद्द करें।",
+    "mr": "यामुळे सर्व आयटम निघतील. त्याऐवजी ऑर्डर रद्द करा."
+  },
+  "Save changes · {v0}": {
+    "hi": "बदलाव सेव करें · {v0}",
+    "mr": "बदल सेव्ह करा · {v0}"
+  },
+  "Could not save the changes": {
+    "hi": "बदलाव सेव नहीं हो सके",
+    "mr": "बदल सेव्ह करता आले नाहीत"
+  },
+  "You have unsaved bill adjustments. They are not saved yet and will be discarded. Continue?": {
+    "hi": "बिल के बदलाव सेव नहीं हुए हैं और हट जाएँगे। आगे बढ़ें?",
+    "mr": "बिलमधील बदल सेव्ह झालेले नाहीत आणि रद्द होतील. पुढे जायचे?"
+  },
+  "Editing items will discard your unsaved bill adjustments and refresh the bill from the saved order. Continue?": {
+    "hi": "आइटम बदलने से बिल के सेव न किए गए बदलाव हट जाएँगे और बिल सेव किए गए ऑर्डर से फिर बनेगा। आगे बढ़ें?",
+    "mr": "आयटम बदलल्याने बिलचे सेव्ह नसलेले बदल रद्द होतील आणि बिल सेव्ह केलेल्या ऑर्डरवरून पुन्हा तयार होईल. पुढे जायचे?"
+  },
+  "Bill adjustments only. They do not change the kitchen order and are saved only when the bill is settled.": {
+    "hi": "सिर्फ बिल के बदलाव। ये किचन ऑर्डर नहीं बदलते और बिल चुकता होने पर ही सेव होते हैं।",
+    "mr": "फक्त बिलातील बदल. हे किचन ऑर्डर बदलत नाहीत आणि बिल भरल्यावरच सेव्ह होतात."
+  },
+  "This order is already billed, so it can no longer be edited.": {
+    "hi": "यह ऑर्डर बिल हो चुका है, इसलिए अब बदला नहीं जा सकता।",
+    "mr": "ही ऑर्डर बिल झाली आहे, त्यामुळे आता बदलता येत नाही."
+  },
+  "This order is cancelled, so it can no longer be edited.": {
+    "hi": "यह ऑर्डर रद्द है, इसलिए अब बदला नहीं जा सकता।",
+    "mr": "ही ऑर्डर रद्द आहे, त्यामुळे आता बदलता येत नाही."
+  },
+  "This order is already paid online, so it can no longer be edited.": {
+    "hi": "इस ऑर्डर का ऑनलाइन भुगतान हो चुका है, इसलिए अब बदला नहीं जा सकता।",
+    "mr": "या ऑर्डरचे ऑनलाइन पेमेंट झाले आहे, त्यामुळे आता बदलता येत नाही."
+  },
+  "This order is already completed, so it can no longer be edited.": {
+    "hi": "यह ऑर्डर पूरा हो चुका है, इसलिए अब बदला नहीं जा सकता।",
+    "mr": "ही ऑर्डर पूर्ण झाली आहे, त्यामुळे आता बदलता येत नाही."
+  },
+  "The kitchen has already accepted this order, so its items are locked. Use Add items to order more.": {
+    "hi": "किचन ने यह ऑर्डर स्वीकार कर ली है, इसलिए आइटम लॉक हैं। और मँगाने के लिए आइटम जोड़ें इस्तेमाल करें।",
+    "mr": "किचनने ही ऑर्डर स्वीकारली आहे, त्यामुळे आयटम लॉक आहेत. आणखी मागवण्यासाठी आयटम जोडा वापरा."
+  },
+  "Edit items can only lower or remove items. Use Add items to order more.": {
+    "hi": "आइटम बदलें से सिर्फ आइटम घटा या हटा सकते हैं। और मँगाने के लिए आइटम जोड़ें इस्तेमाल करें।",
+    "mr": "आयटम बदला मध्ये फक्त आयटम कमी किंवा काढता येतात. आणखी मागवण्यासाठी आयटम जोडा वापरा."
+  },
+  "That item is no longer on the order. Reload and try again.": {
+    "hi": "वह आइटम अब ऑर्डर में नहीं है। रीलोड करके फिर कोशिश करें।",
+    "mr": "तो आयटम आता ऑर्डरमध्ये नाही. रीलोड करून पुन्हा प्रयत्न करा."
+  },
+  "Delivery fee": {
+    "hi": "डिलीवरी शुल्क",
+    "mr": "डिलिव्हरी शुल्क"
+  },
+  "New order total": {
+    "hi": "ऑर्डर का नया कुल",
+    "mr": "ऑर्डरची नवी एकूण रक्कम"
+  },
+  "Could not check the new total": {
+    "hi": "नया कुल जाँचा नहीं जा सका",
+    "mr": "नवी एकूण रक्कम तपासता आली नाही"
+  },
+  "Items were just changed on an order. Reopen the bill and check it again.": {
+    "hi": "किसी ऑर्डर के आइटम अभी बदले गए हैं। बिल फिर खोलकर जाँचें।",
+    "mr": "एका ऑर्डरचे आयटम आत्ताच बदलले आहेत. बिल पुन्हा उघडून तपासा."
+  },
+  "These items total less than the order's existing discount. Keep enough items to cover the discount, or cancel the order.": {
+    "hi": "इन आइटम का कुल ऑर्डर की मौजूदा छूट से कम है। छूट पूरी करने लायक आइटम रखें, या ऑर्डर रद्द करें।",
+    "mr": "या आयटमची एकूण रक्कम ऑर्डरच्या सध्याच्या सवलतीपेक्षा कमी आहे. सवलत कव्हर होईल इतके आयटम ठेवा किंवा ऑर्डर रद्द करा."
+  },
   "Add items": {
     "hi": "सामान जोड़ें",
     "mr": "वस्तू जोडा"
