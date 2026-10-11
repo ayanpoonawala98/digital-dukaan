@@ -1,17 +1,20 @@
-// Storefront phone verification by inbound WhatsApp. The customer sends "DS VERIFY <token>" to the platform number;
-// the signed webhook proves the sender. No outbound code, no template. Everything is store scoped.
+// Platform phone identity, proved by an inbound WhatsApp message. The customer sends "DS VERIFY <token>" to the platform number;
+// the signed webhook proves the sender. One platform identity per normalized phone, one Secure HttpOnly cookie session per browser.
+// Stores never share data: each store keeps its own enrollment and its own Customers row. No outbound message is ever sent.
+// v1 covers storefronts on the platform's own site (same-site as the API). Custom domains are not covered.
 import QRCode from 'qrcode';
-import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { DataTypes, Op } from 'sequelize';
 import { sequelize } from '../../config/db.js';
 import { bad, wrap } from '../../shared/utils/core.js';
-import { clientIp } from '../../shared/abuse-limits.js';
 import { orderPhone } from '../crm/customer-pure.js';
 import { Customer, crmEnabled } from '../crm/crm.js';
 
 export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const RECOVER_MS = 10 * 60 * 1000; // a dropped claim response can be recovered for this long
 const MAX_MESSAGE_AGE_MS = 10 * 60 * 1000;
+export const COOKIE = 'ds_id';
 export const flagOn = () => process.env.STOREFRONT_VERIFY_WHATSAPP_ENABLED === 'true';
 // Optional staged rollout: STOREFRONT_VERIFY_STORE_SLUGS=slug-a,slug-b limits verification to those stores. Unset means every store.
 export function enabledForSlug(slug) {
@@ -26,6 +29,27 @@ export const newToken = () => { const b = randomBytes(26); let s = ''; for (cons
 export const TOKEN_RE = /^[A-HJ-NP-Z2-9]{26}$/;
 export const parseVerifyText = text => { const m = /^\s*DS VERIFY ([A-Za-z0-9]{26})\s*$/i.exec(String(text || '')); return m ? m[1].toUpperCase() : null; };
 const isVerifyLike = text => /^\s*DS\s+VERIFY\b/i.test(String(text || ''));
+const safeEq = (a, b) => { const x = Buffer.from(String(a || '')), y = Buffer.from(String(b || '')); return x.length === y.length && timingSafeEqual(x, y); };
+
+export const PlatformIdentity = sequelize.define('PlatformIdentity', {
+  id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
+  phone: { type: DataTypes.STRING(15), allowNull: false, unique: true }
+}, { tableName: 'platform_identities' });
+
+export const PlatformSession = sequelize.define('PlatformSession', {
+  id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
+  tokenHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
+  identityId: { type: DataTypes.BIGINT, allowNull: false },
+  expiresAt: { type: DataTypes.DATE, allowNull: false }, // absolute, never extended
+  revokedAt: { type: DataTypes.DATE, allowNull: true }
+}, { tableName: 'platform_sessions', indexes: [{ fields: ['identityId'] }] });
+
+// One row per (store, identity). The store's Customers row is created or reused by phone; nothing else is copied between stores.
+export const StoreEnrollment = sequelize.define('StoreEnrollment', {
+  id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
+  businessId: { type: DataTypes.INTEGER, allowNull: false },
+  identityId: { type: DataTypes.BIGINT, allowNull: false }
+}, { tableName: 'store_enrollments', indexes: [{ unique: true, fields: ['businessId', 'identityId'], name: 'store_enrollments_store_identity' }] });
 
 export const VerifyChallenge = sequelize.define('StorefrontVerifyChallenge', {
   id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
@@ -33,24 +57,25 @@ export const VerifyChallenge = sequelize.define('StorefrontVerifyChallenge', {
   businessId: { type: DataTypes.INTEGER, allowNull: false },
   tokenHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
   browserHash: { type: DataTypes.STRING(64), allowNull: false },
+  claimHash: { type: DataTypes.STRING(64), allowNull: true }, // browser-held secret that lets only this browser claim the session
   phone: { type: DataTypes.STRING(15), allowNull: false },
   purpose: { type: DataTypes.STRING(20), allowNull: false, defaultValue: 'checkout' },
   expiresAt: { type: DataTypes.DATE, allowNull: false },
   consumedAt: { type: DataTypes.DATE, allowNull: true },
   claimedAt: { type: DataTypes.DATE, allowNull: true },
-  sessionHash: { type: DataTypes.STRING(64), allowNull: true },
+  identityId: { type: DataTypes.BIGINT, allowNull: true },
+  sessionId: { type: DataTypes.BIGINT, allowNull: true },
   messageId: { type: DataTypes.STRING(255), allowNull: true }
 }, { tableName: 'storefront_verify_challenges', indexes: [{ fields: ['businessId', 'phone', 'createdAt'] }, { fields: ['browserHash', 'createdAt'] }] });
 
-export const VerifySession = sequelize.define('StorefrontVerifySession', {
-  id: { type: DataTypes.BIGINT, primaryKey: true, autoIncrement: true },
-  tokenHash: { type: DataTypes.STRING(64), allowNull: false, unique: true },
-  businessId: { type: DataTypes.INTEGER, allowNull: false },
-  browserHash: { type: DataTypes.STRING(64), allowNull: false },
-  phone: { type: DataTypes.STRING(15), allowNull: false },
-  expiresAt: { type: DataTypes.DATE, allowNull: false },
-  revokedAt: { type: DataTypes.DATE, allowNull: true }
-}, { tableName: 'storefront_verify_sessions', indexes: [{ fields: ['businessId', 'phone'] }] });
+let ready;
+const COLS = 'ALTER TABLE storefront_verify_challenges ADD COLUMN IF NOT EXISTS "claimHash" VARCHAR(64), ADD COLUMN IF NOT EXISTS "identityId" BIGINT, ADD COLUMN IF NOT EXISTS "sessionId" BIGINT';
+// Any failure leaves the module not ready and surfaces as an error, rather than serving with half a schema.
+export const ensureVerifySchema = () => (ready ||= (async () => {
+  await sequelize.query('ALTER TABLE IF EXISTS storefront_verify_challenges ADD COLUMN IF NOT EXISTS "claimHash" VARCHAR(64), ADD COLUMN IF NOT EXISTS "identityId" BIGINT, ADD COLUMN IF NOT EXISTS "sessionId" BIGINT');
+  await Promise.all([PlatformIdentity.sync(), PlatformSession.sync(), StoreEnrollment.sync(), VerifyChallenge.sync()]);
+  await sequelize.query(COLS);
+})().catch(e => { ready = null; throw e; }));
 
 let lastPurge = 0;
 // Bounded cleanup of dead rows. Runs at most every 10 minutes per process, from the start route.
@@ -60,11 +85,10 @@ export async function purgeExpiredVerify(now = Date.now()) {
   const cutoff = new Date(now - 24 * 60 * 60 * 1000);
   try {
     await sequelize.query('DELETE FROM storefront_verify_challenges WHERE id IN (SELECT id FROM storefront_verify_challenges WHERE "expiresAt" < :cutoff LIMIT 1000)', { replacements: { cutoff } });
-    await sequelize.query('DELETE FROM storefront_verify_sessions WHERE id IN (SELECT id FROM storefront_verify_sessions WHERE "expiresAt" < :cutoff OR "revokedAt" < :cutoff LIMIT 1000)', { replacements: { cutoff } });
+    await sequelize.query("DO $$ BEGIN IF to_regclass('public.storefront_verify_sessions') IS NOT NULL THEN DELETE FROM storefront_verify_sessions WHERE id IN (SELECT id FROM storefront_verify_sessions WHERE \"expiresAt\" < now() - interval '1 day' OR \"revokedAt\" < now() - interval '1 day' LIMIT 1000); END IF; END $$");
+    await sequelize.query('DELETE FROM platform_sessions WHERE id IN (SELECT id FROM platform_sessions WHERE "expiresAt" < :cutoff OR "revokedAt" < :cutoff LIMIT 1000)', { replacements: { cutoff } });
   } catch (err) { console.error('Verify cleanup failed', { message: err.message }); }
 }
-let ready;
-export const ensureVerifySchema = () => (ready ||= Promise.all([VerifyChallenge.sync(), VerifySession.sync()]).catch(e => { ready = null; throw e; }));
 
 // Webhook allowlist. Both must be configured or nothing is accepted.
 export function allowedSource(wabaId, phoneNumberId) {
@@ -74,11 +98,12 @@ export function allowedSource(wabaId, phoneNumberId) {
 const platformNumber = () => String(process.env.STOREFRONT_VERIFY_WA_NUMBER || '').replace(/\D/g, '');
 export const verifyLink = token => `https://wa.me/${platformNumber()}?text=${encodeURIComponent(`DS VERIFY ${token}`)}`;
 
-async function linkCustomer(businessId, phone) {
+// Create or reuse this store's enrollment and Customers row. Existing rows are never overwritten. Never throws into an order.
+export async function enrollInStore(businessId, identity) {
   try {
-    if (!crmEnabled()) return;
-    await Customer.findOrCreate({ where: { businessId, phone }, defaults: { businessId, phone, name: '', source: 'whatsapp-verified' } });
-  } catch (err) { console.error('Verified customer link failed', { businessId, message: err.message }); }
+    await StoreEnrollment.findOrCreate({ where: { businessId, identityId: identity.id }, defaults: { businessId, identityId: identity.id } });
+    if (crmEnabled()) await Customer.findOrCreate({ where: { businessId, phone: identity.phone }, defaults: { businessId, phone: identity.phone, name: '', source: 'whatsapp-verified' } });
+  } catch (err) { console.error('Store enrollment failed', { businessId, message: err.message }); }
 }
 
 // Handles one inbound message. Returns true when the message is verification traffic and must not go anywhere else.
@@ -89,40 +114,54 @@ export async function handleVerifyMessage({ wabaId, phoneNumberId, message, now 
   const sender = String(message.from || ''), at = Number(message.timestamp) * 1000;
   const token = parseVerifyText(message.text.body);
   if (!token || !/^[1-9]\d{7,14}$/.test(sender) || !message.id || !Number.isFinite(at) || now - at > MAX_MESSAGE_AGE_MS || at > now + 60000) return true;
-  const [count] = await VerifyChallenge.update(
-    { consumedAt: new Date(now), messageId: String(message.id).slice(0, 255) },
-    { where: { tokenHash: sha(token), phone: sender, consumedAt: null, expiresAt: { [Op.gt]: new Date(now) } } });
-  if (count !== 1) return true; // unknown, expired, used, or sender is not the number that was typed
-  const row = await VerifyChallenge.findOne({ where: { tokenHash: sha(token) } });
-  if (row) await linkCustomer(row.businessId, row.phone);
+  // Consume, identity and challenge link commit together. A failed write rolls the consume back, so a redelivery can still succeed.
+  const done = await sequelize.transaction(async transaction => {
+    const [count] = await VerifyChallenge.update(
+      { consumedAt: new Date(now), messageId: String(message.id).slice(0, 255) },
+      { where: { tokenHash: sha(token), phone: sender, consumedAt: null, expiresAt: { [Op.gt]: new Date(now) } }, transaction });
+    if (count !== 1) return null; // unknown, expired, used, or sender is not the number that was typed
+    const row = await VerifyChallenge.findOne({ where: { tokenHash: sha(token) }, transaction });
+    const [identity] = await PlatformIdentity.findOrCreate({ where: { phone: row.phone }, defaults: { phone: row.phone }, transaction });
+    await VerifyChallenge.update({ identityId: identity.id }, { where: { id: row.id }, transaction });
+    return { row, identity };
+  });
+  if (done) await enrollInStore(done.row.businessId, done.identity); // the person just chose this store: intentional
   return true;
 }
 
-async function sessionFor(req, business) {
-  const t = String(req.headers['x-ds-verify'] || '');
-  if (!/^[A-Za-z0-9_-]{40,64}$/.test(t)) return null;
-  const s = await VerifySession.findOne({ where: { tokenHash: sha(t), businessId: business.id, revokedAt: null, expiresAt: { [Op.gt]: new Date() } } });
-  const browser = String(req.headers['x-ds-browser'] || '');
-  if (!s || !browser || !safeEq(s.browserHash, sha(browser))) return null;
-  return s;
-}
-const safeEq = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
+export const parseCookie = (header, name = COOKIE) => { for (const part of String(header || '').split(';')) { const i = part.indexOf('='); if (i > 0 && part.slice(0, i).trim() === name) return part.slice(i + 1).trim(); } return ''; };
+const cookieHeader = (value, maxAgeSeconds) => `${COOKIE}=${value}; Path=/api; Max-Age=${maxAgeSeconds}; HttpOnly; Secure; SameSite=Lax`;
+const setCookie = (res, token) => res.setHeader('Set-Cookie', cookieHeader(token, Math.floor(SESSION_TTL_MS / 1000)));
+const clearCookie = res => res.setHeader('Set-Cookie', cookieHeader('', 0));
 
-// Order guard. No-op while the flag is off. When on, the phone on the order must be the verified phone for this store.
+// The platform session of this request, or null. Identity is derived from the server-side session only.
+export async function platformSession(req) {
+  const t = parseCookie(req.headers?.cookie);
+  if (!/^[A-Za-z0-9_-]{40,64}$/.test(t)) return null;
+  const s = await PlatformSession.findOne({ where: { tokenHash: sha(t), revokedAt: null, expiresAt: { [Op.gt]: new Date() } } });
+  if (!s) return null;
+  const identity = await PlatformIdentity.findOne({ where: { id: s.identityId } });
+  return identity ? { session: s, identity } : null;
+}
+
+// Order guard. No-op while the flag is off for this store. When on, the order phone must be the verified identity's phone;
+// the store's customer is derived and enrolled on the server.
 export async function requireVerifiedPhone(req, business, rawPhone) {
   if (!enabledForSlug(business.slug)) return;
   const phone = orderPhone(rawPhone);
-  const s = phone && await sessionFor(req, business);
-  if (!s || s.phone !== phone) { const e = bad(403, 'Please verify your phone number with WhatsApp to place this order.'); e.code = 'PHONE_NOT_VERIFIED'; throw e; }
+  const auth = phone && await platformSession(req);
+  if (!auth || auth.identity.phone !== phone) { const e = bad(403, 'Please verify your phone number with WhatsApp to place this order.'); e.code = 'PHONE_NOT_VERIFIED'; throw e; }
+  await enrollInStore(business.id, auth.identity);
 }
 
 const quiet = { error: 'Could not start verification. Please try again in a few minutes.' };
 export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
   const guard = (req, res, next) => (enabledForSlug(req.params.slug) ? next() : res.status(404).json({ error: 'Not found' }));
   const browserId = req => { const b = String(req.headers['x-ds-browser'] || ''); return /^[A-Za-z0-9_-]{20,64}$/.test(b) ? b : null; };
+  const secretOf = req => { const s = String(req.body?.claimSecret || ''); return /^[A-Za-z0-9_-]{40,64}$/.test(s) ? s : null; };
   r.use('/stores/:slug/verify', guard);
   r.post('/stores/:slug/verify/start', ...strict, wrap(async (req, res) => {
-    const browser = browserId(req); if (!browser) throw bad(400, 'Invalid request');
+    const browser = browserId(req), claim = secretOf(req); if (!browser || !claim) throw bad(400, 'Invalid request');
     const business = await shop(req.params.slug);
     const phone = orderPhone(req.body?.phone);
     if (!phone || !platformNumber()) throw bad(400, 'Enter a valid phone number with country code');
@@ -135,45 +174,64 @@ export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
       VerifyChallenge.count({ where: { createdAt: { [Op.gt]: since } } })]);
     if (byDevice >= 5 || byNumber >= 3 || global >= 500) return res.status(429).json(quiet);
     const token = newToken(), publicId = randomBytes(18).toString('base64url');
-    await VerifyChallenge.create({ publicId, businessId: business.id, tokenHash: sha(token), browserHash: sha(browser), phone, expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS) });
+    await VerifyChallenge.create({ publicId, businessId: business.id, tokenHash: sha(token), browserHash: sha(browser), claimHash: sha(claim), phone, expiresAt: new Date(Date.now() + CHALLENGE_TTL_MS) });
     const link = verifyLink(token), qrSvg = await QRCode.toString(link, { type: 'svg', margin: 1 });
     res.status(201).json({ challengeId: publicId, link, qrSvg, expiresInSeconds: CHALLENGE_TTL_MS / 1000, number: `+${platformNumber()}`,
       warning: 'Only send this if you started verification on this shop. Never send it because someone else asked.' });
   }));
+  // The browser proves it owns the challenge (browser id + claim secret). The session secret is made here and only ever travels in the cookie.
   r.post('/stores/:slug/verify/status', ...poll, wrap(async (req, res) => {
-    const browser = browserId(req); if (!browser) throw bad(400, 'Invalid request');
+    const browser = browserId(req), claim = secretOf(req); if (!browser || !claim) throw bad(400, 'Invalid request');
     const business = await shop(req.params.slug);
-    // The browser creates its own session secret and sends it here; the server only stores its hash. That makes the claim
-    // idempotent: a dropped response is recovered by asking again with the same secret, and nobody else can be issued a session.
-    const secret = String(req.body?.sessionToken || '');
-    if (!/^[A-Za-z0-9_-]{40,64}$/.test(secret)) throw bad(400, 'Invalid request');
     await ensureVerifySchema();
     const find = () => VerifyChallenge.findOne({ where: { publicId: String(req.body?.challengeId || '').slice(0, 40), businessId: business.id, browserHash: sha(browser) } });
-    let c = await find();
-    if (!c) return res.json({ status: 'expired' });
+    const c = await find();
+    if (!c || !safeEq(c.claimHash, sha(claim))) return res.json({ status: 'expired' });
     if (!c.consumedAt) return res.json({ status: c.expiresAt.getTime() > Date.now() ? 'pending' : 'expired' });
-    const done = row => res.json(row.sessionHash && safeEq(row.sessionHash, sha(secret)) ? { status: 'verified', phone: row.phone, expiresInDays: 30 } : { status: 'expired' });
-    if (c.claimedAt) return done(c);
-    // Claim and session creation commit together or not at all, so a failed write leaves the challenge claimable.
-    await sequelize.transaction(async transaction => {
-      const [claimed] = await VerifyChallenge.update({ claimedAt: new Date(), sessionHash: sha(secret) }, { where: { id: c.id, claimedAt: null }, transaction });
-      if (claimed === 1) await VerifySession.create({ tokenHash: sha(secret), businessId: business.id, browserHash: sha(browser), phone: c.phone, expiresAt: new Date(Date.now() + SESSION_TTL_MS) }, { transaction });
+    if (!c.identityId) return res.json({ status: 'pending' }); // webhook is still finishing
+    // The session secret is derived from the challenge and the browser's claim secret with a server key. Every claim or recovery for the
+    // same challenge therefore yields the same cookie value: nothing is re-keyed, no cookie goes stale, and a repeat is idempotent.
+    const token = createHmac('sha256', String(process.env.JWT_SECRET || '')).update(`verify-session:${c.id}:${claim}`).digest('base64url');
+    const out = await sequelize.transaction(async transaction => {
+      const [claimed] = await VerifyChallenge.update({ claimedAt: new Date() }, { where: { id: c.id, claimedAt: null }, transaction });
+      if (claimed === 1) {
+        const sess = await PlatformSession.create({ tokenHash: sha(token), identityId: c.identityId, expiresAt: new Date(Date.now() + SESSION_TTL_MS) }, { transaction });
+        await VerifyChallenge.update({ sessionId: sess.id }, { where: { id: c.id }, transaction });
+        return { issued: true };
+      }
+      // Already claimed: the same browser may collect the same session again for a short while (dropped response, retry).
+      const again = await VerifyChallenge.findOne({ where: { id: c.id }, transaction });
+      if (!again?.claimedAt || Date.now() - new Date(again.claimedAt).getTime() > RECOVER_MS) return { issued: false };
+      const live = await PlatformSession.findOne({ where: { tokenHash: sha(token), revokedAt: null, expiresAt: { [Op.gt]: new Date() } }, transaction });
+      return { issued: Boolean(live) };
     });
-    c = await find();
-    return done(c);
+    if (!out.issued) return res.json({ status: 'expired' });
+    setCookie(res, token);
+    res.json({ status: 'verified', phone: c.phone, expiresInDays: 30 });
   }));
   r.get('/stores/:slug/verify/session', ...poll, wrap(async (req, res) => {
-    const business = await shop(req.params.slug);
+    await shop(req.params.slug);
     await ensureVerifySchema();
-    const s = await sessionFor(req, business);
-    res.json(s ? { verified: true, phone: s.phone } : { verified: false });
+    const a = await platformSession(req);
+    res.json(a ? { verified: true, phone: a.identity.phone } : { verified: false });
   }));
-  r.post('/stores/:slug/verify/logout', ...strict, wrap(async (req, res) => {
+  // Intentional authenticated visit: the shopper asked to continue as this verified number in this store.
+  r.post('/stores/:slug/verify/enroll', ...poll, wrap(async (req, res) => {
     const business = await shop(req.params.slug);
+    if (!browserId(req)) throw bad(400, 'Invalid request');
     await ensureVerifySchema();
-    const s = await sessionFor(req, business);
-    if (s) await s.update({ revokedAt: new Date() });
+    const a = await platformSession(req);
+    if (!a) return res.json({ verified: false });
+    await enrollInStore(business.id, a.identity);
+    res.json({ verified: true, phone: a.identity.phone });
+  }));
+  // Logout ends this browser's session. "all" ends every session of the identity on every device. A store's own block stays store-local.
+  r.post('/stores/:slug/verify/logout', ...strict, wrap(async (req, res) => {
+    await shop(req.params.slug);
+    await ensureVerifySchema();
+    const a = await platformSession(req);
+    if (a) await (req.body?.all === true ? PlatformSession.update({ revokedAt: new Date() }, { where: { identityId: a.identity.id, revokedAt: null } }) : a.session.update({ revokedAt: new Date() }));
+    clearCookie(res);
     res.json({ ok: true });
   }));
 }
-export { clientIp };

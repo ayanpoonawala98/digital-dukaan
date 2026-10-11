@@ -30,16 +30,24 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 const allowedOrigins = process.env.CLIENT_URL?.split(',').map(o => o.trim()) || ['http://localhost:5173'];
 // Global CORS: platform origins from CLIENT_URL only. A client's custom domain is allowed on /api/public only (below),
 // as its exact https origin while it is live. It never reaches auth, owner, admin or internal routes.
-app.use(cors({ origin(origin, callback) {
+const globalCors = cors({ origin(origin, callback) {
   if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
   callback(null, false);
-} }));
+} });
+// /api/public answers its own CORS (below), preflights included, so the credentialed verification cookie works. Everything else is unchanged.
+app.use((req, res, next) => (req.path.startsWith('/api/public') ? next() : globalCors(req, res, next)));
 app.use('/api/integrations/whatsapp/webhook', whatsappWebhook);
 app.use('/api/integrations/whatsapp-byo', rateLimit({ windowMs: 60 * 1000, limit: 300, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), byoWebhook);
 app.use(express.json({ limit: '100kb' }));
 app.use('/uploads', express.static(path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../uploads')));
 app.use('/api/auth', rateLimit({ windowMs: 15 * 60 * 1000, limit: 30, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), authRoutes);
-app.use('/api/public', cors({ origin(origin, callback) { if (!origin) return callback(null, true); originAllowed(origin).then(ok => callback(null, ok), () => callback(null, false)); } }), rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), publicRoutes);
+app.use('/api/public', cors((req, callback) => {
+  const origin = req.headers.origin;
+  if (!origin) return callback(null, { origin: true });
+  // Cookies (credentials) are only ever allowed for the platform's own origins. A client's custom domain gets plain CORS.
+  if (allowedOrigins.includes(origin)) return callback(null, { origin: true, credentials: true });
+  originAllowed(origin).then(ok => callback(null, { origin: ok }), () => callback(null, { origin: false }));
+}), rateLimit({ windowMs: 60 * 1000, limit: 120, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}` }), publicRoutes);
 const apiLimit = max => rateLimit({ windowMs: 60 * 1000, limit: max, standardHeaders: 'draft-7', legacyHeaders: false, validate: { trustProxy: false, keyGeneratorIpFallback: false, ip: false }, keyGenerator: req => `ip:${clientIp(req)}`, message: { error: 'Too many requests. Slow down and try again shortly.' } });
 app.use('/api/owner', apiLimit(600), ownerRoutes);
 app.use('/api/admin', apiLimit(300), adminRoutes);

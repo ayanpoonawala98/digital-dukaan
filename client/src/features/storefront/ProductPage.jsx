@@ -18,6 +18,7 @@ import { saveOrder } from './my-orders.js';
 import { useCart, useWishlist } from './shop.js';
 import { Footer, Header } from '../../shared/components/chrome.jsx';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
+import { useVerifyGate } from '../../shared/components/VerifyGate.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
 import ProductReviews from '../reviews/ProductReviews.jsx';
 import { Stars } from '../reviews/Stars.jsx';
@@ -25,9 +26,14 @@ import { useSeo } from '../../shared/lib/seo.js';
 
 function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [contact, setContact] = useContact();
-  const buy = async () => {
+  const startBuy = () => {
     const missing = missingRequired(fields, answers);
     if (missing.length) { setError(st("Please answer: {v0}", {v0:missing.map(f => f.label).join(', ')})); return; }
+    setError(''); gate.run();
+  };
+  const gate = useVerifyGate({ slug, phone: contact.phone, setPhone: p => setContact({ ...contact, phone: p }), onProceed: () => buy(), contextKey: JSON.stringify([id, qty, answers, contact.name, contact.email, contact.emailConsent]) });
+  const buy = async () => {
+    if (busy || blocked || missingRequired(fields, answers).length) return; // re-validated after any verification wait
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
@@ -36,7 +42,7 @@ function BuyButton({ slug, id, qty, fields, answers, children, blocked }) {
       if (tab) tab.location.href = url; else window.location.href = url;
     } catch (e) { if (tab) tab.close(); setError(e.message); } finally { setBusy(false); }
   };
-  return <><ContactFields contact={contact} onChange={setContact} slug={slug}/><button onClick={buy} disabled={busy || blocked} className="btn btn-green">{busy ? st("Opening...") : children || st("Buy on WhatsApp")} <ArrowUpRight size={18}/></button>{error && <small className="error-text">{storefrontError(error)}</small>}</>;
+  return <><ContactFields contact={contact} onChange={setContact} /><button onClick={startBuy} disabled={busy || blocked || gate.checking} className="btn btn-green">{busy ? st("Opening...") : children || st("Buy on WhatsApp")} <ArrowUpRight size={18}/></button>{gate.modal}{error && <small className="error-text">{storefrontError(error)}</small>}</>;
 }
 
 export default function ProductPage({ hostedSlug }) {

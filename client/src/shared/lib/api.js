@@ -1,4 +1,4 @@
-import { verifyHeaders } from './phone-verify.js';
+import { verifyHeaders, needsCredentials } from './phone-verify.js';
 import { notify, successFor } from '../../features/notifications/notifications.js';
 const BASE = import.meta.env.VITE_API_URL || '';
 export const imageSrc = url => url?.startsWith('/uploads/') ? `${BASE}${url}` : url;
@@ -10,14 +10,16 @@ export async function api(path, { token, body, feedback = true, successMessage, 
   const isForm = body instanceof FormData;
   const method = (options.method || 'GET').toUpperCase();
   let data;
+  let status = 0;
   try {
-    const res = await fetch(`${BASE}/api${path}`, { cache: 'no-store', ...options, headers: { ...(isForm || body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...verifyHeaders(path, method), ...options.headers }, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body) });
+    const res = await fetch(`${BASE}/api${path}`, { cache: 'no-store', ...(needsCredentials(path) ? { credentials: 'include' } : {}), ...options, headers: { ...(isForm || body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...verifyHeaders(path, method), ...options.headers }, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body) });
+    status = res.status;
     data = res.status === 204 ? null : await res.json().catch(() => ({}));
     if (!res.ok) throw Error(res.status === 403 ? reason403(data?.error) : data?.error || 'Something went wrong. Please try again.');
   } catch (error) {
     const message = error instanceof TypeError ? 'Unable to connect. Check your internet connection and try again.' : error.message;
     if (feedback) notify('error', message);
-    throw Error(message);
+    throw Object.assign(Error(message), { status });
   }
   if (feedback && !['GET', 'HEAD', 'OPTIONS'].includes(method)) notify('success', successMessage || successFor(path, method, data));
   return data;

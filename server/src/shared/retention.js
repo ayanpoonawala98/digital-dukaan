@@ -26,9 +26,11 @@ export async function purgeExpiredStore(now = new Date()) {
       if (crmTables[0].cmessages) await sequelize.query('DELETE FROM customer_messages WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       if (crmTables[0].customers) await sequelize.query('DELETE FROM customers WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       if (crmTables[0].batches) await sequelize.query('DELETE FROM customer_import_batches WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
-      const [vt] = await sequelize.query("SELECT to_regclass('public.storefront_verify_challenges') AS ch, to_regclass('public.storefront_verify_sessions') AS se", { transaction });
+      const [vt] = await sequelize.query("SELECT to_regclass('public.storefront_verify_challenges') AS ch, to_regclass('public.store_enrollments') AS se", { transaction });
       if (vt[0].ch) await sequelize.query('DELETE FROM storefront_verify_challenges WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
-      if (vt[0].se) await sequelize.query('DELETE FROM storefront_verify_sessions WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
+      if (vt[0].se) await sequelize.query('DELETE FROM store_enrollments WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
+      const [old] = await sequelize.query("SELECT to_regclass('public.storefront_verify_sessions') AS s", { transaction });
+      if (old[0].s) await sequelize.query('DELETE FROM storefront_verify_sessions WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       const [rv] = await sequelize.query("SELECT to_regclass('public.reviews') AS reviews", { transaction });
       if (rv[0].reviews) await sequelize.query('DELETE FROM reviews WHERE "businessId" = :id', { replacements: { id: store.id }, transaction });
       for (const Model of [PushSubscription, RestaurantOrder, Coupon, Lead, Product]) await Model.destroy(options);

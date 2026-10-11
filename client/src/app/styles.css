@@ -1863,3 +1863,7 @@ div.row-actions { display: flex; flex-wrap: wrap; gap: var(--gap-1); }
   .mnav-sheet-super .mnav-account { margin-top: var(--gap-3); }
   .mnav-sheet-super .mnav-account > * { min-height: 48px; }
 }
+
+/* WhatsApp verify QR: only worth showing where a phone can scan the screen (not on a phone itself). */
+.desktop-only { display: none; }
+@media (min-width: 700px) and (hover: hover) { .desktop-only { display: block; margin: 12px auto 0; } }

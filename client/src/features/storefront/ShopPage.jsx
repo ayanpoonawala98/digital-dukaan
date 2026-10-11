@@ -19,6 +19,7 @@ import { st } from '../../shared/lib/storefront-i18n.js';
 import { useStorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
 import { useCouponPreview, totalAfterCoupon } from '../../shared/lib/coupon-preview.js';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
+import { useVerifyGate } from '../../shared/components/VerifyGate.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
 import RestaurantCheckout from '../restaurant/RestaurantCheckout.jsx';
 import MenuItemSheet from '../restaurant/MenuItemSheet.jsx';
@@ -157,7 +158,9 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
   const total = totalAfterCoupon(cart.subtotal, cpv.discount, delivery);
   const belowMin = business.minOrder > 0 && cart.subtotal < business.minOrder;
   const unanswered = cart.items.find(i => missingRequired(i.customFields, i.answers).length);
+  const gate = useVerifyGate({ slug, phone: contact.phone, setPhone: p => setContact({ ...contact, phone: p }), onProceed: () => checkout(), active: open, contextKey: JSON.stringify([cart.items.map(i => [i.id, i.qty, i.answers || {}]), couponCode, contact.name, contact.email, contact.emailConsent]) });
   const checkout = async () => {
+    if (busy || !open || !cart.items.length || business.blocksOrders || belowMin || unanswered) return; // re-validated after any verification wait
     setBusy(true); setError('');
     const tab = window.open('about:blank', '_blank');
     try {
@@ -186,7 +189,7 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
             <button className="icon-btn danger" onClick={() => cart.setQty(item.id, 0)} aria-label={st("Remove {v0}", {v0:item.name})}><Trash2 size={16}/></button>
           </div>)}
         </div>
-        <ContactFields contact={contact} onChange={setContact} slug={slug}/>
+        <ContactFields contact={contact} onChange={setContact}/>
         <label className="coupon-field">{t('couponOpt')}<input value={couponCode} onChange={e => setCouponCode(e.target.value)} maxLength={24} placeholder={'SAVE10'}/></label>
         {couponCode && (cpv.error ? <p className="notice warn" role="status">{storefrontError(cpv.error)}</p> : cpv.checking ? <p className="drawer-hint">{st("Checking coupon...")}</p> : cpv.code ? <p className="drawer-hint">{st("Coupon")} {cpv.code} {st("applied. The shop confirms it again when you order.")}</p> : <p className="drawer-hint">{st("The shop verifies the code before opening WhatsApp.")}</p>)}
         {unanswered && <p className="notice warn">{t('answerReq').replace('{name}', unanswered.name)}</p>}{belowMin && <p className="notice warn">{st("Minimum order is {total}. Add {remaining} more.",{total:inr(business.minOrder),remaining:inr(business.minOrder-cart.subtotal)})}</p>}
@@ -198,7 +201,8 @@ function CartDrawer({ slug, business, cart, orders, open, onClose, lang }) {
           <div><span>{t('deliveryLbl')} {freeAbove ? st("(free above {v0})", {v0:inr(freeAbove)}) : ''}</span><b>{delivery === 0 ? t('freeLbl') : inr(delivery)}</b></div>
           <div className="grand"><span>{t('totalLbl')}</span><b>{inr(total)}</b></div>
         </div>
-        <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered) || business.blocksOrders} onClick={checkout}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
+        <button className="btn btn-green full" disabled={busy || belowMin || Boolean(unanswered) || business.blocksOrders || gate.checking} onClick={() => gate.run()}>{busy ? t('opening') : t('cart')} <ArrowUpRight size={18}/></button>
+        {gate.modal}
         <p className="drawer-hint">{t('noCharge')}</p>
         </div>
       </>}

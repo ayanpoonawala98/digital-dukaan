@@ -255,10 +255,10 @@ test('role denial: domain routes sit behind auth + roles(superadmin) and are not
 test('CORS: app.js keeps global cors on CLIENT_URL only and mounts dynamic origins on /api/public only', async () => {
   const fs = await import('node:fs');
   const app = fs.readFileSync(new URL('../../app.js', import.meta.url), 'utf8');
-  const global = app.slice(app.indexOf('app.use(cors('), app.indexOf("app.use('/api/integrations/whatsapp/webhook'"));
+  const global = app.slice(app.indexOf('const globalCors = cors('), app.indexOf("app.use('/api/integrations/whatsapp/webhook'"));
   assert.ok(!global.includes('originAllowed'));
   assert.equal((app.match(/originAllowed\(origin\)/g) || []).length, 1);
-  assert.match(app, /app\.use\('\/api\/public', cors\(\{[^]*?originAllowed\(origin\)/);
+  assert.match(app, /app\.use\('\/api\/public', cors\(\(req, callback\) => \{[^]*?originAllowed\(origin\)/);
 });
 test('paused or deleted store drops out of the origin allowlist', async () => {
   const dom = { hostname: 'cors.example.org', businessId: 1, ownershipStatus: 'ok', dnsStatus: 'ok', hostingStatus: 'ok', httpsStatus: 'ok', routingStatus: 'ok' };

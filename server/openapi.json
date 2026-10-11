@@ -11234,12 +11234,64 @@
         "security": []
       }
     },
+    "/api/public/stores/{slug}/verify/enroll": {
+      "post": {
+        "tags": [
+          "Storefront (public)"
+        ],
+        "summary": "POST /api/public/stores/{slug}/verify/enroll",
+        "description": "Intentional authenticated visit: the shopper asked to continue as this verified number in this store.",
+        "operationId": "post_api_public_stores_slug_verify_enroll",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success (JSON)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": []
+      }
+    },
     "/api/public/stores/{slug}/verify/logout": {
       "post": {
         "tags": [
           "Storefront (public)"
         ],
         "summary": "POST /api/public/stores/{slug}/verify/logout",
+        "description": "Logout ends this browser's session. \"all\" ends every session of the identity on every device. A store's own block stays store-local.",
         "operationId": "post_api_public_stores_slug_verify_logout",
         "parameters": [
           {
@@ -11379,6 +11431,7 @@
           "Storefront (public)"
         ],
         "summary": "POST /api/public/stores/{slug}/verify/status",
+        "description": "The browser proves it owns the challenge (browser id + claim secret). The session secret is made here and only ever travels in the cookie.",
         "operationId": "post_api_public_stores_slug_verify_status",
         "parameters": [
           {

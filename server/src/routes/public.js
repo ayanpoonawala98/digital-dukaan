@@ -25,7 +25,7 @@ import { orderBotEnabledFor, withOrderRef, newClaimCode } from '../features/what
 import { notifyNewOrder as notifyNewOrderWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { notifyShopRequest } from '../features/platform/platform-alerts.js';
 import { publicDomainRoutes } from '../features/domains/domain-public.js';
-import { installVerifyRoutes, requireVerifiedPhone } from '../features/whatsapp/storefront-verify.js';
+import { installVerifyRoutes, requireVerifiedPhone, enabledForSlug } from '../features/whatsapp/storefront-verify.js';
 const r = Router();
 r.use(publicDomainRoutes);
 r.post('/stores/:slug/restaurant-orders', ...orderLimits);
@@ -123,13 +123,14 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   if (blocksOrders(business)) throw bad(409, 'The shop is closed right now and is not taking orders. Please try again when it opens.');
   if (business.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
   const { orderType, tableNumber, customerName, customerPhone, deliveryAddress } = req.body || {};
-  if (orderType !== 'dine-in') await requireVerifiedPhone(req, business, customerPhone);
+  const verifyOn = enabledForSlug(business.slug); // when on, every order type (dine-in included) needs a verified phone
+  if (verifyOn || orderType !== 'dine-in') await requireVerifiedPhone(req, business, customerPhone);
   if (!['dine-in', 'takeaway', 'delivery'].includes(orderType)) throw bad(400, 'Select order type');
   const table = Number(tableNumber);
   if (orderType === 'dine-in' && (!Number.isInteger(table) || table < 1 || table > business.tableCount)) throw bad(400, 'Select a valid table number');
   if (orderType !== 'dine-in' && (typeof customerName !== 'string' || !customerName.trim() || customerName.trim().length > 100)) throw bad(400, 'Please enter your name');
-  if (orderType !== 'dine-in' && (typeof customerPhone !== 'string' || !customerPhone.trim())) throw bad(400, 'Please enter your phone number');
-  if (orderType !== 'dine-in' && !/^[+\d()\s-]{8,25}$/.test(customerPhone.trim())) throw bad(400, 'Phone number looks wrong. Use digits only, 8 to 15 digits, with country code');
+  if ((verifyOn || orderType !== 'dine-in') && (typeof customerPhone !== 'string' || !customerPhone.trim())) throw bad(400, 'Please enter your phone number');
+  if ((verifyOn || orderType !== 'dine-in') && !/^[+\d()\s-]{8,25}$/.test(customerPhone.trim())) throw bad(400, 'Phone number looks wrong. Use digits only, 8 to 15 digits, with country code');
   if (orderType === 'delivery' && (typeof deliveryAddress !== 'string' || !deliveryAddress.trim() || deliveryAddress.trim().length > 500)) throw bad(400, 'Delivery address required');
   const raw = req.body?.items;
   if (!Array.isArray(raw) || raw.length < 1 || raw.length > 50) throw bad(400, 'Select items');
@@ -158,7 +159,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const total = Number((subtotal - discount + deliveryFee).toFixed(2));
   const orderNote = cleanNote(req.body?.note, 200);
   const estimateMinutes = orderType === 'takeaway' && business.prepMinutes ? business.prepMinutes : null;
-  const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, total, status: 'new' });
+  const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'&&!verifyOn?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, total, status: 'new' });
   void notifyNewOrder(business, 'restaurant', order);
   void recordCustomerOrder(business.id, order);
   void notifyOwnerDevices(business, 'restaurant', order);
@@ -351,7 +352,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   if(!Number.isInteger(qty)||qty<1||qty>99)throw bad(400,'Invalid quantity');
   if (product.stock === 0) throw bad(400, 'This product is out of stock right now');
   if(product.stock!==null&&qty>product.stock)throw bad(400,`Only ${product.stock} left in stock for ${product.name}`);
-  if (req.body?.customerPhone) await requireVerifiedPhone(req, business, req.body.customerPhone);
+  await requireVerifiedPhone(req, business, req.body?.customerPhone); // no blank-phone exception when verification is on
   const subtotal=Number((product.price*qty).toFixed(2));
   if(business.minOrder>0&&subtotal<business.minOrder)throw bad(400,`Minimum order is Rs.${business.minOrder.toFixed(0)}. Add more quantity or use the cart.`);
   const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
@@ -392,7 +393,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
     const answers = validateAnswers(product.customFields, entry.answers, product.name);
     lines.push({ productId: product.id, name: product.name, price: product.price, qty, ...(answers.length ? { answers } : {}) });
   }
-  if (req.body?.customerPhone) await requireVerifiedPhone(req, business, req.body.customerPhone);
+  await requireVerifiedPhone(req, business, req.body?.customerPhone); // no blank-phone exception when verification is on
   const subtotal = lines.reduce((sum, l) => sum + l.price * l.qty, 0);
   if (business.minOrder > 0 && subtotal < business.minOrder) throw bad(400, `Minimum order is Rs.${business.minOrder.toFixed(0)}`);
   const { discount, code } = await applyCoupon(business, subtotal, req.body?.couponCode);

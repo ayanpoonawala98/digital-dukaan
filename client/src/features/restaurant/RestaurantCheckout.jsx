@@ -1,4 +1,4 @@
-import PhoneVerify from '../../shared/components/PhoneVerify.jsx';
+import { useVerifyGate } from '../../shared/components/VerifyGate.jsx';
 import { storefrontError } from '../../shared/lib/storefront-i18n.js';
 import { st } from '../../shared/lib/storefront-i18n.js';
 import { useFeedbackState } from '../../shared/components/Toasts.jsx';
@@ -25,7 +25,6 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const [customerEmail,setCustomerEmail]=useState(''),[customerEmailConsent,setCustomerEmailConsent]=useState(false);
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [vstate, setVstate] = useState({ required: false, verified: true });
   const [orderNote, setOrderNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [placed, setPlaced] = useState(null);
@@ -33,19 +32,29 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const freeAbove = business.freeDeliveryAbove;
   const deliveryFee = orderType === 'delivery' && !(freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove) ? Number(business.deliveryCharge || 0) : 0;
   const cpv = useCouponPreview(slug, couponCode, cart.subtotal);
+  const gate = useVerifyGate({ slug, phone: customerPhone, setPhone: setCustomerPhone, onProceed: () => placeOrder(), active: open, contextKey: JSON.stringify([orderType, tableNumber, customerName, customerEmail, customerEmailConsent, deliveryAddress, couponCode, orderNote, cart.items.map(i => [i.id, i.qty, i.answers || {}, i.variant || null, i.addons || null, i.note || null])]) });
   const submit = async e => {
     e.preventDefault(); if (busy || !cart.items.length) return;
     if (business.blocksOrders) { setError(st("The shop is closed right now and is not taking orders.")); return; }
     if (business.minOrder > 0 && cart.subtotal < business.minOrder) { setError(st("Minimum order is {v0}. Add more items.", {v0:inr(business.minOrder)})); return; }
     const unanswered = cart.items.find(i => missingRequired(i.customFields, i.answers).length);
     if (unanswered) { setError(st("Please answer the required questions for {v0}.", {v0:unanswered.name})); return; }
+    setError('');
+    gate.run(); // verifies the phone first (modal) when this store requires it, then calls placeOrder
+  };
+  const placeOrder = async () => {
+    // Everything the customer could have changed while verifying is re-checked here; the intent is also cancelled on any such change.
+    if (busy || !open || !cart.items.length || business.blocksOrders) return;
+    if (business.minOrder > 0 && cart.subtotal < business.minOrder) return;
+    if (cart.items.some(i => missingRequired(i.customFields, i.answers).length)) return;
+    if (orderType === 'dine-in' ? !tableNumber : orderType === 'delivery' ? !deliveryAddress.trim() || !customerName.trim() : !customerName.trim()) return;
     setBusy(true); setError('');
     try {
       const result = await api(`/public/stores/${slug}/restaurant-orders`, { method: 'POST', body: {
         orderType, tableNumber: orderType === 'dine-in' ? Number(tableNumber) : null,
         customerName: orderType === 'dine-in' ? null : customerName,
         customerEmail,customerEmailConsent,
-        customerPhone: orderType === 'dine-in' ? null : customerPhone,
+        customerPhone: customerPhone.trim() || null,
         deliveryAddress: orderType === 'delivery' ? deliveryAddress : null,
         couponCode: couponCode.trim().toUpperCase(),
         note: orderNote.trim(),
@@ -65,7 +74,8 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
           <form className="restaurant-order-form" onSubmit={submit}>
             <label>{t('type')}<select value={orderType} onChange={e => setOrderType(e.target.value)}><option value="dine-in">{t('dine')}</option><option value="takeaway">{t('takeaway')}</option><option value="delivery">{t('delivery')}</option></select></label>
             {orderType === 'dine-in' ? <label>{t('table')}<select value={tableNumber} onChange={e => setTableNumber(e.target.value)} required><option value="">{st("Choose your table")}</option>{Array.from({ length: business.tableCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>
-              : <><label>{t('name')}<input value={customerName} onChange={e => setCustomerName(e.target.value)} maxLength={100} required/></label><label>{t('phone')}<input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} minLength={8} maxLength={25} required/></label><PhoneVerify slug={slug} phone={customerPhone} onState={setVstate}/></>}
+              : <><label>{t('name')}<input value={customerName} onChange={e => setCustomerName(e.target.value)} maxLength={100} required/></label><label>{t('phone')}<input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} minLength={8} maxLength={25} required/></label></>}
+            {gate.modal}
             <label>{st("Email for this order")} <small>{st("(optional, no offers)")}</small><input type="email" maxLength={160} value={customerEmail} onChange={e=>{setCustomerEmail(e.target.value);setCustomerEmailConsent(false);}}/></label><label className="check-label"><input type="checkbox" disabled={!customerEmail} checked={customerEmailConsent} onChange={e=>setCustomerEmailConsent(e.target.checked)}/> {st("Email me updates for this order if the store offers email alerts. Not marketing consent.")}</label>
             {orderType === 'delivery'  && <label>{t('address')}<textarea value={deliveryAddress} onChange={e => setDeliveryAddress(e.target.value)} maxLength={500} required rows={3}/></label>}
             <label>{st("Note for the whole order")} <small>{st("(optional)")}</small><input value={orderNote} maxLength={200} onChange={e => setOrderNote(e.target.value)} placeholder={st("e.g. ring the bell, extra napkins")}/></label>
@@ -76,7 +86,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
             {error && <p className="notice error" role="alert">{storefrontError(error)}</p>}
             <div className="drawer-foot">
             <div className="drawer-totals"><div><span>{st("Items subtotal")}</span><b>{inr(cart.subtotal)}</b></div>{orderType === 'delivery' && <div><span>{st("Delivery fee")}</span><b>{deliveryFee > 0 ? inr(deliveryFee) : st("Free")}</b></div>}{cpv.discount > 0 && <div><span>{st("Coupon")} {cpv.code}</span><b>-{inr(cpv.discount)}</b></div>}<div className="grand"><span>{st("Estimated total")}</span><b>{inr(totalAfterCoupon(cart.subtotal, cpv.discount, deliveryFee))}</b></div></div>
-            <button className="btn btn-green full" disabled={busy || business.blocksOrders || (orderType !== 'dine-in' && vstate.required && !vstate.verified)}><Busy active={busy}>{busy ? st("Placing...") : t('submit')}</Busy><ArrowRight size={17}/></button>
+            <button className="btn btn-green full" disabled={busy || gate.checking || business.blocksOrders}><Busy active={busy}>{busy ? st("Placing...") : t('submit')}</Busy><ArrowRight size={17}/></button>
             <p className="drawer-hint">{st("Your order goes to the restaurant's dashboard. No payment is taken online.")}</p>
             </div>
           </form>

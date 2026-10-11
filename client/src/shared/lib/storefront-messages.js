@@ -1,5 +1,13 @@
 // English source text is a presentation key. Never apply to customer values.
 export const storefrontMessages = {
+  "Could not log out. Try again.": {
+    "hi": "लॉग आउट नहीं हो सका। फिर कोशिश करें।",
+    "mr": "लॉग आउट होऊ शकले नाही. पुन्हा प्रयत्न करा."
+  },
+  "Log out on all devices": {
+    "hi": "सभी डिवाइस पर लॉग आउट करें",
+    "mr": "सर्व डिव्हाइसवर लॉग आउट करा"
+  },
   "Could not check phone verification.": {
     "hi": "फ़ोन सत्यापन जाँचा नहीं जा सका।",
     "mr": "फोन सत्यापन तपासता आले नाही."
@@ -15,6 +23,18 @@ export const storefrontMessages = {
   "Enter your phone number first.": {
     "hi": "पहले अपना फ़ोन नंबर डालें।",
     "mr": "आधी तुमचा फोन नंबर टाका."
+  },
+  "Verify your phone to order": {
+    "hi": "ऑर्डर करने के लिए अपना फ़ोन सत्यापित करें",
+    "mr": "ऑर्डर करण्यासाठी तुमचा फोन सत्यापित करा"
+  },
+  "We check your number with WhatsApp so the shop knows the order is really yours.": {
+    "hi": "हम WhatsApp से आपका नंबर जाँचते हैं ताकि दुकान को पता रहे कि ऑर्डर आपका ही है।",
+    "mr": "आम्ही WhatsApp द्वारे तुमचा नंबर तपासतो, म्हणजे दुकानाला कळते की ऑर्डर तुमचीच आहे."
+  },
+  "Start again": {
+    "hi": "फिर से शुरू करें",
+    "mr": "पुन्हा सुरू करा"
   },
   "Phone verified with WhatsApp": {
     "hi": "फ़ोन WhatsApp से सत्यापित",
