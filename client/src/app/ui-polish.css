@@ -256,3 +256,17 @@ button[aria-label^="How to connect"][style]::before { content: ""; position: abs
 .share-link { min-height: var(--ui-tap); box-sizing: border-box; }
 .footer .brand, .footer-inner .brand, .creator-credit a { display: inline-flex; align-items: center; min-height: var(--ui-tap); box-sizing: border-box; }
 @media (min-width: 761px) { .header nav a:not(.btn) { display: inline-flex; align-items: center; justify-content: center; min-height: var(--ui-tap); min-width: var(--ui-tap); } }
+
+/* Round 8: store theme presets use a light accent fill in dark mode but ship no --accent-foreground, so
+   buttons fell back to white (about 2:1). Preset styles carry --store-banner; give them dark ink in dark mode. */
+[data-theme="dark"] [style*="--store-banner"] { --accent-foreground: #101611; }
+/* Required-field asterisk: darker rose in light mode (4.5:1+) */
+:root:not([data-theme="dark"]) .cf-star { color: #c0304f; }
+
+/* Landing page contrast and targets (round 8) */
+[data-theme="dark"] .hero-actions .btn-green { color: #101611; }
+[data-theme="dark"] .btn-cream { color: #f4efe2; }
+.bottom-cta h2 em { color: #82d8a4; }
+/* The demo band stays light in dark mode, so its accent text needs the light-mode ink */
+[data-theme="dark"] .demo-section { --accent-ink: #066b47; }
+.hero .text-link, .demo-copy .text-link, .demo-copy a { display: inline-flex; align-items: center; min-height: var(--ui-tap); }
