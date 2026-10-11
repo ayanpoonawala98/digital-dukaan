@@ -245,3 +245,14 @@ button[aria-label^="How to connect"][style]::before { content: ""; position: abs
 .header-inner > .store-header-brand .header-store-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .header-inner > .store-header-brand .header-store-logo, .header-inner > .store-header-brand .brand-mark { flex: none; }
 .header-inner .header-controls { flex: none; }
+
+/* Round 7: product-page (non shop-root) header and targets match the storefront sizing */
+.header .theme-toggle, .header .header-menu-toggle { width: var(--ui-tap); height: var(--ui-tap); box-sizing: border-box; }
+.header .header-controls { gap: 8px; }
+.header .header-inner > .store-header-brand, .header .header-inner > .brand { min-height: var(--ui-tap); }
+.header .store-header-brand .header-store-logo, .header .store-header-brand .brand-mark { flex: none; }
+.qty-stepper button { min-width: var(--ui-tap); min-height: var(--ui-tap); box-sizing: border-box; }
+.breadcrumbs a { display: inline-flex; align-items: center; min-height: var(--ui-tap); }
+.share-link { min-height: var(--ui-tap); box-sizing: border-box; }
+.footer .brand, .footer-inner .brand, .creator-credit a { display: inline-flex; align-items: center; min-height: var(--ui-tap); box-sizing: border-box; }
+@media (min-width: 761px) { .header nav a:not(.btn) { display: inline-flex; align-items: center; justify-content: center; min-height: var(--ui-tap); min-width: var(--ui-tap); } }
