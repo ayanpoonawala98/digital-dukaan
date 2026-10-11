@@ -206,3 +206,26 @@ button[aria-label^="How to connect"]::after { content: ""; position: absolute; i
 
 /* Storefront header language select: 44px target */
 .header-controls .language-select select { min-height: var(--ui-tap); box-sizing: border-box; }
+
+/* Round 4: storefront product card controls at real 44px, readable gap above ADD */
+.shop-root .cart-add, .shop-root .round-arrow, .shop-root .heart-btn { min-width: var(--ui-tap); min-height: var(--ui-tap); box-sizing: border-box; }
+.shop-root .product-card h3 a { display: inline-block; padding: 13px 0; margin: -13px 0; }
+.shop-root .menu-add { margin-top: 8px; }
+
+/* Table QR "Download QR" links: 44px target */
+.table-qr-card a { display: inline-flex; align-items: center; justify-content: center; min-height: var(--ui-tap); padding: 0 8px; }
+
+/* WhatsApp "i" info buttons: real 44px target, same 22px visible circle */
+button[aria-label^="How to connect"][style] {
+  width: var(--ui-tap) !important; height: var(--ui-tap) !important; margin: -11px !important;
+  border: 0 !important; border-radius: 50% !important; line-height: 1 !important;
+  display: inline-grid; place-items: center; position: relative; vertical-align: middle; flex: none;
+}
+button[aria-label^="How to connect"][style]::after { content: none; }
+button[aria-label^="How to connect"][style]::before { content: ""; position: absolute; left: 11px; top: 11px; width: 22px; height: 22px; box-sizing: border-box; border: 1px solid currentColor; border-radius: 50%; }
+
+/* Order-type pill: table number chip sits on a darker, not lighter, tint (white text stays above 4.5:1) */
+.ro-type em { background: rgba(0,0,0,.28); }
+
+/* Sales: chart axis, hour axis and small notes were faded by opacity to ~2:1; keep them readable */
+.sd .sd-hour-axis, .sd .sd-axis, .sd .sd-donut-l, .sd .sd-delta span, .sd .sd-kpi small, .sd .sd-people span, .sd .sd-legend { opacity: .85; }

@@ -16,7 +16,7 @@ import { ArrowRight, ArrowUpRight, Bell, Clock, Heart, Phone, MapPin, MessageCir
 import { api, imageSrc, inr } from '../../shared/lib/api.js';
 import { storeLink, storePath } from './store-domain.js';
 import { st } from '../../shared/lib/storefront-i18n.js';
-import { useStorefrontLanguage, StorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
+import { useStorefrontLanguage } from '../../shared/components/StorefrontLanguage.jsx';
 import { useCouponPreview, totalAfterCoupon } from '../../shared/lib/coupon-preview.js';
 import { CustomFieldInputs, missingRequired } from '../dashboard/CustomFields.jsx';
 import ContactFields, { contactBody, useContact } from '../../shared/components/ContactFields.jsx';
@@ -371,7 +371,7 @@ export default function ShopPage({ hostedSlug }) {
       </div>
       <PushPrompt key={slug} slug={slug} business={business} blocked={offerOpen || cartOpen || wishOpen || qrOpen}/>
       {business.storeType === 'restaurant' && <TableBar slug={slug} business={business}/>}
-      <div className="container catalog"><StorefrontLanguage/>
+      <div className="container catalog">
         <div className="catalog-head"><div><span className="kicker">{business.storeType === 'restaurant' ? st("THE MENU") : st("CURATED FOR YOU")}</span><h2>{business.storeType === 'restaurant' ? t('menu') : t('collection')}<span className="accent-dot">.</span></h2></div>{business.storeType === 'restaurant' ? <MenuViewSwitch view={menuView} onChange={setMenuView}/> : <span>{total} {t('productsCount')}</span>}</div>
         <div className="catalog-tools">
           <div className="filter-tabs" role="group" aria-label={st("Product categories")}><button className={!category ? 'active' : ''} onClick={() => setCategory('')}>{t('all')}</button>{categories.map(c => <button key={c.id} className={category === c.slug ? 'active' : ''} onClick={() => setCategory(c.slug)}>{c.name}</button>)}</div>
