@@ -19,8 +19,10 @@ for(const width of [390,1280])test(`retail ${width}px: search, stock guard, favo
  await favorites.getByRole('button',{name:'Close wishlist',exact:true}).click();
  await cards.getByRole('link',{name:'QA Import Item C - do not buy',exact:true}).click();
  await expect(page).toHaveURL(/\/product\/54$/);
+ await expect(page.getByRole('heading',{name:'QA Import Item C - do not buy.',exact:true})).toBeVisible();
  await expect(page.locator('main')).toContainText('Out of stock');
  await expect(page.locator('main').getByRole('button',{name:/Add .* to cart/})).toHaveCount(0);
+ await expect(page.getByText('Loading reviews...', {exact:true})).toHaveCount(0);
  const path=info.outputPath(`stock-${width}.png`);await page.screenshot({path,fullPage:true,animations:'disabled'});await info.attach('stock guard',{path,contentType:'image/png'});
  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
 });
