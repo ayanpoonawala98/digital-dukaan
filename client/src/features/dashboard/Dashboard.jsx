@@ -537,6 +537,8 @@ export default function Dashboard() {
     } catch (e) { if (!stale()) setError(e.message); } finally { if (!stale()) setLoading(false); }
   };
   useEffect(() => { setBroadcastImageUrl(''); setBroadcastText(''); setBroadcastRecipients(''); }, [storeId]);
+  // A failure shown on one page must not stay pinned above every other page.
+  useEffect(() => { setError(''); }, [tab]);
   useEffect(() => { const keep = initialTab.current; if (storeId) initialTab.current = null; setTab(pendingOrderTab.current || keep || 'overview'); pendingOrderTab.current = false; setRestaurantOrders([]); setData(null); setProducts([]); setCategories([]); setLeads([]); setEditing(null); setImportResult(''); setCoupons([]); setStaff([]); setSales(null); setDeleteProductId(null); setCategoryEdit(null); setCategoryName(''); load(); }, [storeId]);
 
   useEffect(()=>{ setFilters(f=>({...f,q:'',status:'all',page:1})); },[tab,storeId]);
