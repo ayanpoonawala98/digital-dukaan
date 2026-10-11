@@ -83,7 +83,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
 
   const { theme } = useTheme();
   const items = superMode
-    ? [['overview', ot("Overview"), LayoutDashboard], ['sales', ot("Sales & commission"), ChartNoAxesCombined], ['clients', ot("Clients"), UsersIcon], ['businesses', ot("Businesses"), StoreIcon], ['users', ot("Users"), UsersIcon], ['requests', ot("Shop requests"), MessageCircle]]
+    ? [['overview', ot("Overview"), LayoutDashboard], ['sales', ot("Sales & commission"), ChartNoAxesCombined], ['clients', ot("Clients"), UsersIcon], ['businesses', ot("Businesses"), StoreIcon], ['users', ot("Users"), UsersIcon], ['requests', ot("Shop requests"), MessageCircle], ['system-status', 'System status', Activity]]
     : staffMode ? [['overview', ot("Overview"), LayoutDashboard], ...(session.user.permissions?.includes('products') ? [['products', ot("Products"), Package]] : []), ...(session.user.permissions?.includes('leads') && current?.storeType !== 'restaurant' ? [['leads', verticalWords(current?.storeType).orders, MessageCircle]] : []), ...(session.user.permissions?.includes('coupons') ? [['coupons', ot("Coupons"), Tags]] : []), ...(session.user.permissions?.includes('customers') ? [['customers', ot("Customers"), UsersIcon]] : []), ...(session.user.permissions?.includes('import') ? [['imports', ot("Bulk import"), Upload]] : []), ...(current?.storeType === 'restaurant' && session.user.permissions?.includes('orders_view') ? [['tables', ot("Tables"), StoreIcon], ['restaurant', ot("Kitchen"), ShoppingBag]] : []), ...(import.meta.env.VITE_WHATSAPP_INTEGRATION_UI_ENABLED === 'true' && session.user.permissions?.includes('whatsapp') ? [['whatsapp-cloud', ot("WhatsApp inbox"), MessageCircle]] : [])]
     : [['overview', ot("Overview"), LayoutDashboard], ['products', ot("Products"), Package], ['categories', ot("Categories"), Tags], ...(current?.storeType === 'restaurant' ? [] : [['leads', verticalWords(current?.storeType).orders, MessageCircle]]), ['customers', ot("Customers"), UsersIcon], ['reviews', ot("Reviews"), Star], ['sales', ot("Sales"), ChartNoAxesCombined], ['coupons', ot("Coupons"), Tags], ['staff', ot("Staff"), Package], ...(current?.storeType === 'restaurant' ? [['tables', ot("Tables"), StoreIcon], ['restaurant', ot("Kitchen"), ShoppingBag]] : []), ['notifications', ot("Notifications"), Bell], ['campaigns',ot("Email & SMS offers"),MessageCircle], ['broadcast', ot("WhatsApp broadcast"), MessageCircle], ...(import.meta.env.VITE_WHATSAPP_INTEGRATION_UI_ENABLED === 'true' ? [['whatsapp-cloud', ot("WhatsApp integration"), MessageCircle]] : []), ['settings', ot("Shop settings"), SettingsIcon]];
   return <div className="admin-layout" style={!superMode && current ? storeThemeStyle(current.accentColor, theme === 'dark') : undefined}>
@@ -108,7 +108,7 @@ export function AdminShell({ children, superMode = false, tab, setTab, stores = 
     </div>
   </div>;
 }
-import { Store as StoreIcon, Users as UsersIcon } from 'lucide-react';
+import { Store as StoreIcon, Users as UsersIcon, Activity } from 'lucide-react';
 
 
 function ProductModal({ categories, product, onClose, onSave, busy, restaurant }) {

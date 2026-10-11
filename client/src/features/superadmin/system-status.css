@@ -1,0 +1,66 @@
+/* System status. Appended scope only: uses the existing tokens, 8/12/16/24 gap scale and 44px tap target. */
+.ss-page { display: grid; gap: var(--gap-3); min-width: 0; }
+.ss-actions { display: flex; flex-wrap: wrap; gap: var(--gap-2); align-items: center; }
+.ss-actions .btn { min-height: var(--tap); display: inline-flex; align-items: center; gap: var(--gap-1); }
+.ss-page label.ss-auto { flex-direction: row; font-weight: 400; display: inline-flex; align-items: center; gap: var(--gap-2); min-height: var(--tap); font-size: 14px; color: var(--ink-soft); }
+.ss-page .ss-auto input[type="checkbox"] { width: 20px; height: 20px; min-width: 20px; flex: none; margin: 0; padding: 0; }
+.ss-when { margin: 0; color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
+.ss-banner { border: 1px solid var(--danger); background: var(--danger-soft); color: var(--ink); border-radius: var(--r-md); padding: var(--gap-3); overflow-wrap: anywhere; }
+.ss-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--gap-2); }
+.ss-tile { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: var(--gap-1) var(--gap-2); background: var(--card); border: 1px solid var(--line); border-radius: var(--r-md); padding: var(--gap-3); box-shadow: var(--shadow-sm); min-width: 0; }
+.ss-tile strong { font-family: var(--font-display); font-size: 28px; line-height: 1; }
+.ss-tile > span:last-child { grid-column: 1 / -1; color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
+.ss-foot { margin: 0; color: var(--ink-soft); font-size: 14px; overflow-wrap: anywhere; }
+.ss-allok { color: var(--accent-ink); }
+.ss-dot { width: 12px; height: 12px; border-radius: 50%; flex: none; display: inline-block; background: var(--muted); }
+.ss-dot.ok { background: var(--accent); }
+.ss-dot.failed { background: var(--danger); }
+.ss-dot.attention { background: var(--warn-ink); }
+.ss-dot.unknown { background: transparent; border: 3px solid var(--warn-ink); }
+.ss-dot.neutral { background: transparent; border: 2px solid var(--muted); }
+.ss-dot.checking { background: transparent; border: 3px solid var(--accent); }
+.ss-dot.pulse { animation: ssPulse 1.2s ease-in-out infinite; }
+@keyframes ssPulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .45; transform: scale(1.25); } }
+.ss-label { font-weight: 700; font-size: 14px; }
+.ss-label.ok { color: var(--accent-ink); } .ss-label.failed { color: var(--danger); } .ss-label.attention, .ss-label.unknown { color: var(--warn-ink); } .ss-label.neutral { color: var(--muted); }
+.ss-section h3 { margin-bottom: var(--gap-2); }
+.ss-scope { margin: var(--gap-3) 0 var(--gap-1); font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ss-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.ss-row { border-top: 1px solid var(--line); min-width: 0; }
+.ss-row:first-child { border-top: 0; }
+.ss-row, .ss-row summary { display: grid; grid-template-columns: auto minmax(0, 1.2fr) minmax(0, 1.6fr); gap: var(--gap-2) var(--gap-3); align-items: start; padding: var(--gap-3) 0; min-height: var(--tap); }
+.ss-row.has-more { display: block; padding: 0; }
+.ss-row summary { cursor: pointer; list-style: none; padding: var(--gap-3) 0; }
+.ss-row summary::-webkit-details-marker { display: none; }
+.ss-row summary:focus-visible, .ss-auto input:focus-visible, .ss-stores button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: var(--r-sm); }
+.ss-dot { margin-top: 4px; }
+.ss-main { display: grid; gap: 2px; min-width: 0; }
+.ss-name { font-weight: 700; overflow-wrap: anywhere; }
+.ss-detail, .ss-small { color: var(--ink-soft); font-size: 13px; overflow-wrap: anywhere; }
+.ss-meta { display: flex; flex-wrap: wrap; gap: var(--gap-1) var(--gap-2); align-items: center; min-width: 0; }
+.ss-chip { border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px; font-size: 12px; color: var(--ink-soft); background: var(--surface-2); overflow-wrap: anywhere; }
+.ss-age { white-space: nowrap; }
+.ss-expand { margin: 0 0 var(--gap-3) 28px; padding: var(--gap-3); border-left: 3px solid var(--warn-ink); background: var(--surface-2); border-radius: var(--r-sm); font-size: 14px; }
+.ss-expand p { margin: 0 0 var(--gap-1); overflow-wrap: anywhere; }
+.ss-code code { background: var(--card); border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; overflow-wrap: anywhere; word-break: break-all; }
+.ss-picker { background: var(--card); border: 1px solid var(--line); border-radius: var(--r-lg); padding: var(--gap-4); display: grid; gap: var(--gap-2); min-width: 0; }
+.ss-picker h3 { margin: 0; }
+.ss-picker p { margin: 0; }
+.ss-picked { display: flex; flex-wrap: wrap; gap: var(--gap-2); align-items: center; justify-content: space-between; }
+.ss-page label.ss-search { flex-direction: row; font-weight: 400; display: flex; align-items: center; gap: var(--gap-2); border: 1px solid var(--line); border-radius: var(--r-sm); padding: 0 var(--gap-2); min-height: var(--tap); background: var(--surface); }
+.ss-search input { border: 0; outline: 0; background: transparent; flex: 1; min-width: 0; min-height: var(--tap); color: var(--ink); font: inherit; }
+.ss-search:focus-within { outline: 3px solid var(--accent); outline-offset: 1px; }
+.ss-stores { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--gap-1); max-height: 300px; overflow-y: auto; }
+.ss-stores button { width: 100%; min-height: var(--tap); text-align: left; display: grid; gap: 2px; padding: var(--gap-2) var(--gap-3); border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--surface); color: var(--ink); cursor: pointer; overflow-wrap: anywhere; }
+.ss-stores button.selected { border-color: var(--accent); background: var(--accent-soft); }
+.ss-err { color: var(--danger); overflow-wrap: anywhere; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+@media (max-width: 900px) {
+  .ss-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ss-row, .ss-row summary { grid-template-columns: auto minmax(0, 1fr); }
+  .ss-meta { grid-column: 1 / -1; padding-left: 24px; }
+  .ss-expand { margin-left: 0; }
+  .ss-actions .btn { flex: 1 1 100%; justify-content: center; }
+}
+@media (prefers-reduced-motion: reduce) { .ss-dot.pulse { animation: none; } }
+.ss-page .dashboard-panel { animation: none; }

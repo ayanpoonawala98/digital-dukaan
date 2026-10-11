@@ -26,6 +26,11 @@ async function load() {
   const row = await PlatformAlert.findByPk(1);
   return { creds: decryptJson(row?.payload) || {}, settings: cleanAlertSettings(row?.settings) };
 }
+// Server-side only: the resolved platform providers, including their secrets. Never return this from a route.
+export async function platformProviders(env = process.env) {
+  const { creds } = await load();
+  return resolveProviders(creds, env);
+}
 export async function alertState(env = process.env) {
   const { creds, settings } = await load();
   return { settings, providers: providerStatus(resolveProviders(creds, env)), keys: publicView(creds) };

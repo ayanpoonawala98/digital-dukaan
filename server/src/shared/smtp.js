@@ -13,7 +13,8 @@ export function buildMessage({ from, to, subject, text, now = new Date(), id = M
   return [`From: ${clean(from)}`, `To: ${clean(to)}`, `Subject: =?UTF-8?B?${b64(clean(subject))}?=`, `Date: ${now.toUTCString()}`, `Message-ID: <${id}@${domain}>`, 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: base64', '', body, ''].join('\r\n');
 }
 
-export async function sendSmtp(cfg, mail, { lookup, allowPrivate = false, timeoutMs = 10000 } = {}) {
+// verifyOnly stops after the login step and says QUIT: no MAIL FROM, RCPT TO or DATA, so nothing is ever sent.
+export async function sendSmtp(cfg, mail, { lookup, allowPrivate = false, timeoutMs = 10000, verifyOnly = false } = {}) {
   const host = cfg.host, port = Number(cfg.port);
   const ip = allowPrivate ? host : await publicAddress(host, lookup);
   let sock = await new Promise((resolve, reject) => {
@@ -46,6 +47,7 @@ export async function sendSmtp(cfg, mail, { lookup, allowPrivate = false, timeou
       if (mech.includes('PLAIN')) await cmd(`AUTH PLAIN ${b64(`\0${cfg.user}\0${cfg.pass || ''}`)}`, [235]);
       else { await cmd('AUTH LOGIN', [334]); await cmd(b64(cfg.user), [334]); await cmd(b64(cfg.pass || ''), [235]); }
     }
+    if (verifyOnly) { try { sock.write('QUIT\r\n'); } catch {} return { ok: true, verified: true }; }
     await cmd(`MAIL FROM:<${addr(cfg.from)}>`, [250]);
     await cmd(`RCPT TO:<${addr(mail.to)}>`, [250, 251]);
     await cmd('DATA', [354]);

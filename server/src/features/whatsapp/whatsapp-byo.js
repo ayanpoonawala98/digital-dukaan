@@ -136,6 +136,9 @@ export const adapters = {
 };
 export const twilioSignature = (token, url, params) => createHmac('sha1', token).update(url + Object.keys(params).sort().map(k => k + params[k]).join('')).digest('base64');
 
+// Read-only credential check used by the superadmin status page: the adapter's own lookup, never a send.
+export const checkByoConnection = (conn, fetcher = fetch) => adapters[conn.provider].check(credsOf(conn), fetcher);
+
 // ---- connection lookup ----
 export async function activeConnection(businessId) {
   if (!byoAllowedFor(businessId)) return null;
