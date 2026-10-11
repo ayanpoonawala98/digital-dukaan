@@ -3,6 +3,7 @@ import { ot, registerOwnerMessages, translateOwnerPlan, ownerLanguageSnapshot } 
 import { OwnerLanguage, useOwnerLanguage } from '../../shared/components/OwnerLanguage.jsx';
 import BrandLoader from '../../shared/components/BrandLoader.jsx';
 import {storeImage} from '../storefront/store-image.js';
+import InstallAdminApp from './InstallAdminApp.jsx';
 import {useOwnerPages} from './use-owner-pages.js';
 import { productsCsv, downloadProductCsv } from '../imports/product-csv.js';
 import ChangePassword from './ChangePassword.jsx';
@@ -609,6 +610,7 @@ export default function Dashboard() {
       {loading ? <LoadSkeleton label={ot("Loading {v0}", {v0: (headings[tab]||[tab,''])[0]})} cards={tab === 'overview' || tab === 'sales' ? 4 : 2} rows={3}/> : tabLocked ? <div className="dashboard-panel locked-panel" role="status"><Lock size={28}/><h3>{ot("Kindly contact admin")}</h3><p className="muted">{ot("Please contact your platform admin to enable this feature. Your data is safe.")}</p></div> : <>
       {tab === 'overview' && staffMode && currentStore && storeId && <OrderAlertsCard token={token} storeId={storeId} slug={currentStore.slug}/>}
       {tab === 'overview' && data && !staffMode && <>
+        <InstallAdminApp business={data.business}/>
         <PlanCard token={token}/>
         {data.lowStock?.length > 0 && <div className="notice warn anim-up" role="alert"><Package size={16}/> {ot("Low stock alert:")} {data.lowStock.map(p => ot("{v0} ({v1} left)", {v0: p.name, v1: p.stock})).join(', ')}{ot(". Restock these items.")}</div>}
         {data.business?.storeType === 'restaurant' ? (String(data.business?.id) !== String(storeId) ? null : <RestaurantOverview token={token} storeId={storeId} onOpen={setTab}/>) : <><div className="section-heading"><div><span className="kicker">{ot("STORE SNAPSHOT")}</span><h2>{ot("Today at a glance")}</h2></div><p>{verticalWords(data.business?.storeType).requestsNote}</p></div><div className="stat-grid overview-stats">{[[data.products, ot("Products live in your catalog"), Package], [data.categories, ot("Ways to browse"), Tags], [data.leads, verticalWords(data.business?.storeType).requests, MessageCircle], [data.subscribers, ot("Push subscribers"), Bell]].map(([num, label, Icon], i) => <div className="stat-card anim-up" style={{ animationDelay: `${i * 70}ms` }} key={label}><Icon size={21}/><strong>{num}</strong><span>{label}</span></div>)}</div></>}

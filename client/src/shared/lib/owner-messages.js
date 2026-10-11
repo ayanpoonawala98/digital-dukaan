@@ -5935,5 +5935,45 @@ export const ownerMessages = {
   "Edge / Windows": {
     "hi": "Edge / Windows",
     "mr": "Edge / Windows"
+  },
+  "{v0} Admin": {
+    "hi": "{v0} एडमिन",
+    "mr": "{v0} अ‍ॅडमिन"
+  },
+  "Add your dashboard to your home screen and open it in one tap.": {
+    "hi": "अपना डैशबोर्ड होम स्क्रीन पर जोड़ें और एक टैप में खोलें।",
+    "mr": "तुमचा डॅशबोर्ड होम स्क्रीनवर जोडा आणि एका टॅपमध्ये उघडा."
+  },
+  "On iPhone the app may appear as Digital Shop.": {
+    "hi": "iPhone पर ऐप Digital Shop नाम से दिख सकता है।",
+    "mr": "iPhone वर अ‍ॅप Digital Shop नावाने दिसू शकते."
+  },
+  "Download app": {
+    "hi": "ऐप डाउनलोड करें",
+    "mr": "अ‍ॅप डाउनलोड करा"
+  },
+  "Opening install...": {
+    "hi": "इंस्टॉल खुल रहा है...",
+    "mr": "इन्स्टॉल उघडत आहे..."
+  },
+  "Put {v0} on your home screen": {
+    "hi": "{v0} को होम स्क्रीन पर रखें",
+    "mr": "{v0} होम स्क्रीनवर ठेवा"
+  },
+  "In Safari, tap Share, then Add to Home Screen.": {
+    "hi": "Safari में Share दबाएँ, फिर Add to Home Screen चुनें।",
+    "mr": "Safari मध्ये Share दाबा, नंतर Add to Home Screen निवडा."
+  },
+  "In your browser menu, choose Install app or Add to Home screen.": {
+    "hi": "ब्राउज़र मेनू में Install app या Add to Home screen चुनें।",
+    "mr": "ब्राउझर मेनूमध्ये Install app किंवा Add to Home screen निवडा."
+  },
+  "Close install instructions": {
+    "hi": "इंस्टॉल निर्देश बंद करें",
+    "mr": "इन्स्टॉल सूचना बंद करा"
+  },
+  "Install your admin app": {
+    "hi": "अपना एडमिन ऐप इंस्टॉल करें",
+    "mr": "तुमचे अ‍ॅडमिन अ‍ॅप इन्स्टॉल करा"
   }
 };
