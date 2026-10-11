@@ -11,9 +11,10 @@ test.describe('QA owner regression (private storage state required)',()=>{
   await page.goto('/dashboard');await expect(page.locator('.store-switcher')).toBeVisible();
   await page.locator('.store-switcher').selectOption(String(id));
   await expect(page.locator('.store-switcher')).toHaveValue(String(id));
-  for(const section of [...sections,...(id===12?['Tables','Kitchen']:['Orders'])]){
+  for(const section of [...sections,...(id===12?['Tables','Kitchen']:[id===13?'Bookings':'Orders'])]){
    await page.locator('.sidebar nav').getByRole('button',{name:section,exact:true}).click();
-   await expect(page.locator('.load-skeleton')).toHaveCount(0);
+   await expect(page.locator('.admin-content .dashboard-panel, .admin-content form').first()).toBeVisible();
+   await expect(page.locator('.load-skeleton, .admin-content .brand-loader')).toHaveCount(0);
    await expect(page.locator('.admin-content')).not.toContainText('Something went wrong');
    await expect(page.locator('.admin-content')).not.toContainText('Kindly contact admin');
    await expect(page.locator('.store-switcher')).toHaveValue(String(id));
@@ -28,7 +29,8 @@ test.describe('QA owner regression (private storage state required)',()=>{
   await page.goto('/dashboard');await expect(page.locator('.store-switcher')).toBeVisible();
   await page.locator('.store-switcher').selectOption('12');
   await page.locator('.sidebar nav').getByRole('button',{name:'Products',exact:true}).click();
-  await expect(page.locator('.load-skeleton')).toHaveCount(0);
+  await expect(page.locator('.admin-content .dashboard-panel, .admin-content form').first()).toBeVisible();
+   await expect(page.locator('.load-skeleton, .admin-content .brand-loader')).toHaveCount(0);
   await expect(page.locator('.store-switcher')).toHaveValue('12');
   await page.getByRole('button',{name:'Add product',exact:true}).click();
   await page.getByRole('textbox',{name:'Product name',exact:true}).fill(name);
