@@ -55,3 +55,26 @@ test.describe('QA owner regression (private storage state required)',()=>{
   }
  });
 });
+
+test.describe('QA owner multilingual dry-run imports',()=>{
+ test.skip(!validAuth,'Private QA-owner storage state required');
+ for(const kind of ['products','customers']) for(const language of ['en','hi','mr']) test(`${kind} ${language}: mapped import preview uses stable API route`,async({page})=>{
+  await page.goto('/dashboard');await expect(page.locator('.store-switcher')).toBeVisible();
+  await page.locator('.store-switcher').selectOption('8');
+  await expect(page.locator('.store-switcher')).toHaveValue('8');
+  await expect(page.locator('.store-switcher option:checked')).toHaveText(/qa/i);
+  await page.locator('.owner-language select').selectOption('en');
+  await page.locator('.sidebar nav').getByRole('button',{name:kind==='products'?'Products':'Customers',exact:true}).click();
+  await expect(page.locator('.mapped-import')).toBeVisible();
+  await page.locator('.owner-language select').selectOption(language);
+  const panel=page.locator('.mapped-import');
+  const csv=kind==='products'?'name,price,stock\nQA test dry-run only,10,1\n':'phone,name\n919000001124,QA test dry-run only\n';
+  await panel.locator('input[type=file]').setInputFiles({name:'qa-dry-run.csv',mimeType:'text/csv',buffer:Buffer.from(csv)});
+  await expect(panel.locator('.mapping-grid')).toBeVisible();
+  const response=page.waitForResponse(r=>r.request().method()==='POST'&&r.url().includes('/import/preview'));
+  await panel.locator('button.btn-green').first().click();
+  const r=await response;expect(r.url()).toContain(`/owner/8/${kind}/import/preview`);expect(r.status()).toBe(200);
+  const result=await r.json();expect(result.newCount).toBe(1);expect(result.errors).toHaveLength(0);
+  // Never click the commit button. Preview creates no product/customer rows.
+ });
+});
