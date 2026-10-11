@@ -1,0 +1,2 @@
+import { defineConfig } from '@playwright/test';
+export default defineConfig({testDir:'./e2e',timeout:45000,expect:{timeout:15000},workers:1,retries:0,reporter:[['list'],['html',{outputFolder:'artifacts/report',open:'never'}],['json',{outputFile:'artifacts/results.json'}]],use:{baseURL:process.env.QA_BASE_URL||'https://digitalshop.website',trace:'retain-on-failure',screenshot:'only-on-failure'},outputDir:'artifacts/runs'});
