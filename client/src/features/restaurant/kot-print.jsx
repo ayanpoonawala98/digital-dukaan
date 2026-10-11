@@ -7,10 +7,11 @@ const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 export function kotHtml(k) {
   const kind = k.orderType === 'retail' ? 'PACK LIST' : k.orderType === 'service' ? 'JOB TICKET' : '';
   const who = kind ? `ORDER #${k.orderNumber}` : k.orderType === 'dine-in' ? `TABLE ${k.tableNumber}` : `${String(k.orderType || '').toUpperCase()}${k.customerName ? ' - ' + k.customerName : ''}`;
-  const head = kind ? (k.isReprint ? `${kind} (REPRINT)` : kind) : k.isReprint ? 'KOT (REPRINT)' : k.followUp ? `KOT #${k.kotNo} - NEW ITEMS` : 'KOT';
+  const head = kind ? (k.isReprint ? `${kind} (REPRINT)` : kind) : k.isReprint ? 'KOT (REPRINT)' : (k.cut || []).length ? `KOT #${k.kotNo} - ORDER CHANGED` : k.followUp ? `KOT #${k.kotNo} - NEW ITEMS` : 'KOT';
   const lines = k.lines.map(l => `<div class="l"><b>${l.qty} x ${esc(l.name)}</b>${l.variant ? `<div class="o">(${esc(l.variant)})</div>` : ''}${l.addons.length ? `<div class="o">${l.addons.map(a => '+ ' + esc(a)).join(', ')}</div>` : ''}${(l.answers || []).map(a => `<div class="o">${esc(a)}</div>`).join('')}${l.note ? `<div class="n">NOTE: ${esc(l.note)}</div>` : ''}</div>`).join('');
+  const cut = (k.cut || []).map(c => `<div class="l"><b>${c.to > 0 ? `CHANGED: ${esc(c.name)} ${c.from} -> ${c.to}` : `CANCELLED: ${esc(c.name)} (was ${c.from})`}</b></div>`).join('');
   const when = new Date().toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
-  return `<!doctype html><html><head><meta charset="utf-8"><title>KOT</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:14px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:15px;text-align:center;margin:0}h2{font-size:20px;text-align:center;margin:4px 0}.c{text-align:center;margin:2px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.l{margin:5px 0;font-size:15px}.o{padding-left:14px;font-size:13px}.n{padding-left:14px;font-weight:700}</style></head><body><h1>${esc(k.storeName)}</h1><p class="c">${esc(head)}</p><h2>${esc(who)}</h2><p class="c">${kind ? esc(k.customerName || '') + (k.customerPhone ? '<br>' + esc(k.customerPhone) : '') + '<br>' : ''}${kind ? '' : 'Order #' + esc(k.orderNumber) + ' - '}${esc(when)}</p><hr>${lines}<hr>${k.note ? `<p><b>ORDER NOTE:</b> ${esc(k.note)}</p>` : ''}</body></html>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>KOT</title><style>@page{size:80mm auto;margin:3mm}*{box-sizing:border-box}body{margin:0;padding:2mm;width:74mm;font:14px/1.35 "Courier New",monospace;color:#000;background:#fff}h1{font-size:15px;text-align:center;margin:0}h2{font-size:20px;text-align:center;margin:4px 0}.c{text-align:center;margin:2px 0}hr{border:0;border-top:1px dashed #000;margin:6px 0}.l{margin:5px 0;font-size:15px}.o{padding-left:14px;font-size:13px}.n{padding-left:14px;font-weight:700}</style></head><body><h1>${esc(k.storeName)}</h1><p class="c">${esc(head)}</p><h2>${esc(who)}</h2><p class="c">${kind ? esc(k.customerName || '') + (k.customerPhone ? '<br>' + esc(k.customerPhone) : '') + '<br>' : ''}${kind ? '' : 'Order #' + esc(k.orderNumber) + ' - '}${esc(when)}</p><hr>${cut}${lines}<hr>${k.note ? `<p><b>ORDER NOTE:</b> ${esc(k.note)}</p>` : ''}</body></html>`;
 }
 export function printHtml(html) {
   const f = document.createElement('iframe');
@@ -25,7 +26,7 @@ export function printHtml(html) {
 export async function printKot({ token, storeId, order }) {
   const url = `/owner/${storeId}/restaurant-orders/${order.id}/kot`;
   let { kot } = await api(url, { token, method: 'POST', body: { mode: 'new' }, feedback: false });
-  if (!kot.lines.length) {
+  if (!kot.lines.length && !(kot.cut || []).length) {
     if (!window.confirm(ot('Everything on this order was already sent to the kitchen. Reprint the full ticket?'))) return;
     ({ kot } = await api(url, { token, method: 'POST', body: { mode: 'all' }, feedback: false }));
   }

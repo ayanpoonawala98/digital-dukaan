@@ -2,7 +2,7 @@
 // "Add items" lists only the new quantities. Read-only with respect to orders and bills: nothing here changes money.
 import { DataTypes } from 'sequelize';
 import { sequelize, RestaurantOrder, Lead } from '../../models/index.js';
-import { kotLines, printedMap } from './kot-lines.js';
+import { kotLines, printedMap, revisedLines } from './kot-lines.js';
 import { bad } from '../../shared/utils/core.js';
 
 export const KotPrint = sequelize.define('KotPrint', {
@@ -32,9 +32,11 @@ export async function makeKot(store, orderId, mode) {
   const rec = await KotPrint.findByPk(order.id);
   const printed = rec?.printed || {};
   const lines = kotLines(order.items, printed, mode);
-  const kotNo = (rec?.count || 0) + (lines.length ? 1 : 0);
-  if (lines.length) await KotPrint.upsert({ orderId: order.id, businessId: store.id, printed: printedMap(order.items), count: kotNo });
-  return { kot: { orderId: order.id, orderNumber: order.orderNumber ?? order.id, orderType: order.orderType, tableNumber: order.tableNumber, customerName: order.customerName, note: order.note, createdAt: order.createdAt, kotNo, isReprint: mode === 'all' && !!rec, followUp: mode !== 'all' && !!rec, lines, storeName: store.name } };
+  // Lines lowered or removed after a ticket was printed: paper cannot change, so the next ticket lists what was cut.
+  const cut = rec && mode !== 'all' ? revisedLines(order.items, printed) : [];
+  const kotNo = (rec?.count || 0) + (lines.length || cut.length ? 1 : 0);
+  if (lines.length || cut.length) await KotPrint.upsert({ orderId: order.id, businessId: store.id, printed: printedMap(order.items), count: kotNo });
+  return { kot: { orderId: order.id, orderNumber: order.orderNumber ?? order.id, orderType: order.orderType, tableNumber: order.tableNumber, customerName: order.customerName, note: order.note, createdAt: order.createdAt, kotNo, isReprint: mode === 'all' && !!rec, followUp: mode !== 'all' && !!rec, cut, lines, storeName: store.name } };
 }
 
 export async function makeLeadKot(store, leadId) {

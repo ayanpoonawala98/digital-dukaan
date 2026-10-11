@@ -11,5 +11,13 @@ export function kotLines(items, printed, mode = 'new') {
   }
   return out;
 }
-export const printedMap = items => { const m = {}; for (const i of Array.isArray(items) ? items : []) m[kotKey(i)] = (m[kotKey(i)] || 0) + (Number(i.qty) || 0); return m; };
+// __names remembers each line's label so a later ticket can say what was removed.
+export const printedMap = items => { const m = {}, n = {}; for (const i of Array.isArray(items) ? items : []) { m[kotKey(i)] = (m[kotKey(i)] || 0) + (Number(i.qty) || 0); n[kotKey(i)] = [i.name, i.variant].filter(Boolean).join(' '); } m.__names = n; return m; };
 
+
+// Lines whose quantity went down (or that were removed) since the last printed ticket. printed = { key: qty on paper }.
+export function revisedLines(items, printed) {
+  const now = {}, names = {};
+  for (const i of Array.isArray(items) ? items : []) { const k = kotKey(i); now[k] = (now[k] || 0) + (Number(i.qty) || 0); names[k] = i; }
+  return Object.entries(printed || {}).filter(([k, q]) => k !== '__names' && (now[k] || 0) < Number(q)).map(([k, q]) => ({ name: [names[k]?.name, names[k]?.variant].filter(Boolean).join(' ') || printed.__names?.[k] || 'Item', from: Number(q), to: now[k] || 0 }));
+}

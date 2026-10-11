@@ -47,6 +47,7 @@ import { dateWhere, dateWindow, summarize, saleRows, ordersCsv, csvCell as repor
 import { auth, roles } from '../shared/middleware/auth.js';
 import { notifyNewOrder } from '../features/notifications/notify.js';
 import { notifyOwnerDevices } from '../features/orders/order-push-wired.js';
+import { applyEdit, editLockReason, editedTotals, EditRefused } from '../features/restaurant/order-edit.js';
 import { pushIcon } from '../features/crm/customer-pure.js';
 import { bad, slugify, validEmail, validPhone, validPrice, wrap, clientBase } from '../shared/utils/core.js';
 
@@ -858,6 +859,26 @@ r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
     return order;
   });
   void notifyOwnerDevices(req.store, 'restaurant', order); // Kitchen hears about the added items
+  res.json({ order });
+}));
+// Staff lowers or removes lines of an order the Kitchen has not accepted yet. One transaction under the row lock, so a
+// kitchen acceptance, cancellation, payment or bill racing this gets a clear refusal and the order is left exactly as it was.
+r.patch('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
+  if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
+  const order = await sequelize.transaction(async t => {
+    const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: req.store.id }, transaction: t, lock: t.LOCK.UPDATE });
+    if (!order) throw bad(404, 'Order not found');
+    const locked = editLockReason(order);
+    if (locked) throw bad(409, locked);
+    let next, money;
+    try { next = applyEdit(order.items, req.body?.lines); money = editedTotals(order, next, req.store); } catch (e) { if (e instanceof EditRefused) throw bad(e.status, e.message); throw e; }
+    // dryRun: the editor asks what the new amounts would be before Save. Same lock and checks, nothing is written.
+    if (req.body?.dryRun) return { preview: money };
+    await order.update({ items: next, ...money }, { transaction: t });
+    return order;
+  });
+  if (order.preview) return res.json({ preview: order.preview });
+  void notifyOwnerDevices(req.store, 'restaurant', order, { edited: true }); // Kitchen is told this order changed and to reprint the KOT
   res.json({ order });
 }));
 // Tables view: live status per table/channel, settle a bill (append-only history).

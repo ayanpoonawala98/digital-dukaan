@@ -9,5 +9,5 @@ if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
 const configured = () => Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
 
 // Fire-and-forget wrapper used by the public order routes; push failures never fail orders.
-export const notifyOwnerDevices = (store, kind, order) =>
-  notifyOwnerNewOrder({ store, kind, order, OwnerPushSubscription, send: (sub, payload) => sendPush(sub, payload), configured: configured(), log: (msg, m) => console.error(msg, m) });
+export const notifyOwnerDevices = (store, kind, order, opts = {}) =>
+  notifyOwnerNewOrder({ edited: Boolean(opts.edited), store, kind, order, OwnerPushSubscription, send: (sub, payload) => sendPush(sub, payload), configured: configured(), log: (msg, m) => console.error(msg, m) });

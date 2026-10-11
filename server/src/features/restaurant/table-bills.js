@@ -195,7 +195,7 @@ export async function settleBill(store, body, setDone, actor = {}) {
       for (const f of fresh) {
         if (f.billId) throw bad(409, 'An order on this bill was just billed elsewhere');
         if (f.status === 'cancelled') throw bad(409, 'An order on this bill was cancelled');
-        if (JSON.stringify(f.items || []) !== snap.get(f.id)) throw bad(409, 'Items were just added to an order. Reopen the bill and check it again.');
+        if (JSON.stringify(f.items || []) !== snap.get(f.id)) throw bad(409, 'Items were just changed on an order. Reopen the bill and check it again.');
       }
     }
     const row = await TableBill.create({ settledByUserId: actor.id || null, settledByRole: actor.role || null, adjustNote: adjustNote || null, businessId: store.id, billNo: Number(n), channel, tableNumber, orderIds, lines, charges, subtotal, chargesTotal, discount, gstPct, gstMode: g.mode, cgst: half, sgst: half, roundOff, total, paymentMode, payments, customerName: cleanText(body.customerName, 100) || null }, { transaction: t });
