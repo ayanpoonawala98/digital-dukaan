@@ -146,3 +146,15 @@ test('concurrent claims with the same secret issue one session', async () => {
   const r = await Promise.all([statusCall('pub3', SECRET), statusCall('pub3', SECRET), statusCall('pub3', SECRET)]);
   assert.equal(sessions.length, 1); assert.ok(r.every(x => x.body.status === 'verified'));
 });
+
+test('store scope: only listed slugs enforce and expose verification; unset means all; flag off means none', async () => {
+  setup(); const noSession = { headers: {} };
+  delete process.env.STOREFRONT_VERIFY_STORE_SLUGS;
+  assert.equal(V.enabledForSlug('any'), true);
+  process.env.STOREFRONT_VERIFY_STORE_SLUGS = ' Store-12 ,other';
+  assert.equal(V.enabledForSlug('store-12'), true); assert.equal(V.enabledForSlug('store-8'), false);
+  await V.requireVerifiedPhone(noSession, { id: 8, slug: 'store-8' }, '9876543210'); // unlisted store is untouched
+  await assert.rejects(V.requireVerifiedPhone(noSession, { id: 12, slug: 'store-12' }, '9876543210'), /verify your phone/);
+  process.env.STOREFRONT_VERIFY_WHATSAPP_ENABLED = 'false'; assert.equal(V.enabledForSlug('store-12'), false);
+  delete process.env.STOREFRONT_VERIFY_STORE_SLUGS;
+});

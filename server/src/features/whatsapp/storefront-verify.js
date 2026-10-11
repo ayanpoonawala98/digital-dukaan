@@ -13,6 +13,12 @@ export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 export const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_MESSAGE_AGE_MS = 10 * 60 * 1000;
 export const flagOn = () => process.env.STOREFRONT_VERIFY_WHATSAPP_ENABLED === 'true';
+// Optional staged rollout: STOREFRONT_VERIFY_STORE_SLUGS=slug-a,slug-b limits verification to those stores. Unset means every store.
+export function enabledForSlug(slug) {
+  if (!flagOn()) return false;
+  const list = String(process.env.STOREFRONT_VERIFY_STORE_SLUGS || '').split(',').map(x => x.trim().toLowerCase()).filter(Boolean);
+  return !list.length || list.includes(String(slug || '').toLowerCase());
+}
 const sha = v => createHash('sha256').update(String(v)).digest('hex');
 const B32 = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 // 26 chars of a 32 letter alphabet = 130 bits.
@@ -104,7 +110,7 @@ const safeEq = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return 
 
 // Order guard. No-op while the flag is off. When on, the phone on the order must be the verified phone for this store.
 export async function requireVerifiedPhone(req, business, rawPhone) {
-  if (!flagOn()) return;
+  if (!enabledForSlug(business.slug)) return;
   const phone = orderPhone(rawPhone);
   const s = phone && await sessionFor(req, business);
   if (!s || s.phone !== phone) { const e = bad(403, 'Please verify your phone number with WhatsApp to place this order.'); e.code = 'PHONE_NOT_VERIFIED'; throw e; }
@@ -112,7 +118,7 @@ export async function requireVerifiedPhone(req, business, rawPhone) {
 
 const quiet = { error: 'Could not start verification. Please try again in a few minutes.' };
 export function installVerifyRoutes(r, shop, { strict = [], poll = [] } = {}) {
-  const guard = (req, res, next) => (flagOn() ? next() : res.status(404).json({ error: 'Not found' }));
+  const guard = (req, res, next) => (enabledForSlug(req.params.slug) ? next() : res.status(404).json({ error: 'Not found' }));
   const browserId = req => { const b = String(req.headers['x-ds-browser'] || ''); return /^[A-Za-z0-9_-]{20,64}$/.test(b) ? b : null; };
   r.use('/stores/:slug/verify', guard);
   r.post('/stores/:slug/verify/start', ...strict, wrap(async (req, res) => {
