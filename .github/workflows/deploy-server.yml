@@ -1,0 +1,49 @@
+name: Deploy server to VPS
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "server/**"
+      - "deploy/**"
+      - ".github/workflows/deploy-server.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-server
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 20m
+          script: |
+            set -e
+            cd /opt/services/digital-dukaan
+            git pull --ff-only origin main
+            cd deploy
+
+            # Build first, so the old container keeps serving during the build.
+            docker-compose build api
+
+            # Recreate only the API; the database container is never touched by a deploy.
+            docker-compose up -d --no-deps api
+
+            for i in $(seq 1 30); do
+              if curl -fsS http://127.0.0.1:8007/api/health >/dev/null; then
+                echo "API healthy"
+                docker image prune -f
+                exit 0
+              fi
+              sleep 2
+            done
+            echo "API did not become healthy"
+            docker logs --tail 80 digital-dukaan-api
+            exit 1
