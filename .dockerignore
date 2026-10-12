@@ -1,0 +1,12 @@
+# Used by server/Dockerfile (build context = repository root). Allowlist: only what the API image needs.
+*
+!package.json
+!package-lock.json
+!client/package.json
+!server
+server/node_modules
+server/.env
+server/.env.*
+server/.vercel
+server/uploads
+**/*.log

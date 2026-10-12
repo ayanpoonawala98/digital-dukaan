@@ -1,0 +1,51 @@
+# Production stack on the VPS, in /opt/services/digital-dukaan/deploy.
+# Secrets live next to it and are never committed:
+#   deploy/.env   POSTGRES_PASSWORD for the db service
+#   server/.env   the API's environment (DATABASE_URL points at host "db")
+# nginx (on the host) proxies api.digitalshop.website to 127.0.0.1:8007.
+name: digital-dukaan
+
+x-logging: &logging
+  driver: json-file
+  options: { max-size: "10m", max-file: "3" }
+
+services:
+  db:
+    image: postgres:18
+    container_name: digital-dukaan-db
+    restart: always
+    environment:
+      POSTGRES_DB: digital_dukaan
+      POSTGRES_USER: digital_dukaan
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U digital_dukaan -d digital_dukaan"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 1g
+    logging: *logging
+
+  api:
+    build:
+      context: ..
+      dockerfile: server/Dockerfile
+    image: digital-dukaan-api
+    container_name: digital-dukaan-api
+    restart: always
+    init: true
+    env_file: ../server/.env
+    environment:
+      PORT: "4000"
+    ports:
+      - "127.0.0.1:8007:4000"
+    depends_on:
+      db: { condition: service_healthy }
+    stop_grace_period: 20s
+    mem_limit: 768m
+    logging: *logging
+
+volumes:
+  pgdata:
