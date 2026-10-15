@@ -29,6 +29,7 @@ export async function makeKot(store, orderId, mode) {
   await ensureKotSchema();
   const order = await RestaurantOrder.findOne({ where: { id: orderId, businessId: store.id } });
   if (!order) throw bad(404, 'Order not found');
+  if (order.approvalStatus === 'pending') throw bad(409, 'Approve this order first.');
   const rec = await KotPrint.findByPk(order.id);
   const printed = rec?.printed || {};
   const lines = kotLines(order.items, printed, mode);

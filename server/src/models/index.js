@@ -63,6 +63,7 @@ export const Business = sequelize.define('Business', {
   minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } },
   prepMinutes: { type: DataTypes.INTEGER, allowNull: true },
   featureLocks: { type: DataTypes.JSONB, defaultValue: {} },
+  dineInApproval: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   notifySettings: { type: DataTypes.JSONB, defaultValue: {} }
 }, { tableName: 'businesses' });
 
@@ -204,7 +205,10 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
   paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
   paidAt: { type: DataTypes.DATE, allowNull: true },
   billId: { type: DataTypes.INTEGER, allowNull: true },
-  createdByUserId: { type: DataTypes.INTEGER, allowNull: true } // set when staff or owner typed the order in
+  createdByUserId: { type: DataTypes.INTEGER, allowNull: true }, // set when staff or owner typed the order in
+  approvalStatus: { type: DataTypes.STRING(12), allowNull: false, defaultValue: '' }, // '' not gated | pending | approved | rejected
+  approvedByUserId: { type: DataTypes.INTEGER, allowNull: true },
+  approvedAt: { type: DataTypes.DATE, allowNull: true }
 }, { tableName: 'restaurant_orders', indexes: [{ fields: ['businessId', 'createdAt'] }] });
 export const TableRequest = sequelize.define('TableRequest', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },

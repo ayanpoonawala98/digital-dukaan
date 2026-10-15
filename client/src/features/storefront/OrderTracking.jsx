@@ -132,7 +132,7 @@ export function OrderTracking({ kind = 'restaurant' }) {
     <span className="kicker">{st("YOUR ORDER")}</span><h1>{st("Order #")}{data?.order?.orderNumber ?? id}</h1>
     {error && <p className="notice error" role="alert">{storefrontError(error)}</p>}{!data && !error && <BrandLoader compact label={st("Loading your order")}/>}
     {data && <section className="dashboard-panel"><h2>{data.store?.name || data.restaurant.name}</h2>
-      <div role="status" aria-live="polite"><h3>{st(statusLabel(flow, data.order.status))}</h3><p>{st(flow.note[data.order.status] || '')}</p></div>
+      <div role="status" aria-live="polite"><h3>{st(statusLabel(flow, data.order.status))}</h3>{data.order.approvalStatus === 'pending' ? <p>{st("The restaurant is checking your order. It goes to the kitchen after they approve it.")}</p> : <p>{st(flow.note[data.order.status] || '')}</p>}</div>
       <StatusSteps kind={kind} storeType={data.store?.storeType} status={data.order.status} orderType={st(data.order.orderType)}/>
       {kind === 'restaurant' && <p>{st(data.order.orderType)}{data.order.tableNumber ? st(" · Table {v0}", {v0:data.order.tableNumber}) : ''}</p>}
       <OrderBody order={data.order}/>

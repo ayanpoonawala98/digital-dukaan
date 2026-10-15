@@ -33,18 +33,29 @@ export const TableBill = sequelize.define('TableBill', {
   paidAt: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
 }, { tableName: 'table_bills', indexes: [{ fields: ['businessId', 'channel', 'tableNumber', 'paidAt'] }, { unique: true, fields: ['businessId', 'billNo'] }] });
 
+// A hold with a phone is a reservation: only that phone (or the browser that first matched it) can order on the
+// table until the hold is released. A hold without a phone stays the old plain "occupied" marker and gates nothing.
 export const TableHold = sequelize.define('TableHold', {
   id: { type: DataTypes.INTEGER, autoIncrement: true, primaryKey: true },
   businessId: { type: DataTypes.INTEGER, allowNull: false },
-  tableNumber: { type: DataTypes.INTEGER, allowNull: false }
+  tableNumber: { type: DataTypes.INTEGER, allowNull: false },
+  phone: { type: DataTypes.STRING(15), allowNull: false, defaultValue: '' },
+  browserHash: { type: DataTypes.STRING(64), allowNull: false, defaultValue: '' },
+  createdByUserId: { type: DataTypes.INTEGER, allowNull: true }
 }, { tableName: 'table_holds', indexes: [{ unique: true, fields: ['businessId', 'tableNumber'] }] });
-export async function setTableHold(store, n, held) {
+export async function setTableHold(store, n, held, { phone = '', userId = null } = {}) {
   await ensureTableBillSchema();
   const t = Number(n);
   if (!Number.isInteger(t) || t < 1 || t > (Number(store.tableCount) || 0)) throw bad(400, 'Invalid table');
-  if (held) await TableHold.findOrCreate({ where: { businessId: store.id, tableNumber: t } });
-  else await TableHold.destroy({ where: { businessId: store.id, tableNumber: t } });
-  return { ok: true, held: !!held };
+  if (held) {
+    if (phone && !/^[1-9]\d{7,14}$/.test(phone)) throw bad(400, 'Phone number needs country code, digits only');
+    const [row, created] = await TableHold.findOrCreate({ where: { businessId: store.id, tableNumber: t }, defaults: { businessId: store.id, tableNumber: t, phone, createdByUserId: userId } });
+    if (!created && phone && row.phone !== phone) throw bad(409, 'This table is already held. Free it first.');
+    if (!created && phone === '' && row.phone) throw bad(409, 'This table is reserved. Free it first.');
+    return { ok: true, held: true, phone: row.phone || phone };
+  }
+  await TableHold.destroy({ where: { businessId: store.id, tableNumber: t } });
+  return { ok: true, held: false };
 }
 
 let ready;
@@ -61,6 +72,9 @@ export function ensureTableBillSchema() {
     await sequelize.query('ALTER TABLE table_bills ADD COLUMN IF NOT EXISTS "roundOff" double precision NOT NULL DEFAULT 0');
     await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "billId" integer');
     await sequelize.query('CREATE INDEX IF NOT EXISTS restaurant_orders_open_idx ON restaurant_orders ("businessId", "billId")');
+    await sequelize.query(`ALTER TABLE table_holds ADD COLUMN IF NOT EXISTS "phone" varchar(15) NOT NULL DEFAULT ''`);
+    await sequelize.query(`ALTER TABLE table_holds ADD COLUMN IF NOT EXISTS "browserHash" varchar(64) NOT NULL DEFAULT ''`);
+    await sequelize.query('ALTER TABLE table_holds ADD COLUMN IF NOT EXISTS "createdByUserId" integer');
   })().catch(e => { ready = null; throw e; });
   return ready;
 }
@@ -71,7 +85,7 @@ const ORDER_CAP = 2000;
 export async function tablesState(store) {
   await ensureTableBillSchema();
   const orders = await sequelize.query(
-    `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,"paymentStatus",note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' ORDER BY "createdAt" ASC LIMIT ${ORDER_CAP}`,
+    `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,"paymentStatus",note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' AND "approvalStatus"<>'pending' ORDER BY "createdAt" ASC LIMIT ${ORDER_CAP}`,
     { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
   // Old unbilled orders stay visible so they can still be billed or cancelled. If more than the cap exist, say so instead of hiding them.
   const [{ n: openCount }] = await sequelize.query(`SELECT COUNT(*)::int AS n FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled'`, { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
@@ -88,8 +102,9 @@ export async function tablesState(store) {
   const view = t => ({ ...t, occupied: t.orders.length > 0, total: sum(t.orders), since: t.orders[0]?.createdAt || null });
   const reqs = await TableRequest.findAll({ where: { businessId: store.id, status: 'open' }, attributes: ['tableNumber', 'kind'], raw: true }).catch(() => []);
   const reqOf = n => { const k = reqs.filter(r => Number(r.tableNumber) === n).map(r => r.kind); return k.includes('bill') ? 'bill' : k.length ? 'waiter' : null; };
-  const holds = new Set((await TableHold.findAll({ where: { businessId: store.id }, attributes: ['tableNumber'], raw: true })).map(h => h.tableNumber));
-  const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number), held: holds.has(t.number), occupied: t.occupied || holds.has(t.number) }));
+  const holds = await TableHold.findAll({ where: { businessId: store.id }, attributes: ['tableNumber', 'phone'], raw: true });
+  const holdOf = new Map(holds.map(h => [h.tableNumber, h.phone || '']));
+  const all = [...tables, ...Object.values(extra)].map(view).map(t => ({ ...t, request: reqOf(t.number), held: holdOf.has(t.number), reservedPhone: holdOf.get(t.number) || '', occupied: t.occupied || holdOf.has(t.number) }));
   return { hiddenOrders: Math.max(0, openCount - orders.length), tableCount: count, menu, name: store.name, address: store.location || '', phone: store.whatsapp || '', gstin: store.gstin || '', gstMode: store.gstMode || null, gstRate: store.gstRate ?? null, tables: all, channels: Object.fromEntries(Object.entries(channels).map(([k, v]) => [k, { orders: v.orders, total: sum(v.orders), open: v.orders.length }])) };
 }
 
@@ -128,6 +143,7 @@ export async function settleBill(store, body, setDone, actor = {}) {
   if (orders.length !== orderIds.length) throw bad(404, 'Order not found');
   for (const o of orders) {
     if (o.billId) throw bad(409, 'An order on this bill is already billed');
+    if (o.approvalStatus === 'pending') throw bad(409, `Order #${o.orderNumber || o.id} is waiting for approval. Approve it first.`);
     if (o.status === 'cancelled') throw bad(400, 'A cancelled order cannot be billed');
     if (String(o.paymentStatus || '').toLowerCase() === 'paid') throw bad(409, `Order #${o.orderNumber || o.id} was already paid online, so it cannot be billed again. Ask the owner.`);
     if (channelOf(o) !== channel || (channel === 'table' && o.tableNumber !== tableNumber)) throw bad(400, 'Orders do not belong to this table');
