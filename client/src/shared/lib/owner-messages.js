@@ -6124,13 +6124,13 @@ export const ownerMessages = {
     "hi": "ऑर्डर #{v0} अस्वीकार करें? यह रद्द हो जाएगा।",
     "mr": "ऑर्डर #{v0} नाकारायचा? तो रद्द होईल."
   },
-  "Approve table orders before the Kitchen": {
-    "hi": "टेबल ऑर्डर किचन से पहले मंज़ूर करें",
-    "mr": "टेबल ऑर्डर किचनपूर्वी मंजूर करा"
+  "Approve orders before the Kitchen": {
+    "hi": "ऑर्डर किचन से पहले मंज़ूर करें",
+    "mr": "ऑर्डर किचनपूर्वी मंजूर करा"
   },
-  "(on: dine-in orders wait for your approval in Orders before the Kitchen sees them. Reserved tables accept orders only from the reserved phone or the same browser.)": {
-    "hi": "(चालू: डाइन-इन ऑर्डर किचन में दिखने से पहले ऑर्डर में आपकी मंज़ूरी का इंतज़ार करते हैं। आरक्षित टेबल पर सिर्फ़ आरक्षित फ़ोन या उसी ब्राउज़र से ऑर्डर आते हैं।)",
-    "mr": "(चालू: डाइन-इन ऑर्डर किचनमध्ये दिसण्यापूर्वी ऑर्डर्समध्ये तुमच्या मंजुरीची वाट पाहतात. राखीव टेबलवर फक्त राखीव फोन किंवा त्याच ब्राउझरमधून ऑर्डर येतात.)"
+  "(on: new dine-in, takeaway and delivery orders wait for your approval in Orders before the Kitchen sees them. Reserved tables accept orders only from the reserved phone or the same browser.)": {
+    "hi": "(चालू: नए डाइन-इन, टेकअवे और डिलीवरी ऑर्डर किचन में दिखने से पहले ऑर्डर में आपकी मंज़ूरी का इंतज़ार करते हैं। आरक्षित टेबल पर सिर्फ़ आरक्षित फ़ोन या उसी ब्राउज़र से ऑर्डर आते हैं।)",
+    "mr": "(चालू: नवीन डाइन-इन, टेकअवे आणि डिलिव्हरी ऑर्डर किचनमध्ये दिसण्यापूर्वी ऑर्डर्समध्ये तुमच्या मंजुरीची वाट पाहतात. राखीव टेबलवर फक्त राखीव फोन किंवा त्याच ब्राउझरमधून ऑर्डर येतात.)"
   },
   "Reserve": {
     "hi": "आरक्षित करें",
