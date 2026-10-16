@@ -219,7 +219,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'gstMode', 'gstRate', 'minOrder', 'storeType', 'tableCount', 'dineInApproval'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'gstMode', 'gstRate', 'minOrder', 'storeType', 'tableCount', 'orderApproval'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -227,7 +227,7 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   if (changes.tableCount !== undefined && (!Number.isInteger(Number(changes.tableCount)) || Number(changes.tableCount) < 0 || Number(changes.tableCount) > 100)) throw bad(400, 'Table count must be 0-100');
   if ((changes.storeType || req.store.storeType) === 'restaurant' && Number(changes.tableCount ?? req.store.tableCount) < 1) throw bad(400, 'Restaurant needs at least one table');
   if (changes.storeType && changes.storeType !== 'restaurant') changes.tableCount = 0;
-  if (changes.dineInApproval !== undefined) changes.dineInApproval = changes.dineInApproval === true;
+  if (changes.orderApproval !== undefined) changes.orderApproval = changes.orderApproval === true;
   if (changes.name !== undefined && (typeof changes.name !== 'string' || !changes.name.trim())) throw bad(400, 'Shop name required');
   if (changes.whatsapp !== undefined && !validPhone(changes.whatsapp)) throw bad(400, 'WhatsApp number needs country code without +');
   if (changes.prepMinutes !== undefined) { if (changes.prepMinutes === '' || changes.prepMinutes === null) changes.prepMinutes = null; else { const m = Number(changes.prepMinutes); if (!Number.isInteger(m) || m < 1 || m > 240) throw bad(400, 'Ready-in minutes must be 1 to 240'); changes.prepMinutes = m; } }

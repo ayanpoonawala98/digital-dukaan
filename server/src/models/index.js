@@ -63,7 +63,7 @@ export const Business = sequelize.define('Business', {
   minOrder: { type: DataTypes.FLOAT, defaultValue: 0, validate: { min: 0 } },
   prepMinutes: { type: DataTypes.INTEGER, allowNull: true },
   featureLocks: { type: DataTypes.JSONB, defaultValue: {} },
-  dineInApproval: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
+  orderApproval: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   notifySettings: { type: DataTypes.JSONB, defaultValue: {} }
 }, { tableName: 'businesses' });
 

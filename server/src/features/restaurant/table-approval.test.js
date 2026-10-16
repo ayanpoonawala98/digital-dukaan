@@ -37,7 +37,7 @@ function restorePublic(olds) {
   [Business.findOne, Product.findAll, RestaurantOrder.create, Coupon.findOne, OrderPushSubscription.findOrCreate, OrderPushSubscription.destroy, OrderPushSubscription.findAll, TableHold.findOne, TableBill.sync, TableHold.sync, sequelize.query] = olds;
 }
 
-test('dine-in orders wait for approval only when the store enables it; reserved tables gate by phone or browser', async () => {
+test('customer orders of every type wait for approval only when the store enables it; reserved tables gate by phone or browser', async () => {
   const created = [];
   const olds = fakePublicBase(created);
   const server = app.listen(0);
@@ -45,17 +45,24 @@ test('dine-in orders wait for approval only when the store enables it; reserved 
   const post = (payload, headers = {}) => fetch(base, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(payload) });
   try {
     // 1. approval off: no gate
-    restaurant.dineInApproval = false;
+    restaurant.orderApproval = false;
     let r = await post({ orderType: 'dine-in', tableNumber: 2, items });
     assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, undefined); assert.equal(created[0].approvalStatus, undefined);
     // 2. approval on: pending
-    restaurant.dineInApproval = true;
+    restaurant.orderApproval = true;
     r = await post({ orderType: 'dine-in', tableNumber: 2, items });
     let body = await r.json();
     assert.equal(r.status, 201); assert.equal(body.pendingApproval, true); assert.equal(created[1].approvalStatus, 'pending');
-    // 3. takeaway is never gated
+    // 3. takeaway and delivery are gated too while the toggle is on
     r = await post({ orderType: 'takeaway', customerName: 'A', customerPhone: '+91 98765 00000', items });
-    assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, undefined);
+    assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, true); assert.equal(created[2].approvalStatus, 'pending');
+    r = await post({ orderType: 'delivery', customerName: 'A', customerPhone: '+91 98765 00000', deliveryAddress: '12 MG Road', items });
+    assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, true); assert.equal(created[3].approvalStatus, 'pending');
+    // toggle back off: every type goes straight to the kitchen again
+    restaurant.orderApproval = false;
+    r = await post({ orderType: 'takeaway', customerName: 'A', customerPhone: '+91 98765 00000', items });
+    assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, undefined); assert.equal(created[4].approvalStatus, undefined);
+    restaurant.orderApproval = true;
     // 4. reserved table: no phone, no browser match -> 409 TABLE_RESERVED
     const hold = { phone: '919876543210', browserHash: '', update: async v => { Object.assign(hold, v); return hold; } };
     TableHold.findOne = async () => hold;

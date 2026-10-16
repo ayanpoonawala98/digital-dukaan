@@ -162,7 +162,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   const orderNote = cleanNote(req.body?.note, 200);
   const estimateMinutes = orderType === 'takeaway' && business.prepMinutes ? business.prepMinutes : null;
   if (orderType === 'dine-in') await gateReservedTable(req, business, table, customerPhone);
-  const pendingApproval = orderType === 'dine-in' && business.dineInApproval === true;
+  const pendingApproval = business.orderApproval === true;
   const order = await RestaurantOrder.create({ deliveryFee, note: orderNote, estimateMinutes, businessId: business.id, orderType, tableNumber: orderType === 'dine-in' ? table : null, deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : null, ...optionalContact(req.body), customerName:orderType==='dine-in'?null:customerName.trim(), customerPhone:orderType==='dine-in'&&!verifyOn?null:customerPhone.trim(), items, subtotal, discount, couponCode: code, total, status: 'new', ...(pendingApproval ? { approvalStatus: 'pending' } : {}) });
   void notifyNewOrder(business, 'restaurant', order);
   void recordCustomerOrder(business.id, order);
