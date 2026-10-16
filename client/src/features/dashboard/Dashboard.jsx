@@ -193,7 +193,7 @@ function LeadRow({ lead, token, storeId, storeType, onChanged }) {
   };
   const items = Array.isArray(lead.items) && lead.items.length ? lead.items : null;
   return <tr>
-    <td data-label={ot('Order')}><small>{ot("Order #")}{lead.orderNumber ?? lead.id}</small><strong>{String(lead.productName || '').replace(/^1 items$/, '1 item')}</strong>{items && <small className="lead-items">{items.map(i => `${i.qty} × ${i.name}${i.answers?.length ? ` (${i.answers.map(a => `${a.label}: ${a.value}`).join(', ')})` : ''}`).join(', ')}</small>}</td>
+    <td data-label={ot('Order')}><small>{ot("Order #")}{lead.orderNumber ?? lead.id}{lead.networkFlag && <em className="flag-chip" title={ot("Several recent orders reached this shop from one network. Check before you confirm - it can still be a real customer.")}>{ot("Check network")}</em>}</small><strong>{String(lead.productName || '').replace(/^1 items$/, '1 item')}</strong>{items && <small className="lead-items">{items.map(i => `${i.qty} × ${i.name}${i.answers?.length ? ` (${i.answers.map(a => `${a.label}: ${a.value}`).join(', ')})` : ''}`).join(', ')}</small>}</td>
     <td data-label={ot('Total')}>{inr(lead.price)}</td>
     <td data-label={ot('When')}>{new Date(lead.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td>
     <td data-label={ot('Customer no.')}><input className="phone-input" value={phone} onChange={e => setPhone(e.target.value)} onBlur={() => phone !== (lead.customerPhone || '') && save(status, false)} placeholder={ot("Customer no.")} aria-label={ot("Customer WhatsApp number")}/></td>

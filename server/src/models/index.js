@@ -119,7 +119,8 @@ export const Lead = sequelize.define('Lead', {
   paymentStatus: { type: DataTypes.STRING(20), allowNull: false, defaultValue: '' },
   paymentLinkId: { type: DataTypes.STRING(60), allowNull: true },
   paymentLinkUrl: { type: DataTypes.STRING(300), allowNull: true },
-  paidAt: { type: DataTypes.DATE, allowNull: true }
+  paidAt: { type: DataTypes.DATE, allowNull: true },
+  networkFlag: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false } // yellow "same network burst" hint for the owner; never a block
 }, { tableName: 'leads', timestamps: true, updatedAt: false, defaultScope: { attributes: { exclude: ['claimCode'] } } });
 
 User.hasMany(Business, { foreignKey: 'ownerId' });
@@ -206,6 +207,7 @@ export const RestaurantOrder = sequelize.define('RestaurantOrder', {
   paidAt: { type: DataTypes.DATE, allowNull: true },
   billId: { type: DataTypes.INTEGER, allowNull: true },
   createdByUserId: { type: DataTypes.INTEGER, allowNull: true }, // set when staff or owner typed the order in
+  networkFlag: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false }, // yellow "same network burst" hint for the owner; never a block
   approvalStatus: { type: DataTypes.STRING(12), allowNull: false, defaultValue: '' }, // '' not gated | pending | approved | rejected
   approvedByUserId: { type: DataTypes.INTEGER, allowNull: true },
   approvedAt: { type: DataTypes.DATE, allowNull: true }
