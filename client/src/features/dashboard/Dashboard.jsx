@@ -38,6 +38,7 @@ import WhatsAppIntegration from '../whatsapp/WhatsAppIntegration.jsx';
 import Customers from './Customers.jsx';
 import { groupNavItems, statusLabel, verticalWords } from '../../shared/lib/owner-ui.js';
 import EnquiriesPanel from './EnquiriesPanel.jsx';
+import ManualLeadOrder from './ManualLeadOrder.jsx';
 import { ThemeToggle, useTheme } from '../../app/theme.jsx';
 import { STORE_THEMES, storeThemeStyle, normalizeHexColor } from '../storefront/store-theme.js';
 import { isTabLocked } from '../../shared/lib/feature-locks.js';
@@ -645,7 +646,7 @@ export default function Dashboard() {
       {tab === 'reviews' && !staffMode && <ReviewsAdmin token={token} storeId={storeId}/>}
       {tab === 'customers' && staffMode && <Customers token={token} storeId={storeId} staffMode/>}
       {tab === 'customers' && !staffMode && <><MappedImport kind="customers" token={token} storeId={storeId} onImported={()=>setCustomerRefresh(n=>n+1)}/><Customers key={customerRefresh} token={token} storeId={storeId}/></>}
-      {tab === 'leads' && <div className="dashboard-panel"><button type="button" className="btn btn-outline btn-small" onClick={()=>{setListRefresh(n=>n+1);load();}} disabled={loading}>{ot("Refresh orders")}</button>
+      {tab === 'leads' && <div className="dashboard-panel"><button type="button" className="btn btn-outline btn-small" onClick={()=>{setListRefresh(n=>n+1);load();}} disabled={loading}>{ot("Refresh orders")}</button> <ManualLeadOrder token={token} storeId={storeId} storeType={data?.business?.storeType} onCreated={()=>{setListRefresh(n=>n+1);load();}}/>
         <div className="leads-head"><p className="muted">{ot("Each row records a WhatsApp order request. Confirm details and payment with the customer. Set a status, add the customer’s number and tap Update to send them a status message on WhatsApp.")}</p>{!staffMode && <button className="btn btn-outline btn-small" disabled={exportBusy} onClick={async () => { setExportBusy(true); try { await download(`/owner/${storeId}/export/vyapar.csv`, `vyapar-sales-${data?.business?.slug || 'store'}.csv`, token); } catch (e) { setError(e.message); } finally { setExportBusy(false); } }}><Busy active={exportBusy}><FileSpreadsheet size={16}/> {exportBusy ? ot("Exporting...") : ot("Export to Vyapar")}</Busy></button>}</div>
         {leads.length ? <div className="table-wrap enquiry-table orders-table"><table><thead><tr><th>{ot("Order")}</th><th>{ot("Total")}</th><th>{ot("When")}</th><th>{ot("Customer no.")}</th><th>{ot("Status")}</th><th></th></tr></thead><tbody>{leads.map(l => <LeadRow key={l.id} lead={l} storeType={data?.business?.storeType} token={token} storeId={storeId} onChanged={()=>{setListRefresh(n=>n+1);load();}}/>)}</tbody></table></div> : <div className="empty-state">{ot("No orders yet. Share your shop to get started.")}</div>}
       </div>}

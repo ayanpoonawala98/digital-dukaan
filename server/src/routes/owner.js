@@ -438,6 +438,44 @@ r.get('/:storeId/leads/report.csv', wrap(async (req,res) => {
   res.type('text/csv').attachment(`orders-${req.store.slug}.csv`).send(ordersCsv(orders,'whatsapp'));
 }));
 
+// Owner/staff-entered order (phone / walk-in / no storefront). Lands in the Orders list exactly like a customer order.
+r.post('/:storeId/leads', wrap(async (req, res) => {
+  if (req.store.storeType !== 'retail') throw bad(404, req.store.storeType === 'restaurant' ? 'Use the restaurant order form' : 'Manual order add is available for retail stores');
+  const raw = Array.isArray(req.body?.items) ? req.body.items : [];
+  if (!raw.length || raw.length > 50) throw bad(400, 'Add at least one item');
+  const merged = new Map();
+  for (const e of raw) {
+    const id = numId(e?.id, 'product'), qty = Number(e?.qty);
+    if (!Number.isInteger(qty) || qty < 1 || qty > 99) throw bad(400, 'Invalid items');
+    merged.set(id, (merged.get(id) || 0) + qty);
+  }
+  const ids = [...merged.keys()];
+  const { Op: SOp } = sequelize.Sequelize;
+  const products = await Product.findAll({ where: { id: { [SOp.in]: ids }, businessId: bid(req), active: true } });
+  if (products.length !== ids.length) throw bad(400, 'A product is not in the catalog');
+  const lines = products.map(p => {
+    const qty = merged.get(p.id);
+    if (p.soldOutToday) throw bad(400, `${p.name} is sold out for today`);
+    if (p.stock !== null && qty > p.stock) throw bad(400, `Only ${p.stock} left in stock for ${p.name}`);
+    return { productId: p.id, name: p.name, price: p.price, qty };
+  });
+  const subtotal = Number(lines.reduce((s, l) => s + Number(l.price) * l.qty, 0).toFixed(2));
+  if (req.store.minOrder > 0 && subtotal < req.store.minOrder) throw bad(400, `Minimum order is Rs.${Number(req.store.minOrder).toFixed(0)}`);
+  const name = String(req.body?.customerName ?? '').replace(/[\u0000-\u001f]/g, ' ').trim().slice(0, 100);
+  const phone = String(req.body?.customerPhone ?? '').trim().slice(0, 20);
+  if (phone && !/^[+\d()\s-]{8,25}$/.test(phone)) throw bad(400, 'Phone number looks wrong');
+  const lead = await Lead.create({
+    businessId: bid(req), productId: null,
+    productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)),
+    price: subtotal, items: lines, discount: 0, couponCode: null, claimCode: null,
+    customerName: name, customerPhone: phone, source: 'staff'
+  });
+  void recordCustomerOrder(req.store.id, lead);
+  // Same owner alerts as a customer order, skipped when the owner entered it themselves.
+  if (req.user.role === 'staff') { void notifyNewOrder(req.store, 'lead', lead); void notifyOwnerDevices(req.store, 'lead', lead); }
+  res.status(201).json({ order: lead });
+}));
+
 
 // ---- Online payments (Razorpay payment links, owner's own keys) ----
 const apiBase = req => `${req.hostname === 'localhost' ? 'http' : 'https'}://${req.get('host')}`;
