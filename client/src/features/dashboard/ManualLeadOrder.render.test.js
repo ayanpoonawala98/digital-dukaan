@@ -76,3 +76,14 @@ test('the button stays hidden on service stores while scope is under review', as
   assert.ok(!t.btn(/^Add order$/)); assert.ok(!t.calls.some(c => c.startsWith('GET ')), t.calls.join(' | '));
   await t.w.__unmount(); t.w.close();
 });
+
+test('the form opens as a labelled dialog and the backdrop closes it', async () => {
+  const t = await boot();
+  await t.w.__click(t.btn(/^Add order$/)); await t.w.__tick();
+  const dialog = t.w.document.querySelector('[role="dialog"]');
+  assert.ok(dialog); assert.equal(dialog.getAttribute('aria-modal'), 'true');
+  await t.w.__click(dialog); await t.w.__tick(); // backdrop click
+  assert.ok(!t.w.document.querySelector('[role="dialog"]'));
+  assert.ok(t.btn(/^Add order$/));
+  await t.end();
+});
