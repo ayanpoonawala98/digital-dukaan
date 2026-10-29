@@ -4,6 +4,7 @@ import {shopCardPdf} from '../features/stores/shop-card-pdf.js';
 import {campaignPublicRoutes} from '../features/notifications/campaigns.js';
 import { publicBusiness, effectiveOpen, blocksOrders } from '../features/stores/hours.js';
 import { gateReservedTable } from '../features/restaurant/table-reserve-gate.js';
+import { recordNetworkSignal } from '../features/orders/network-flags.js';
 import { Router } from 'express';
 import { couponPreviewLimits, verifyLimit, verifyPollLimit, orderLimits, tableRequestLimits, shopRequestLimit, isAllowedPushEndpoint } from '../shared/abuse-limits.js';
 import { haversineKm } from '../shared/utils/geo.js';
@@ -167,6 +168,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   void notifyNewOrder(business, 'restaurant', order);
   void recordCustomerOrder(business.id, order);
   void notifyOwnerDevices(business, 'restaurant', order);
+  if (orderType !== 'dine-in' && (await recordNetworkSignal(req, business, 'restaurant', order.id, customerPhone)).networkFlag) await RestaurantOrder.update({ networkFlag: true }, { where: { id: order.id } });
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
   res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, deliveryFee, estimateMinutes: pendingApproval ? null : estimateMinutes, total, trackingToken, ...(pendingApproval ? { pendingApproval: true } : {}) });
@@ -400,6 +402,7 @@ r.post('/stores/:slug/products/:id/enquire', wrap(async (req, res) => {
   const answers = validateAnswers(product.customFields, req.body?.answers, product.name);
   const lines=[{productId:product.id,name:product.name,price:product.price,qty,...(answers.length?{answers}:{})}];
   const lead = await Lead.create({ businessId: business.id, productId: product.id, productName: product.name, price: subtotal, items:lines, claimCode: orderBotEnabledFor(business.id) ? newClaimCode() : null, ...optionalContact(req.body) });
+  if ((await recordNetworkSignal(req, business, 'lead', lead.id, req.body?.customerPhone)).networkFlag) await Lead.update({ networkFlag: true }, { where: { id: lead.id } });
   void notifyNewOrder(business, 'lead', lead);
   void recordCustomerOrder(business.id, lead);
   void notifyOwnerDevices(business, 'lead', lead);
@@ -442,6 +445,7 @@ r.post('/stores/:slug/enquire-cart', wrap(async (req, res) => {
   const delivery = business.freeDeliveryAbove !== null && subtotal >= business.freeDeliveryAbove ? 0 : Number(business.deliveryCharge || 0);
   const total = Number((subtotal - discount + delivery).toFixed(2));
   const lead = await Lead.create({ businessId: business.id, productId: null, productName: (n => `${n} item${n === 1 ? '' : 's'}`)(lines.reduce((s, l) => s + l.qty, 0)), price: total, items: lines, discount, couponCode: code, claimCode: orderBotEnabledFor(business.id) ? newClaimCode() : null, ...optionalContact(req.body) });
+  if ((await recordNetworkSignal(req, business, 'lead', lead.id, req.body?.customerPhone)).networkFlag) await Lead.update({ networkFlag: true }, { where: { id: lead.id } });
   void notifyNewOrder(business, 'lead', lead);
   void recordCustomerOrder(business.id, lead);
   void notifyOwnerDevices(business, 'lead', lead);
