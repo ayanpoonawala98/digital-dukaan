@@ -9,12 +9,13 @@ const { default: app } = await import('../../app.js');
 const { default: jwt } = await import('jsonwebtoken');
 const { Business, Product, RestaurantOrder, OrderPushSubscription, Coupon, User } = await import('../../models/index.js');
 const { sequelize } = await import('../../config/db.js');
-const { TableHold, TableBill } = await import('../../features/restaurant/table-bills.js');
+const { TableHold, TableBill, tablesState } = await import('../../features/restaurant/table-bills.js');
+const { TableRequest } = await import('../../models/index.js');
 const { KotPrint, KotPrintLead } = await import('../../features/restaurant/kot.js');
 const { PlatformSession, PlatformIdentity } = await import('../../features/whatsapp/storefront-verify.js');
 
 const sha = v => createHash('sha256').update(String(v)).digest('hex');
-const restaurant = { id: 72, slug: 'test-restaurant', name: 'Test restaurant', active: true, storeType: 'restaurant', tableCount: 3, isOpen: true };
+const restaurant = { id: 72, slug: 'test-restaurant', name: 'Test restaurant', active: true, storeType: 'restaurant', tableCount: 3, isOpen: true, prepMinutes: 20 };
 const product = { id: 91, businessId: 72, name: 'Dal', price: 125, stock: 4, active: true };
 const items = [{ id: 91, qty: 2 }];
 const browser = 'b'.repeat(24);
@@ -55,13 +56,17 @@ test('customer orders of every type wait for approval only when the store enable
     assert.equal(r.status, 201); assert.equal(body.pendingApproval, true); assert.equal(created[1].approvalStatus, 'pending');
     // 3. takeaway and delivery are gated too while the toggle is on
     r = await post({ orderType: 'takeaway', customerName: 'A', customerPhone: '+91 98765 00000', items });
-    assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, true); assert.equal(created[2].approvalStatus, 'pending');
+    body = await r.json();
+    assert.equal(r.status, 201); assert.equal(body.pendingApproval, true); assert.equal(created[2].approvalStatus, 'pending');
+    assert.equal(body.estimateMinutes, null, 'no ready-time promise while waiting for approval');
     r = await post({ orderType: 'delivery', customerName: 'A', customerPhone: '+91 98765 00000', deliveryAddress: '12 MG Road', items });
     assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, true); assert.equal(created[3].approvalStatus, 'pending');
     // toggle back off: every type goes straight to the kitchen again
     restaurant.orderApproval = false;
     r = await post({ orderType: 'takeaway', customerName: 'A', customerPhone: '+91 98765 00000', items });
-    assert.equal(r.status, 201); assert.equal((await r.json()).pendingApproval, undefined); assert.equal(created[4].approvalStatus, undefined);
+    body = await r.json();
+    assert.equal(r.status, 201); assert.equal(body.pendingApproval, undefined); assert.equal(created[4].approvalStatus, undefined);
+    assert.equal(body.estimateMinutes, 20, 'estimate returns once the gate is off');
     restaurant.orderApproval = true;
     // 4. reserved table: no phone, no browser match -> 409 TABLE_RESERVED
     const hold = { phone: '919876543210', browserHash: '', update: async v => { Object.assign(hold, v); return hold; } };
@@ -166,5 +171,25 @@ test('reserve route: phone normalised and validated, plain hold unchanged', asyn
   } finally {
     [User.findByPk, Business.findOne, TableHold.findOrCreate, TableHold.destroy, TableBill.sync, TableHold.sync, sequelize.query] = olds;
     await new Promise(resolve => server.close(resolve));
+  }
+});
+
+
+test('tablesState: the open-order count filters pending approvals exactly like the list query', async () => {
+  const olds = [TableBill.sync, TableHold.sync, TableHold.findAll, TableRequest.findAll, sequelize.query];
+  TableBill.sync = async () => {}; TableHold.sync = async () => {};
+  TableHold.findAll = async () => []; TableRequest.findAll = async () => [];
+  const sql = [];
+  sequelize.query = async q => { sql.push(q); return q.includes('COUNT(*)') ? [{ n: 0 }] : []; };
+  try {
+    const state = await tablesState({ id: 72, tableCount: 2, name: 'A' });
+    assert.equal(state.hiddenOrders, 0);
+    const list = sql.find(q => q.includes('FROM restaurant_orders') && !q.includes('COUNT(*)'));
+    const count = sql.find(q => q.includes('COUNT(*)'));
+    assert.ok(list && count, 'both restaurant_orders queries ran');
+    assert.ok(list.includes(`"approvalStatus"<>'pending'`), 'list query filters pending');
+    assert.ok(count.includes(`"approvalStatus"<>'pending'`), 'count query filters pending too - no phantom hiddenOrders warning');
+  } finally {
+    [TableBill.sync, TableHold.sync, TableHold.findAll, TableRequest.findAll, sequelize.query] = olds;
   }
 });

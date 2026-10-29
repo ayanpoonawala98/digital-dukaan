@@ -88,7 +88,7 @@ export async function tablesState(store) {
     `SELECT id,"orderNumber","orderType","tableNumber","customerName","customerPhone","deliveryAddress",items,total,status,"paymentStatus",note,"createdAt" FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' AND "approvalStatus"<>'pending' ORDER BY "createdAt" ASC LIMIT ${ORDER_CAP}`,
     { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
   // Old unbilled orders stay visible so they can still be billed or cancelled. If more than the cap exist, say so instead of hiding them.
-  const [{ n: openCount }] = await sequelize.query(`SELECT COUNT(*)::int AS n FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled'`, { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
+  const [{ n: openCount }] = await sequelize.query(`SELECT COUNT(*)::int AS n FROM restaurant_orders WHERE "businessId"=:b AND "billId" IS NULL AND status<>'cancelled' AND "approvalStatus"<>'pending'`, { replacements: { b: store.id }, type: sequelize.QueryTypes.SELECT });
   const menu = await sequelize.query(`SELECT id,name,price,variants FROM products WHERE "businessId"=:b AND active=true AND ("soldOutDate" IS NULL OR "soldOutDate"<>:today) ORDER BY name ASC LIMIT 600`, { replacements: { b: store.id, today: new Date(Date.now() + 19800000).toISOString().slice(0, 10) }, type: sequelize.QueryTypes.SELECT });
   const count = Math.max(0, Number(store.tableCount) || 0);
   const tables = Array.from({ length: count }, (_, i) => ({ number: i + 1, orders: [] }));

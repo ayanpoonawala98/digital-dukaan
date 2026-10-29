@@ -7273,7 +7273,7 @@
           "Owner and staff"
         ],
         "summary": "POST /api/owner/{storeId}/restaurant-orders/{id}/approval",
-        "description": "normal new order, rejecting cancels it before the customer was ever told it was accepted (no status push either way).",
+        "description": "Approve or reject an order waiting for approval. Approving admits it as a normal new order; rejecting cancels it before the customer was ever told it was accepted (no status push either way).",
         "operationId": "post_api_owner_storeId_restaurant_orders_id_approval",
         "parameters": [
           {

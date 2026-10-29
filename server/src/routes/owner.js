@@ -791,8 +791,8 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   res.json({ order });
 }));
 
-// Admin-side approval gate for dine-in orders. A pending order never reached the Kitchen; approving admits it as a
-// normal new order, rejecting cancels it before the customer was ever told it was accepted (no status push either way).
+// Admin-side approval gate for customer orders: a pending order never reached the Kitchen.
+// Approve or reject an order waiting for approval. Approving admits it as a normal new order; rejecting cancels it before the customer was ever told it was accepted (no status push either way).
 r.post('/:storeId/restaurant-orders/:id/approval', wrap(async (req, res) => {
   if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
   const decision = req.body?.decision;

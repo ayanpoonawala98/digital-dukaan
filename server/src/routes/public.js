@@ -171,7 +171,7 @@ r.post('/stores/:slug/restaurant-orders', wrap(async (req, res) => {
   if (orderType !== 'dine-in' && (await recordNetworkSignal(req, business, 'restaurant', order.id, customerPhone)).networkFlag) await RestaurantOrder.update({ networkFlag: true }, { where: { id: order.id } });
   const trackingToken = signTracking('restaurant', order.id, business.id);
   res.set('Cache-Control', 'no-store');
-  res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, deliveryFee, estimateMinutes, total, trackingToken, ...(pendingApproval ? { pendingApproval: true } : {}) });
+  res.status(201).json({ orderId: order.id, orderNumber: order.orderNumber, status: order.status, subtotal, discount, deliveryFee, estimateMinutes: pendingApproval ? null : estimateMinutes, total, trackingToken, ...(pendingApproval ? { pendingApproval: true } : {}) });
 }));
 
 const TRACKING_KINDS = { 'restaurant-orders': { kind: 'restaurant', model: () => RestaurantOrder, allowed: b => b.storeType === 'restaurant' }, 'lead-orders': { kind: 'lead', model: () => Lead, allowed: b => b.storeType !== 'restaurant' } };
@@ -190,7 +190,7 @@ const trackingPath = (slug, kind, id, token) => `/store/${slug}/order/${kind ===
 const safeItem = i => ({ name: i?.name, qty: i?.qty, price: i?.price, ...(i?.variant ? { variant: i.variant } : {}), ...(Array.isArray(i?.addons) && i.addons.length ? { addons: i.addons.map(a => ({ group: a?.group, name: a?.name, price: a?.price })) } : {}) });
 const serializePhoneHistory = (kind, o) => { const full = serializeOrder(kind, o); return { ...full, items: (Array.isArray(full.items) ? full.items : []).map(safeItem) }; };
 const serializeOrder = (kind, o) => kind === 'restaurant'
-  ? { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, approvalStatus: o.approvalStatus || '', items: o.items, subtotal: o.subtotal, discount: o.discount, deliveryFee: o.deliveryFee, estimateMinutes: o.estimateMinutes, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
+  ? { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, orderType: o.orderType, tableNumber: o.tableNumber, approvalStatus: o.approvalStatus || '', items: o.items, subtotal: o.subtotal, discount: o.discount, deliveryFee: o.deliveryFee, estimateMinutes: o.approvalStatus === 'pending' ? null : o.estimateMinutes, total: o.total, createdAt: o.createdAt, updatedAt: o.updatedAt }
   : { id: o.id, orderNumber: o.orderNumber, kind, status: o.status, items: Array.isArray(o.items) && o.items.length ? o.items.map(i => ({ name: i.name, qty: i.qty, price: i.price })) : [{ name: o.productName, qty: 1, price: o.price }], discount: o.discount, total: o.price, createdAt: o.createdAt };
 const trackedBusiness = async (slug, cfg, access) => {
   // A paused store may still have outstanding orders; deleted stores remain private.
