@@ -93,7 +93,7 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
   const apply = fresh => { if (fresh) setOrders(prev => prev.map(x => (x.id === fresh.id ? { ...x, ...fresh } : x)).filter(x => !DONE.includes(x.status))); };
   const load = useCallback(async () => {
     try {
-      const [o, r] = await Promise.all([api(`/owner/${storeId}/restaurant-orders?pageSize=100&page=1`, { token }), api(`/owner/${storeId}/table-requests`, { token })]);
+      const [o, r] = await Promise.all([api(`/owner/${storeId}/restaurant-orders?pageSize=100&page=1&view=kitchen`, { token }), api(`/owner/${storeId}/table-requests`, { token })]);
       const open = (o.orders || []).filter(x => !DONE.includes(x.status)).reverse();
       const ids = new Set(open.map(x => x.id));
       if (seen.current && [...ids].some(id => !seen.current.has(id)) && soundRef.current) { beep(); buzz([300, 120, 300]); }
@@ -121,7 +121,7 @@ function KitchenBoard({ token, storeId, onStatus, busy, staffMode }) {
   </div>;
 }
 
-export default function RestaurantOrders({ orders, busy, actionKey, onStatus, onRefresh, token, storeId, staffMode, renderPay }) {
+export default function RestaurantOrders({ orders, busy, actionKey, onStatus, onRefresh, onDecide, token, storeId, staffMode, renderPay }) {
   const [view, setViewState] = useState(() => { try { return sessionStorage.getItem('dd-orders-view') === 'kitchen' ? 'kitchen' : 'list'; } catch { return 'list'; } });
   const setView = v => { setViewState(v); try { sessionStorage.setItem('dd-orders-view', v); } catch { /* optional */ } };
   return <div className="rorders">
@@ -130,17 +130,22 @@ export default function RestaurantOrders({ orders, busy, actionKey, onStatus, on
         <button className="btn btn-outline btn-small" type="button" onClick={onRefresh} disabled={busy}>{ot("Refresh orders")}</button></div></div>
     {view === 'kitchen' ? <KitchenBoard token={token} storeId={storeId} onStatus={onStatus} busy={busy} staffMode={staffMode}/> : <>
       <p className="muted">{ot("Dine-in, takeaway and delivery orders appear here with every detail needed to prepare and serve. Payment is handled in person.")}</p>
-      {orders.length ? <div className="rorder-list">{orders.map(o => { const nx = nextStatus(o), steps = stepsFor(o); return <article key={o.id} className={`rorder-card status-${o.status}`}>
-        <header className="ro-head"><TypeChip o={o}/><span className="ro-num">#{o.orderNumber ?? o.id}</span><span className={`rorder-status s-${o.status}`}>{statusText(o.status)}</span><small className="ro-time"><Clock size={12}/> {new Date(o.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</small></header>
+      {orders.length ? <div className="rorder-list">{orders.map(o => { const nx = nextStatus(o), steps = stepsFor(o), pending = o.approvalStatus === 'pending'; return <article key={o.id} className={`rorder-card status-${o.status}`}>
+        <header className="ro-head"><TypeChip o={o}/><span className="ro-num">#{o.orderNumber ?? o.id}</span><span className={`rorder-status s-${o.status}`}>{pending ? ot("Waiting for approval") : statusText(o.status)}</span><small className="ro-time"><Clock size={12}/> {new Date(o.createdAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</small></header>
         <OrderDetails o={o}/>
-        <div className="rorder-actions">
+        {pending ? <div className="rorder-actions">
+          <small className="muted">{ot("Not in the Kitchen yet. Approve to send it there.")}</small>
+          <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={() => onDecide(o, 'approve')}>{ot("Approve")}</button>
+          <button type="button" className="btn btn-outline btn-small danger" disabled={busy} onClick={() => { if (window.confirm(ot("Reject order #{v0}? It will be cancelled.", {v0: o.orderNumber ?? o.id}))) onDecide(o, 'reject'); }}>{ot("Reject")}</button>
+          {actionKey === `order-${o.id}` && <span className="button-spinner"/>}
+        </div> : <div className="rorder-actions">
           <KotButton token={token} storeId={storeId} order={o}/>
           {nx && o.status !== 'cancelled' && <button type="button" className="btn btn-green btn-small" disabled={busy} onClick={() => onStatus(o, nx)}>{ot(NEXT_LABEL[nx])}</button>}
           <select aria-label={ot("Status for order {v0}", {v0: o.id})} value={o.status} disabled={busy} onChange={e => onStatus(o, e.target.value)}>{[...new Set([...steps, o.status, 'cancelled'])].map(s => <option key={s} value={s}>{statusText(s)}</option>)}</select>
           {actionKey === `order-${o.id}` && <span className="button-spinner"/>}
           {renderPay && renderPay(o)}
           {!staffMode && <small className="muted">{ot("In-app order (no automatic WhatsApp alert)")}</small>}
-        </div></article>; })}</div> : <p className="empty-state">{ot("No restaurant orders yet.")}</p>}</>}
+        </div>}</article>; })}</div> : <p className="empty-state">{ot("No restaurant orders yet.")}</p>}</>}
   </div>;
 }
 

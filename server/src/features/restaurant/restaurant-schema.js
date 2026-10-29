@@ -66,6 +66,10 @@ export function ensureRestaurantSchema() {
     await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "deliveryFee" double precision NOT NULL DEFAULT 0`);
     await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "note" varchar(300) NOT NULL DEFAULT ''`);
     await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "estimateMinutes" integer`);
+    await sequelize.query(`ALTER TABLE businesses ADD COLUMN IF NOT EXISTS "orderApproval" boolean NOT NULL DEFAULT false`);
+    await sequelize.query(`ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "approvalStatus" varchar(12) NOT NULL DEFAULT ''`);
+    await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "approvedByUserId" integer');
+    await sequelize.query('ALTER TABLE restaurant_orders ADD COLUMN IF NOT EXISTS "approvedAt" timestamp with time zone');
     await TableRequest.sync(); // additive table
     await PaymentSecret.sync(); // additive table
     await sequelize.query(`ALTER TABLE leads ADD COLUMN IF NOT EXISTS "paymentStatus" varchar(20) NOT NULL DEFAULT ''`);

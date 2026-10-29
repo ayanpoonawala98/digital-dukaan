@@ -7326,6 +7326,75 @@
         ]
       }
     },
+    "/api/owner/{storeId}/restaurant-orders/{id}/approval": {
+      "post": {
+        "tags": [
+          "Owner and staff"
+        ],
+        "summary": "POST /api/owner/{storeId}/restaurant-orders/{id}/approval",
+        "description": "Approve or reject an order waiting for approval. Approving admits it as a normal new order; rejecting cancels it before the customer was ever told it was accepted (no status push either way).",
+        "operationId": "post_api_owner_storeId_restaurant_orders_id_approval",
+        "parameters": [
+          {
+            "name": "storeId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success (JSON)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/Error"
+          },
+          "401": {
+            "$ref": "#/components/responses/Error"
+          },
+          "403": {
+            "$ref": "#/components/responses/Error"
+          },
+          "404": {
+            "$ref": "#/components/responses/Error"
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
+      }
+    },
     "/api/owner/{storeId}/restaurant-orders/{id}/items": {
       "post": {
         "tags": [

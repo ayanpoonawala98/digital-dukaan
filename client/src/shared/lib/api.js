@@ -15,11 +15,11 @@ export async function api(path, { token, body, feedback = true, successMessage, 
     const res = await fetch(`${BASE}/api${path}`, { cache: 'no-store', ...(needsCredentials(path) ? { credentials: 'include' } : {}), ...options, headers: { ...(isForm || body === undefined ? {} : { 'Content-Type': 'application/json' }), ...(token ? { Authorization: `Bearer ${token}` } : {}), ...verifyHeaders(path, method), ...options.headers }, body: isForm ? body : body === undefined ? undefined : JSON.stringify(body) });
     status = res.status;
     data = res.status === 204 ? null : await res.json().catch(() => ({}));
-    if (!res.ok) throw Error(res.status === 403 ? reason403(data?.error) : data?.error || 'Something went wrong. Please try again.');
+    if (!res.ok) throw Object.assign(Error(res.status === 403 ? reason403(data?.error) : data?.error || 'Something went wrong. Please try again.'), { code: data?.code });
   } catch (error) {
     const message = error instanceof TypeError ? 'Unable to connect. Check your internet connection and try again.' : error.message;
     if (feedback) notify('error', message);
-    throw Object.assign(Error(message), { status });
+    throw Object.assign(Error(message), { status, code: error.code });
   }
   if (feedback && !['GET', 'HEAD', 'OPTIONS'].includes(method)) notify('success', successMessage || successFor(path, method, data));
   return data;

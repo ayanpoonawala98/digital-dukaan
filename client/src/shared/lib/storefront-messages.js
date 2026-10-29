@@ -1100,6 +1100,10 @@ export const storefrontMessages = {
     "hi": "मिला",
     "mr": "मिळाली"
   },
+  "sent for approval": {
+    "hi": "मंज़ूरी के लिए भेजा",
+    "mr": "मंजुरीसाठी पाठवला"
+  },
   "required": {
     "hi": "ज़रूरी",
     "mr": "आवश्यक"
@@ -1735,5 +1739,21 @@ export const storefrontMessages = {
   "{rating} out of 5, 1 review": {
     "hi": "5 में से {rating}, 1 समीक्षा",
     "mr": "5 पैकी {rating}, 1 अभिप्राय"
-  }
+  },
+  "This table is reserved. Please order with the phone number it was reserved with.": {
+    "hi": "यह टेबल आरक्षित है। कृपया उसी फ़ोन नंबर से ऑर्डर करें जिससे यह आरक्षित किया गया था।",
+    "mr": "ही टेबल राखीव आहे. कृपया ज्या फोन नंबरने राखीव केली होती त्याच नंबरने ऑर्डर करा."
+  },
+  "Phone this table is reserved with": {
+    "hi": "जिस फ़ोन से यह टेबल आरक्षित है",
+    "mr": "ही टेबल ज्या फोनने राखीव आहे"
+  },
+  "The restaurant will check your order and send it to the kitchen. Payment is arranged with the restaurant. Keep this link to check updates for 30 days. Anyone with the link can view this order.": {
+    "hi": "रेस्टोरेंट आपका ऑर्डर जाँचकर किचन में भेजेगा। पेमेंट रेस्टोरेंट के साथ तय होता है। 30 दिनों तक अपडेट देखने के लिए यह लिंक रखें। जिसके पास यह लिंक है वह यह ऑर्डर देख सकता है।",
+    "mr": "रेस्टॉरंट तुमची ऑर्डर तपासून किचनमध्ये पाठवेल. पेमेंट रेस्टॉरंटशी थरते. ३० दिवस अपडेट पाहण्यासाठी ही लिंक ठेवा. ज्यांच्याकडे ही लिंक आहे तो ही ऑर्डर पाहू शकतो."
+  },
+  "The restaurant is checking your order. It goes to the kitchen after they approve it.": {
+    "hi": "रेस्टोरेंट आपका ऑर्डर जाँच रहा है। मंज़ूरी के बाद यह किचन में जाएगा।",
+    "mr": "रेस्टॉरंट तुमची ऑर्डर तपासत आहे. मंजुरीनंतर ती किचनमध्ये जाईल."
+  },
 };

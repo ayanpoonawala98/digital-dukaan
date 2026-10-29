@@ -30,6 +30,7 @@ import PDFDocument from 'pdfkit';
 import { whatsappCloudOwnerRoutes } from '../features/whatsapp/whatsapp-cloud.js';
 import { byoOwnerRoutes, sendOrderStatus as sendOrderStatusWhatsApp } from '../features/whatsapp/whatsapp-byo.js';
 import { recordCustomerOrder } from '../features/crm/customer-sync.js';
+import { orderPhone } from '../features/crm/customer-pure.js';
 import { reviewOwnerRoutes } from '../features/reviews/reviews.js';
 import { blockRoutes } from '../features/whatsapp/storefront-verify.js';
 import { customerRoutes } from '../features/crm/customer-routes.js';
@@ -218,7 +219,7 @@ r.get('/:storeId/overview', wrap(async (req, res) => {
   res.json({ business: req.store, products, categories, leads, subscribers, topProducts, lowStock });
 }));
 
-const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'gstMode', 'gstRate', 'minOrder', 'storeType', 'tableCount'];
+const EDITABLE = ['name', 'description', 'location', 'whatsapp', 'bannerText', 'bannerActive', 'offerPopupActive', 'offerPopupText', 'offerPopupTitle', 'offerPopupCtaText', 'offerPopupCtaUrl', 'offerPopupImageUrl', 'isOpen', 'autoHours', 'blockWhenClosed', 'openTime', 'closeTime', 'openingHours', 'deliveryCharge', 'freeDeliveryAbove', 'prepMinutes', 'logoUrl', 'coverUrl', 'notifyImageUrl', 'latitude', 'longitude', 'area', 'pincode', 'listInDirectory', 'serviceRadiusKm', 'accentColor', 'upiId', 'gstin', 'gstMode', 'gstRate', 'minOrder', 'storeType', 'tableCount', 'orderApproval'];
 r.patch('/:storeId/business', wrap(async (req, res) => {
   const changes = {};
   for (const key of EDITABLE) if (Object.hasOwn(req.body, key)) changes[key] = req.body[key];
@@ -226,6 +227,7 @@ r.patch('/:storeId/business', wrap(async (req, res) => {
   if (changes.tableCount !== undefined && (!Number.isInteger(Number(changes.tableCount)) || Number(changes.tableCount) < 0 || Number(changes.tableCount) > 100)) throw bad(400, 'Table count must be 0-100');
   if ((changes.storeType || req.store.storeType) === 'restaurant' && Number(changes.tableCount ?? req.store.tableCount) < 1) throw bad(400, 'Restaurant needs at least one table');
   if (changes.storeType && changes.storeType !== 'restaurant') changes.tableCount = 0;
+  if (changes.orderApproval !== undefined) changes.orderApproval = changes.orderApproval === true;
   if (changes.name !== undefined && (typeof changes.name !== 'string' || !changes.name.trim())) throw bad(400, 'Shop name required');
   if (changes.whatsapp !== undefined && !validPhone(changes.whatsapp)) throw bad(400, 'WhatsApp number needs country code without +');
   if (changes.prepMinutes !== undefined) { if (changes.prepMinutes === '' || changes.prepMinutes === null) changes.prepMinutes = null; else { const m = Number(changes.prepMinutes); if (!Number.isInteger(m) || m < 1 || m > 240) throw bad(400, 'Ready-in minutes must be 1 to 240'); changes.prepMinutes = m; } }
@@ -405,6 +407,7 @@ const listWhere = (req, kind) => {
   const where = { businessId: bid(req), ...dateWhere(req.query, Op) };
   const statuses = kind === 'restaurant' ? ORDER_FLOWS.restaurant.statuses : ['new','confirmed','packed','shipped','out-for-delivery','delivered','in-progress','completed','cancelled'];
   if (req.query.status && req.query.status !== 'all') { if (!statuses.includes(req.query.status)) throw bad(400, 'Invalid order status'); where.status = req.query.status; }
+  if (kind === 'restaurant' && req.query.view === 'kitchen') where.approvalStatus = { [Op.ne]: 'pending' };
   const q = String(req.query.q || '').trim().slice(0,100);
   if (q) { const escaped = q.replace(/[\\%_]/g, '\\$&'); where[Op.or] = [{ customerPhone: { [Op.iLike]: `%${escaped}%` } }, { customerName: { [Op.iLike]: `%${escaped}%` } }, ...(kind === 'restaurant' ? [] : [{ productName: { [Op.iLike]: `%${escaped}%` } }])]; if (/^#?\d+$/.test(q)) where[Op.or].push({ orderNumber: Number(q.replace('#','')) }); }
   return where;
@@ -815,6 +818,7 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   if (!ORDER_FLOWS.restaurant.statuses.includes(req.body?.status)) throw bad(400, 'Invalid order status');
   const existing = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
   if (!existing) throw bad(404, 'Order not found');
+  if (existing.approvalStatus === 'pending') throw bad(409, 'Approve this order first.');
   if (!restaurantStatusAllowed(existing.orderType, req.body.status, existing.status)) throw bad(400, `A ${existing.orderType} order cannot be set to ${req.body.status}`);
   await ensureOrderStockSchema();
   const result=await updateOrderStock({sequelize,Order:RestaurantOrder,Product,Ledger:OrderStockLedger,businessId:bid(req),orderId:numId(req.params.id),kind:'restaurant',status:req.body.status,deductStatuses:RESTAURANT_DEDUCT,grandfather:order=>historicalOrder('restaurant',order)});
@@ -822,6 +826,20 @@ r.patch('/:storeId/restaurant-orders/:id', wrap(async (req, res) => {
   const {order,changed}=result;
   if (changed) await notifyOrderSubscribers(req.store, 'restaurant', order);
   if (changed && RESTAURANT_STATUS_TEXT[order.status]) void notifyStatusChange(req.store, 'restaurant', order, RESTAURANT_STATUS_TEXT[order.status]);
+  res.json({ order });
+}));
+
+// Admin-side approval gate for customer orders: a pending order never reached the Kitchen.
+// Approve or reject an order waiting for approval. Approving admits it as a normal new order; rejecting cancels it before the customer was ever told it was accepted (no status push either way).
+r.post('/:storeId/restaurant-orders/:id/approval', wrap(async (req, res) => {
+  if (req.store.storeType !== 'restaurant') throw bad(404, 'Restaurant orders unavailable');
+  const decision = req.body?.decision;
+  if (!['approve', 'reject'].includes(decision)) throw bad(400, 'Choose approve or reject');
+  const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: bid(req) } });
+  if (!order) throw bad(404, 'Order not found');
+  if (order.approvalStatus !== 'pending') throw bad(409, 'This order is not waiting for approval');
+  if (decision === 'approve') await order.update({ approvalStatus: 'approved', approvedByUserId: req.user.id, approvedAt: new Date() });
+  else await order.update({ approvalStatus: 'rejected', approvedByUserId: req.user.id, approvedAt: new Date(), status: 'cancelled' });
   res.json({ order });
 }));
 
@@ -876,6 +894,7 @@ r.post('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
   const order = await sequelize.transaction(async t => {
     const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: req.store.id }, transaction: t, lock: t.LOCK.UPDATE });
     if (!order) throw bad(404, 'Order not found');
+    if (order.approvalStatus === 'pending') throw bad(409, 'Approve this order first.');
     if (order.billId) throw bad(409, 'This order is already billed');
     if (['cancelled', 'delivered', 'picked-up', 'served'].includes(order.status)) throw bad(409, `A ${order.status} order cannot take more items`);
     if (String(order.paymentStatus || '').toLowerCase() === 'paid') throw bad(409, 'This order is already paid online; place a new order for extra items');
@@ -908,6 +927,7 @@ r.patch('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
   const order = await sequelize.transaction(async t => {
     const order = await RestaurantOrder.findOne({ where: { id: numId(req.params.id), businessId: req.store.id }, transaction: t, lock: t.LOCK.UPDATE });
     if (!order) throw bad(404, 'Order not found');
+    if (order.approvalStatus === 'pending') throw bad(409, 'Approve this order first.');
     const locked = editLockReason(order);
     if (locked) throw bad(409, locked);
     let next, money;
@@ -924,7 +944,13 @@ r.patch('/:storeId/restaurant-orders/:id/items', wrap(async (req, res) => {
 // Tables view: live status per table/channel, settle a bill (append-only history).
 const restaurantOnly = req => { if (req.store.storeType !== 'restaurant') throw bad(404, 'Tables unavailable'); };
 r.get('/:storeId/tables', wrap(async (req, res) => { restaurantOnly(req); res.json(await tablesState(req.store)); }));
-r.post('/:storeId/tables/:n/hold', wrap(async (req, res) => { restaurantOnly(req); res.json(await setTableHold(req.store, req.params.n, req.body?.held !== false)); }));
+r.post('/:storeId/tables/:n/hold', wrap(async (req, res) => {
+  restaurantOnly(req);
+  const rawPhone = typeof req.body?.phone === 'string' && req.body.phone.trim() ? req.body.phone : null;
+  const phone = rawPhone === null ? '' : orderPhone(rawPhone);
+  if (rawPhone !== null && !phone) throw bad(400, 'Phone number needs country code, digits only');
+  res.json(await setTableHold(req.store, req.params.n, req.body?.held !== false, { phone: phone || '', userId: req.user.id }));
+}));
 r.get('/:storeId/tables/day-summary', wrap(async (req, res) => { restaurantOnly(req); res.json(await daySummary(req.store, req.query.date)); }));
 r.get('/:storeId/tables/history', wrap(async (req, res) => { restaurantOnly(req); res.json(await billHistory(req.store, req.query)); }));
 r.post('/:storeId/restaurant-orders/:id/kot', wrap(async (req, res) => { restaurantOnly(req); res.json(await makeKot(req.store, numId(req.params.id), req.body?.mode === 'all' ? 'all' : 'new')); }));

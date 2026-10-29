@@ -20,7 +20,9 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const suggested = new URLSearchParams(window.location.search).get('table');
   const initialTable = /^\d{1,3}$/.test(suggested || '') && Number(suggested) <= business.tableCount && Number(suggested) > 0 ? suggested : '';
   const [orderType, setOrderType] = useState('dine-in');
-  const [tableNumber, setTableNumber] = useState(initialTable);
+  const [tableNumber, setTableNumberState] = useState(initialTable);
+  const [reservedAsk, setReservedAsk] = useState(false); // server said the table is reserved: ask for the booking phone
+  const setTableNumber = v => { setTableNumberState(v); setReservedAsk(false); };
   const [customerName, setCustomerName] = useState('');
   const [customerEmail,setCustomerEmail]=useState(''),[customerEmailConsent,setCustomerEmailConsent]=useState(false);
   const [customerPhone, setCustomerPhone] = useState('');
@@ -28,7 +30,7 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
   const [orderNote, setOrderNote] = useState('');
   const [couponCode, setCouponCode] = useState('');
   const [busy, setBusy] = useState(false), [error, setError] = useFeedbackState(''), [placed, setPlaced] = useState(null);
-  useEffect(() => { if (open) { setError(''); setPlaced(null); } }, [open]);
+  useEffect(() => { if (open) { setError(''); setPlaced(null); setReservedAsk(false); } }, [open]);
   const freeAbove = business.freeDeliveryAbove;
   const deliveryFee = orderType === 'delivery' && !(freeAbove !== null && freeAbove !== undefined && cart.subtotal >= freeAbove) ? Number(business.deliveryCharge || 0) : 0;
   const cpv = useCouponPreview(slug, couponCode, cart.subtotal);
@@ -62,18 +64,18 @@ export default function RestaurantCheckout({ slug, business, cart, open, onClose
       } });
       setPlaced(result); cart.clear();
       saveOrder(slug, { kind: 'restaurant', id: result.orderId, token: result.trackingToken, total: result.total });
-    } catch (err) { setError(err.message); } finally { setBusy(false); }
+    } catch (err) { if (err.code === 'TABLE_RESERVED') setReservedAsk(true); setError(err.message); } finally { setBusy(false); }
   };
   if (!open) return null;
   return <div className="drawer-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
     <aside className="drawer restaurant-checkout anim-slide" aria-label={st("Place restaurant order")}>
       <div className="drawer-head"><h3><ShoppingBag size={20}/> {st("Your order")}</h3><button className="icon-btn" onClick={onClose} aria-label={st("Close order form")}><X size={20}/></button></div>
-      {placed ? <div className="empty-state" role="status"><h3>{st("Order #")}{placed.orderNumber ?? placed.orderId} {st("received")}</h3><p>{st("Items total")} {inr(placed.subtotal)}{placed.discount > 0 ? st(", discount {v0}", {v0:inr(placed.discount)}) : ''}{placed.deliveryFee > 0 ? st(", delivery fee {v0}", {v0:inr(placed.deliveryFee)}) : ''}{st(". Order total")} {inr(placed.total)}.</p>{placed.estimateMinutes ? <p><b>{st("Ready in about")} {placed.estimateMinutes} {st("minutes.")}</b></p> : null}<p>{st("The restaurant has your order. Payment is arranged with the restaurant. Keep this link to check updates for 30 days. Anyone with the link can view this order.")}</p><Link className="btn btn-green" to={`/store/${slug}/order/${placed.orderId}#token=${encodeURIComponent(placed.trackingToken)}`}>{st("Track this order")}</Link><button className="btn btn-green" onClick={onClose}>{t('back')}</button></div> : <>
+      {placed ? <div className="empty-state" role="status"><h3>{st("Order #")}{placed.orderNumber ?? placed.orderId} {placed.pendingApproval ? st("sent for approval") : st("received")}</h3><p>{st("Items total")} {inr(placed.subtotal)}{placed.discount > 0 ? st(", discount {v0}", {v0:inr(placed.discount)}) : ''}{placed.deliveryFee > 0 ? st(", delivery fee {v0}", {v0:inr(placed.deliveryFee)}) : ''}{st(". Order total")} {inr(placed.total)}.</p>{placed.estimateMinutes ? <p><b>{st("Ready in about")} {placed.estimateMinutes} {st("minutes.")}</b></p> : null}<p>{placed.pendingApproval ? st("The restaurant will check your order and send it to the kitchen. Payment is arranged with the restaurant. Keep this link to check updates for 30 days. Anyone with the link can view this order.") : st("The restaurant has your order. Payment is arranged with the restaurant. Keep this link to check updates for 30 days. Anyone with the link can view this order.")}</p><Link className="btn btn-green" to={`/store/${slug}/order/${placed.orderId}#token=${encodeURIComponent(placed.trackingToken)}`}>{st("Track this order")}</Link><button className="btn btn-green" onClick={onClose}>{t('back')}</button></div> : <>
         {!cart.items.length ? <div className="empty-state">{st("Your order is empty. Add something from the menu.")}</div> : <>
           <div className="drawer-items">{cart.items.map(item => { const k = lineKey(item); return <div className="cart-row" key={k}><div className="cart-info"><strong><VegDot veg={item.veg}/> {item.qty} × {item.name}</strong>{lineText(item) && <small className="muted">{lineText(item)}</small>}<input className="line-note" value={item.note || ''} maxLength={140} placeholder={st("Note for this item (optional)")} aria-label={st("Note for {v0}", {v0:item.name})} onChange={e => cart.setNote(k, e.target.value)}/><CustomFieldInputs compact fields={item.customFields} answers={item.answers} onChange={a => cart.setAnswers(k, a)}/></div><span>{inr(item.qty * item.price)}</span><button type="button" className="icon-btn" onClick={() => cart.setQty(k, 0)} aria-label={st("Remove {v0}", {v0:item.name})}><X size={16}/></button></div>; })}</div>
           <form className="restaurant-order-form" onSubmit={submit}>
             <label>{t('type')}<select value={orderType} onChange={e => setOrderType(e.target.value)}><option value="dine-in">{t('dine')}</option><option value="takeaway">{t('takeaway')}</option><option value="delivery">{t('delivery')}</option></select></label>
-            {orderType === 'dine-in' ? <label>{t('table')}<select value={tableNumber} onChange={e => setTableNumber(e.target.value)} required><option value="">{st("Choose your table")}</option>{Array.from({ length: business.tableCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>
+            {orderType === 'dine-in' ? <><label>{t('table')}<select value={tableNumber} onChange={e => setTableNumber(e.target.value)} required><option value="">{st("Choose your table")}</option>{Array.from({ length: business.tableCount }, (_, i) => <option key={i + 1} value={i + 1}>{i + 1}</option>)}</select></label>{reservedAsk && <label>{st("Phone this table is reserved with")}<input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} minLength={8} maxLength={25} required/></label>}</>
               : <><label>{t('name')}<input value={customerName} onChange={e => setCustomerName(e.target.value)} maxLength={100} required/></label><label>{t('phone')}<input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} minLength={8} maxLength={25} required/></label></>}
             {gate.modal}
             <label>{st("Email for this order")} <small>{st("(optional, no offers)")}</small><input type="email" maxLength={160} value={customerEmail} onChange={e=>{setCustomerEmail(e.target.value);setCustomerEmailConsent(false);}}/></label><label className="check-label"><input type="checkbox" disabled={!customerEmail} checked={customerEmailConsent} onChange={e=>setCustomerEmailConsent(e.target.checked)}/> {st("Email me updates for this order if the store offers email alerts. Not marketing consent.")}</label>
