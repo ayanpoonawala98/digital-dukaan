@@ -1100,6 +1100,10 @@ export const storefrontMessages = {
     "hi": "मिला",
     "mr": "मिळाली"
   },
+  "sent for approval": {
+    "hi": "मंज़ूरी के लिए भेजा",
+    "mr": "मंजुरीसाठी पाठवला"
+  },
   "required": {
     "hi": "ज़रूरी",
     "mr": "आवश्यक"
